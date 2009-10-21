@@ -1,0 +1,3 @@
+Andrew Gryaznov <realgrandrew@gmail.com> re-wrote jsexec.js and converted the interperter into a stack-based virtual machine
+
+Brendan Eich <brendan@mozilla.org> wrote Narcissus js interpreter

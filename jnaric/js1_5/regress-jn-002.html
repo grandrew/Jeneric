@@ -1,0 +1,43 @@
+<html>
+<head>
+
+</head>
+<body>
+
+<script type="text/javascript">
+
+function test2_noneval (x) {
+    try {
+        if (x > 41) 
+                throw x
+    } 
+    catch (e) {
+        var v = 'catch all ' + e; 
+        alert(v); 
+        if (e == 44) 
+                throw e
+    } 
+    finally {
+        var v = 'fin'; 
+        actual += v + ',';
+        alert(v)
+    }
+}
+
+function test2() {
+    actual = '';
+
+    try { 
+        test2_noneval(44)
+    } catch (e) { 
+        alert('tried f(44), caught ' + e) 
+    }
+
+    alert("The value(2) now is: "+actual); // should be '', finally should not be executed
+}
+
+test2();
+</script>
+
+</body>
+</html>

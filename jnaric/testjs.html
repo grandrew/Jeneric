@@ -1,0 +1,81 @@
+﻿<html>
+<head>
+<script type="text/javascript" src="DataRequestor.js"></script>
+<script type="text/javascript" src="jsdefs.js"></script>
+<script type="text/javascript" src="jsparse.js"></script>
+<script type="text/javascript" src="jsexec.js"></script>
+</head>
+<body>
+<pre id="codeHere">
+
+</pre>
+
+
+Not
+<div id="time_notnativejs">
+</div>
+Nat
+<div id="time_nativejs">
+</div>
+
+<script type="text/javascript">
+
+function fibonacci_native(n)
+			{
+			    return n <= 1 ? n : fibonacci_native(n - 1) + fibonacci_native(n - 2);
+			}
+
+			var start = new Date().getTime();
+			fibonacci_native(17);
+			var time = new Date().getTime() - start;
+			
+			document.getElementById("time_nativejs").appendChild(document.createTextNode(time + "ms"));
+
+
+
+perft = 'function fibonacci(n)\
+			{\
+			    return n <= 1 ? n : fibonacci(n - 1) + fibonacci(n - 2);\
+			}\
+\
+			';
+
+function excp () {
+  try {
+      throw "exceptten!!";
+  } catch (e) {
+      v = e;
+  } finally {
+      return "yo: "+v;
+  }
+}
+
+foo = 'function foo0 () {}';
+foofun = 'function foo () {return 1;}';
+sumfun = 'function foosum (a,b) {return a+b;}';
+fun3 = 'function fun3 () {a={a:1,b:2,c:3,d:4}; b=[]; g=0; for(o in a) {b.push(a[o]);} return b;}';
+fun4 = 'function fun4 () {a={a:1,b:2,c:3,d:4}; b=[]; for(o in a) {b.push(o);} return b;}';
+fun5 = excp.toString();
+
+function fibj () {
+  var start = new Date().getTime();
+  fibonacci_native(17);
+  var time = new Date().getTime() - start;
+  document.getElementById("time_nativejs").appendChild(document.createTextNode(time + "ms"));
+}
+//fibj();
+
+function fibi () {
+  var start = new Date().getTime();
+  evaluate_vm("fibonacci(17)");  // do not do this! 17 takes LONG!!!
+  var time = new Date().getTime() - start;
+  document.getElementById("time_notnativejs").appendChild(document.createTextNode(time + "ms"));
+}
+
+jnaric_vm.evaluate("function x (a) {y=a;}");
+
+
+</script>
+
+</body>
+</html>

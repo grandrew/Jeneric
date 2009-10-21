@@ -1,0 +1,16 @@
+// anarchic.jn
+
+function setSecurityState(state) {
+    wakeupIPCLock = false;
+}
+
+function getSecurityState() {
+    return {};
+}
+
+function validateRequest (rq) {
+    return true; // always allow...
+}
+
+initIPCLock = false;
+

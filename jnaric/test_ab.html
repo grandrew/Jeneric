@@ -1,0 +1,39 @@
+﻿<html>
+<head>
+<script type="text/javascript" src="jsdefs.js"></script>
+<script type="text/javascript" src="jsparse.js"></script>
+<script type="text/javascript" src="jsexec.js"></script>
+</head>
+<body>
+<script type="text/javascript">
+
+DEBUG = false;
+
+function loop_A_dom () {
+  var v = "a"
+  while(1) {
+    if (v == "A")
+      v = "a";
+    else
+      v = "A";
+    document.body.appendChild(document.createTextNode(v));
+  }
+}
+
+
+function loop_B_dom () {
+  var v = "b";
+  while(1) {
+    if (v == "B")
+      v = "b";
+    else
+      v = "B";
+    document.body.appendChild(document.createTextNode(v));
+  }
+}
+
+start_new_thread_dummy(loop_A_dom);
+start_new_thread_dummy(loop_B_dom);
+</script>
+</body>
+</html>

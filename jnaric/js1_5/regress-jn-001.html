@@ -1,0 +1,59 @@
+<html>
+<head>
+
+</head>
+<body>
+
+<script type="text/javascript">
+// this code is based on js1_5/extensions/regress-350312-03.js
+function test1() {
+    f  = eval("(function (x) {try {if (x > 41) throw x} catch (e) {var v = 'catch all ' + e; alert(v); if (e == 44) throw e} finally{var v = 'fin'; actual += v + ',';alert(v)}})");
+
+    actual = '';
+
+    try { 
+        f(44) 
+    } catch (e) { 
+        alert('tried f(44), caught ' + e) 
+    }
+
+    alert("The value(1) now is: "+actual); // should be '', finally should not be executed
+}
+
+
+function test2_noneval (x) {
+    try {
+        if (x > 41) 
+                throw x
+    } 
+    catch (e) {
+        var v = 'catch all ' + e; 
+        alert(v); 
+        if (e == 44) 
+                throw e
+    } 
+    finally {
+        var v = 'fin'; 
+        actual += v + ',';
+        alert(v)
+    }
+}
+
+function test2() {
+    actual = '';
+
+    try { 
+        test2_noneval(44)
+    } catch (e) { 
+        alert('tried f(44), caught ' + e) 
+    }
+
+    alert("The value(2) now is: "+actual); // should be '', finally should not be executed
+}
+
+test1();
+test2();
+</script>
+
+</body>
+</html>

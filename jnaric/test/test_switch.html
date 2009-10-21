@@ -1,0 +1,48 @@
+<html>
+<head>
+<script type="text/javascript" src="../DataRequestor.js"></script>
+<script type="text/javascript" src="../jsdefs.js"></script>
+<script type="text/javascript" src="../jsparse.js"></script>
+<script type="text/javascript" src="../jsexec.js"></script>
+
+<script type="text/javascript" src="test_files.js"></script>
+</head>
+<body>
+
+<script type="text/javascript">
+
+var curPos = 0;
+
+DEBUG = 5;
+
+
+function test_it() {
+
+    vm = new Jnaric();
+    vm.onfinish = function () {
+        if(vm.global.a == 1) vm.ErrorConsole.log("TEST OK");
+        else vm.ErrorConsole.log("TEST FAIL");
+        
+    };
+    vm.onerror = function () {
+        if(vm.global.a == 1) vm.ErrorConsole.log("TEST OK");
+        else vm.ErrorConsole.log("TEST FAIL");
+        
+    };
+    /*
+    vm.ErrorConsole.log2 = function (s) {
+        document.body.appendChild(document.createTextNode(s));
+        document.body.appendChild(document.createElement("BR"));
+    };
+    */
+    vm.global.a=0;
+    vm.load('test_switch.jn');
+}
+
+
+test_it();
+
+</script>
+
+</body>
+</html>

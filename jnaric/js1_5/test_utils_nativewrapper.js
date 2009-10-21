@@ -1,0 +1,1 @@
+﻿ErrorConsole = console; // firebug only

@@ -1,0 +1,79 @@
+<html>
+<head>
+<script type="text/javascript" src="../DataRequestor.js"></script>
+<script type="text/javascript" src="../jsdefs.js"></script>
+<script type="text/javascript" src="../jsparse.js"></script>
+<script type="text/javascript" src="../jsexec.js"></script>
+
+<script type="text/javascript" src="test_files.js"></script>
+</head>
+<body>
+
+<script type="text/javascript">
+
+// TODO: rerun tests from 54 - Uncaught exception errors unreadable
+var curPos = 258;//80;//54;//68;//35;
+
+DEBUG = 0;
+
+//var console = {};
+//console.log = function(s) {
+ //   document.body.appendChild(document.createTextNode(s));
+//};
+
+function test_it() {
+    if(curPos >= testfiles.length) return;
+    vm = new Jnaric();
+    vm.onfinish = function () {
+        vm.ErrorConsole.log("-- done, next: "+testfiles[curPos] + " Number: "+curPos);
+        test_it();
+    };
+    vm.onerror = function () {
+        vm.ErrorConsole.log("-- error, next: "+testfiles[curPos] + " Number: "+curPos);
+        test_it();
+    };
+    vm.ErrorConsole.log2 = function (s) {
+        document.body.appendChild(document.createTextNode(s));
+        document.body.appendChild(document.createElement("BR"));
+    };
+    vm.load('test_utils.js');
+    vm.load(testfiles[curPos++]);
+}
+
+function test_it2(fname) {
+    vm = new Jnaric();
+    vm.DEBUG = 0;
+    vm.onfinish = function () {
+        //alert("ok");
+        vm.ErrorConsole.log("-- done");
+    };
+    vm.load('test_utils.js');
+    vm.load(fname);
+    vm.ErrorConsole.log2 = function (s) {
+        document.body.appendChild(document.createTextNode(s));
+        document.body.appendChild(document.createElement("BR"));
+    }
+    //setTimeout(checkVM,1000);
+}
+
+function checkVM () {
+    for(var i=0; i<vm.ErrorConsole.messages.length; i++) {
+        if(vm.ErrorConsole.messages[i].indexOf("TEST FAIL") >= 0) {
+            vm.__abort();
+            console.log("ABORTED VM DUE TO FAIL IN TEST");
+            return;
+        }
+    }
+    setTimeout(checkVM,3000);
+}
+
+//test_it2("extensions/regress-348986.js"); 
+//test_it2("Scope/regress-446026-01.js");
+//test_it2("extensions/regress-327608.js"); 
+//test_it2("extensions/regress-459606.js"); 
+test_it2("Exceptions/regress-315147.js"); 
+//test_it();
+</script>
+
+</body>
+</html>
