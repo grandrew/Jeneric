@@ -26,7 +26,6 @@ ANNOUNCE_PATH = "/announce";
 RQ_RESEND_INTERVAL = 10000; // milliseconds to wait before request send retries
 ACK_TIMEOUT = 60000; // milliseconds before give up resending
 MAX_WINDOW_SIZE = 60000; // ms. max window size for ACKs to remember
-KEY_LENGTH = 80; // bytes stringkey length
 // GENERAL INIT part
 
 
@@ -191,7 +190,7 @@ function randomString( string_length ) {
 // TODO: implement transport layer here!
 hubConnection = {
     receive: null, // to be set by jsobject
-    ___SESSIONKEY: randomString(KEY_LENGTH),
+    ___SESSIONKEY: randomString(80),
     stomp: new STOMPClient(),
     rqe: {},
     announce: function () {

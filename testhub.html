@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>uri hub test</title>
+<script src="http://localhost:9000/static/Orbited.js"></script>
+<script>
+TCPSocket = Orbited.TCPSocket;
+</script>
+<script src="http://localhost:9000/static/protocols/stomp/stomp.js"></script>
+</head>
+<body>
+<script>
+
+
+    // In production use your js toolkit's onload system, or event listeners
+//    onload = function() {
+        
+        stomp = new STOMPClient();
+
+        stomp.onopen = function() {
+        };
+
+        stomp.onclose = function(c) { console.log('Lost Connection, Code: ' + c);};
+
+        stomp.onerror = function(error) {
+            console.log("Error: " + error);
+        };
+        stomp.onerrorframe = function(frame) {
+            console.log("Error: " + frame.body);
+        };
+        stomp.onconnectedframe = function() {
+            stomp.subscribe("/hub");
+        };
+        stomp.onmessageframe = function(frame) {
+            console.log(frame.body)
+        };
+        stomp.connect('localhost', 61613);
+//    }
+</script>
+</body></html>

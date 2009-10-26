@@ -579,13 +579,16 @@ function eos_rcvEvent(data) {
             hubConnection.send(rq);
         } else {
             var cbo = function (rs) {
-                // rs is already a good object..
-                hubConnection.send(rs);                
+                // create response object, omit args
+                
             };
 
+            var cbe = function (rs) {
+                // create exception object, omit args
+            };
             
             
-            dest.execIPC(rq, cbo, cbo); 
+            dest.execIPC(rq, cbo, cbe); 
         }
     }
 }
