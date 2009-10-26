@@ -194,10 +194,13 @@ hubConnection = {
     ___SESSIONKEY: randomString(KEY_LENGTH),
     stomp: new STOMPClient(),
     rqe: {},
+    acks: {},
     announce: function () {
         // do announce only when connected!
         this.stomp.subscribe(this.___SESSIONKEY);
-        this.send("", ANNOUNCE_PATH, {session: this.___SESSIONKEY}); // we will receive our terminal_id back!
+        console.log("sending ");
+        console.log({ "session": this.___SESSIONKEY });
+        this.stomp.send(JSON.stringify({ "session": this.___SESSIONKEY }), ANNOUNCE_PATH, { "session": this.___SESSIONKEY }); // we will receive our terminal_id back!
     },
     
     init: function () {
@@ -241,14 +244,30 @@ hubConnection = {
             }
             
             // now receive ack
+            /*
             if(frame.headers.ack) {
                 self.ack_rcv(frame.headers.ack);
                 return;
             }
-            
+            */
                         
             // now decode body
-            var rq = JSON.parse(frame.body);
+            try {
+                var rq = JSON.parse(frame.body);
+            } catch (e) {
+                console.log("Invalid JSON data received: "+frame.body);
+                return;
+            }
+            
+            if(rq.ack) {
+                self.ack_rcv(rq.ack);
+                return;
+            }
+            
+            if(rq.error && rq.error == "NOSESSION") {
+                hubConnection.announce();
+                return;           
+            }
 
             // send ack that we've received the stuff
             if(! self.ack_snd(rq.id)) return; // means we've already processed
@@ -273,7 +292,8 @@ hubConnection = {
     
     send_real: function () {
         var ct = (new Date()).getTime();
-        for( i in this.rqe) {
+        for(var i in this.rqe) {
+            if(i == "__defineProperty__") continue; // XXX FUCK!!
             if(ct - this.rqe[i]["t"] > ACK_TIMEOUT) {
                 // XXX only for requests??
                 
@@ -291,12 +311,14 @@ hubConnection = {
                 delete this.rqe[i];
                 
             } else {
+                this.rqe[i]["r"].session = this.___SESSIONKEY;
                 this.stomp.send(JSON.stringify(this.rqe[i]["r"]), HUB_PATH);
             }
         }
         // cleanup ACKs window
         
-        for(i in this.acks) {
+        for(var i in this.acks) {
+            if(i == "__defineProperty__") continue; // XXX FUCK!!
             if(ct - this.acks[i] > MAX_WINDOW_SIZE) {
                 delete this.acks[i];
             }
@@ -309,10 +331,10 @@ hubConnection = {
     
     ack_snd: function (rqid) {
         var t = true;
-        if( rqid in this.acks) t = false;
+        if(rqid in this.acks) t = false;
         this.acks[rqid] = (new Date()).getTime(); // XXX make sure the local rqID and response (HUB ones) namespaces never get intersected
         console.log("sending ack");
-        this.stomp.send("", HUB_PATH, {ack: rqid});
+        this.stomp.send(JSON.stringify({ack: rqid}), HUB_PATH, {ack: rqid});
         return t;
     },
     
@@ -321,8 +343,8 @@ hubConnection = {
     }
 };
 
-
-
+hubConnection.init();
+hubConnection.receive = eos_rcvEvent; // XXX this interconnects with jsobject.js in an ugly way...
 
 
 

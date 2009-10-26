@@ -241,7 +241,8 @@ function eos_execURI(vm, sUri, sMethod, lArgs, timeout) {
     // this is a blocking call, so block the VM thread first
     var cs = vm.cur_stack;
     cs.EXCEPTION = false;
-    cs.STOP = true;
+    var mystop = __jn_stacks.newId();
+    cs.STOP = mystop;
     if(vm.DEBUG) vm.ErrorConsole.log("in execURI... stopped stack!");
     // . means current object
     // .. means parent object
@@ -285,7 +286,7 @@ function eos_execURI(vm, sUri, sMethod, lArgs, timeout) {
         // create a request
         // ... and callback
         if(vm.DEBUG) vm.ErrorConsole.log("in execURI... request for HUB");
-        eos_hubRequest(vm, cs, sUri, sMethod, lArgs, timeout); 
+        eos_hubRequest(vm, cs, sUri, sMethod, lArgs, timeout, mystop); 
         
     } else {
         // TODO: URI caching
@@ -349,7 +350,7 @@ function eos_execURI(vm, sUri, sMethod, lArgs, timeout) {
                 }
                 ex.result = rs.result;
                 cs.exc.result = ex;
-                cs.STOP = false;
+                cs.STOP = false; // XXX TODO: MAY it release foreign LOCK??? SHIT!!
                 __jn_stacks.start(cs.pid);   
                 
             };
@@ -369,7 +370,7 @@ function eos_execURI(vm, sUri, sMethod, lArgs, timeout) {
 
 
 
-function eos_hubRequest(vm, cs, sUri, sMethod, lArgs, timeout) {
+function eos_hubRequest(vm, cs, sUri, sMethod, lArgs, timeout, _mystop) {
 
     // TODO: return something if the HUB connection is not ready!?!?!
     //       deal with sudden hibernation???
@@ -393,7 +394,7 @@ function eos_hubRequest(vm, cs, sUri, sMethod, lArgs, timeout) {
         args: lArgs
     };
     
-    __eos_requests[rq.id] = {request: rq, stack: cs, context: x2}; 
+    __eos_requests[rq.id] = {request: rq, stack: cs, context: x2, vm: vm}; 
     
     /////////////////////////////////////////////////////////////////
     // all the below does not apply to STOMP/Comet method ->>
@@ -473,10 +474,12 @@ function eos_hubRequest(vm, cs, sUri, sMethod, lArgs, timeout) {
     
     */
     
-    
-    if(typeof(timeout) == "Number") {
+    // Set a general timeout anyways...
+    var to = 60000; 
+    if(typeof(timeout) == "Number") to = timeout;
+
         var tmf = function () {
-            if(!cs.STOP) return;
+            if(cs.STOP != _mystop) return;
             cs.EXCEPTION = THROW;
             var ex = new vm.global.InternalError("execURL failed with TIMEOUT");
             ex.status = "TIMEOUT";
@@ -487,14 +490,14 @@ function eos_hubRequest(vm, cs, sUri, sMethod, lArgs, timeout) {
             hubConnection.abort(rq.id);
             
         };
-        setTimeout(tmf, timeout); // document that timeout is milliseconds
-    }
+        setTimeout(tmf, to); // document that timeout is milliseconds
+    
     
     hubConnection.send(rq);
 
 }
 
-function eos_rcvEvent(data) {
+function eos_rcvEvent(rq) {
 
    //rq = JSON.parse(data);
     
@@ -504,6 +507,7 @@ function eos_rcvEvent(data) {
 
         var x2 = __eos_requests[rq.id]["context"];
         var cs = __eos_requests[rq.id]["stack"];
+        var vm = __eos_requests[rq.id]["vm"];
 
         if(rq.status == "OK") {   
             x2.result = rq.result;
@@ -516,27 +520,27 @@ function eos_rcvEvent(data) {
             cs.EXCEPTION = THROW;
         
             if (rq.status == "EEXCP") {
-                var ex = new vm.global.InternalError("execURL failed with exception: "+rs.result);
+                var ex = new vm.global.InternalError("execURL failed with exception: "+rq.result);
                 ex.result = rq.result;
             } else if (rq.status == "ECONN") {
 
                 cs.EXCEPTION = THROW;
-                var ex = new vm.global.InternalError("connection failed: "+rs.result);
+                var ex = new vm.global.InternalError("connection failed: "+rq.result);
                 ex.result = rq.result;
             } else if (rq.status == "EPERM") {
 
                 cs.EXCEPTION = THROW;
-                var ex = new vm.global.SecurityError(rs.result);
+                var ex = new vm.global.SecurityError(rq.result);
                 ex.result = rq.result;
             } else if (rq.status == "EDROP") {
      
                 cs.EXCEPTION = THROW;
-                var ex = new new vm.global.InternalError("connection failed: "+rs.result);
+                var ex = new new vm.global.InternalError("connection failed: "+rq.result);
                 ex.result = rq.result;
             } else {
                 // unknown status received
                 cs.EXCEPTION = THROW;
-                var ex = new vm.global.InternalError("execURL failed with UNKNOWN status: "+rs.status);
+                var ex = new vm.global.InternalError("execURL failed with UNKNOWN status: "+rq.status);
             }
 
             cs.exc.result = ex;
@@ -590,7 +594,7 @@ function eos_rcvEvent(data) {
     }
 }
 
-hubConnection.receive = eos_rcvEvent;
+
 
 
 

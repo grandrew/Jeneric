@@ -277,7 +277,7 @@ class Hub(StompClientFactory):
                 
                 rr = rq["uri"].split("/")[1:];
                 rr[0] = "~"
-                rq["uri"] = string.join(rr, "/") # TODO XXX DISCUSS: should I change DST URI to terminal shortcut???
+                rq["uri"] = string.join(rr, "/") 
                 
                 try:
                     sess = get_session_by_terminal( term )
