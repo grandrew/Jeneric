@@ -142,7 +142,7 @@ SERIALIZATION IMPL:
     - restoreAsChild(name, StringOrFixedStorageRef) - restore a child from a given string or fixed storage file reference
 ... and, there are very many cases when the serialization may fail
 but all that shit is nesessary!
-
+XXX there may be several local storage implementations: gears (preferred), silverlight/db4o, flash (ugly)
 
 
 CLONE:
@@ -475,8 +475,12 @@ function eos_hubRequest(vm, cs, sUri, sMethod, lArgs, timeout, _mystop) {
     */
     
     // Set a general timeout anyways...
-    var to = 60000; 
-    if(typeof(timeout) == "Number") to = timeout;
+    // TODO: general timeout should be dependent on data receipt???
+    //       if there is no data receiving??? wtf?
+    //       XXX XXX XXX need another mechanism to remove locks 
+    //       TODO: ping server regularly! (or the session will expire and be deleted)
+    ///// var to = 60000; 
+    if(typeof(timeout) == "Number") {
 
         var tmf = function () {
             if(cs.STOP != _mystop) return;
@@ -490,8 +494,8 @@ function eos_hubRequest(vm, cs, sUri, sMethod, lArgs, timeout, _mystop) {
             hubConnection.abort(rq.id);
             
         };
-        setTimeout(tmf, to); // document that timeout is milliseconds
-    
+        setTimeout(tmf, timeout); // document that timeout is milliseconds
+    }
     
     hubConnection.send(rq);
 
@@ -501,7 +505,7 @@ function eos_rcvEvent(rq) {
 
    //rq = JSON.parse(data);
     
-    if(rq.result) {
+    if(rq.result || rq.status) {
         // this is result arrived;
         if(!(rq.id in __eos_requests)) return; // silently fail? XXX
 
@@ -576,11 +580,26 @@ function eos_rcvEvent(rq) {
         
         // TODO HERE
         if(typeof(dest) == "string") {
-            // redir
-            rq.uri = dest;
-            rq.status = "REDIR"; // instruction for HUB
-            rq.result = ""; // to indicate we're result
-            hubConnection.send(rq);
+            // redir 
+            // 1. locally
+            // 2. globally
+            if(dest.charAt(0) == "/") {
+                rq.uri = dest;
+                rq.status = "REDIR"; // instruction for HUB
+                //rq.result = ""; // to indicate we're NOT;) result
+                hubConnection.send(rq);
+            } else if (dest.charAt(0) == "~") {
+                rq.uri = dest;
+                // treat as we've received this one
+                eos_rcvEvent(rq);
+            } else {
+                // XXX TODO XXX RELATIVE REDIRECTION NOT SUPPORTED!!
+                delete rq.args
+                rq.result = "Redirection failed";
+                rq.status = "EEXCP";
+                hubConnection.send(rq);
+                return;
+            }
         } else {
             var cbo = function (rs) {
                 // rs is already a good object..
@@ -624,7 +643,8 @@ Jnaric.prototype.execIPC = function (rq, cbOK, cbERR) {
         if(rq.method in self.global.object.ipc) { // __ipc
 
             var cbo2 = function (result) {
-
+                // if(typeof(result) == "undefined") result = -999999999;
+                // TODO: introduce UNDEFINED transfer?
                 cbOK({id: rq.id, status: "OK", result: result});
             };
             

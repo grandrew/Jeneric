@@ -20,4 +20,13 @@ ic.jn=ic.jn
 ramstore.jn=ramstore.jn
 terminal.jn=terminal.jn
 
+[logging]
+debug=STDERR,debug.log
+info=STDERR,info.log
+access=STDERR,info.log
+warn=STDERR,error.log
+error=STDERR,error.log
+
+#Don't enable debug by default
+enabled.default=debug,info,access,warn,error
 

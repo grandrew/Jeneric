@@ -107,15 +107,16 @@ while(true) {
         brDOM();
 
          
-        // 
+        // write() IPC method: used to notify of events; HUB Connected: termname; HUB connection lost
         // 
         // ipc - arbitrary ipc method caller
         // create - arbitrary child object creation
         // edit - simple <pre> editor 
         // readlog - show ErrorConsole log
+        // set ... - set various ic# parameters: write allow, app search PATH
+        // ping URI - time the exception callback; periodically (1s interval)
 
 
-        // write <[/]USER[/terminal[/icInstance_path]]> - write to a specific authenticated agent, to all terminal ICs, or to a specific IC
         // xedit - highlighting text editor; determine filetype by name/ext or by mimetype, if any returned
         break;
       case "version":
@@ -180,7 +181,7 @@ while(true) {
         brDOM();
  
         try {
-            execURI(p1, "write", [p2]);
+            execURI(p1, "write", [p2], 20000);
         } catch (e) {
             printDOM("typeto: write() failed with: "+e+"; trying to create ramstore instead"); brDOM();
             try {
@@ -190,8 +191,8 @@ while(true) {
                 lURI.pop();
                 oparent = lURI.join("/");
                 //printDOM("Creating "+oname+" at "+oparent); brDOM();
-                execURI(oparent, "createChild", [oname, "~/sys/ramstore", "~/sys/anarchic"]);
-                execURI(p1, "write", [p2]);
+                execURI(oparent, "createChild", [oname, "~/sys/ramstore", "~/sys/anarchic"], 20000);
+                execURI(p1, "write", [p2], 20000);
             } catch (e) {
                 printDOM("typeto: failed with: "+e); brDOM();
             }
@@ -216,7 +217,7 @@ while(true) {
         }
         
         try {
-            execURI(p2, "write", [data]);
+            execURI(p2, "write", [data], 20000);
         } catch (e) {
             printDOM("copy: trying to create new ramstore"); brDOM();
             try {

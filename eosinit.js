@@ -188,18 +188,20 @@ function randomString( string_length ) {
 	return randomstring;
 }
 
-// TODO: implement transport layer here!
+// TODO: ping the server periodically
 hubConnection = {
     receive: null, // to be set by jsobject
+    fresh: true,
     ___SESSIONKEY: randomString(KEY_LENGTH),
     stomp: new STOMPClient(),
     rqe: {},
     acks: {},
     announce: function () {
+        // TODO: announce ourself with credentials so server says we're the one we need
+        //       i.e. send terminal authentication data
         // do announce only when connected!
-        this.stomp.subscribe(this.___SESSIONKEY);
-        console.log("sending ");
-        console.log({ "session": this.___SESSIONKEY });
+        console.log("announcing...");
+        
         this.stomp.send(JSON.stringify({ "session": this.___SESSIONKEY }), ANNOUNCE_PATH, { "session": this.___SESSIONKEY }); // we will receive our terminal_id back!
     },
     
@@ -209,7 +211,8 @@ hubConnection = {
         };
 
         this.stomp.onclose = function(c) { 
-            hubConnection.connect(); 
+            // TODO: notify terminal of events
+            setTimeout( (function () { hubConnection.connect(); }), 2000);
             console.log('Lost Connection, Code: ' + c); // TODO: log to terminal?
         };
 
@@ -222,14 +225,21 @@ hubConnection = {
         };
 
         this.stomp.onconnectedframe = function() {
-            console.log("announcing...");
-            hubConnection.announce();
+            // TODO: notify terminal of events
+            if(hubConnection.fresh) {
+                
+                hubConnection.fresh = false;
+                hubConnection.announce(); // XXX we dont need to announce each time we reconnect. This should be a transparent process
+            }
             
             var hr = function () {
                 hubConnection.send_real();
             };
             
-            setInterval(hr, RQ_RESEND_INTERVAL); 
+            hubConnection.stomp.subscribe(hubConnection.___SESSIONKEY);
+            
+            clearInterval(hubConnection.si);
+            hubConnection.si = setInterval(hr, RQ_RESEND_INTERVAL); 
             
         };
         
@@ -237,12 +247,14 @@ hubConnection = {
 
         this.stomp.onmessageframe = function(frame) {
             // here to receive the messages. 
-            // take care of 'session lost' errors! 
+            // take care of 'session lost' errors!
+            /*
+            // in fact, headers do not work in Orbited in this configureation 
             if(frame.headers.error && frame.headers.error == "NOSESSION") {
                 hubConnection.announce();
                 return;
             }
-            
+            */
             // now receive ack
             /*
             if(frame.headers.ack) {
@@ -265,6 +277,7 @@ hubConnection = {
             }
             
             if(rq.error && rq.error == "NOSESSION") {
+                console.log("no session, doing announce");
                 hubConnection.announce();
                 return;           
             }
@@ -282,7 +295,7 @@ hubConnection = {
     
     connect: function () {
         console.log("starting HUB connection...");
-        this.stomp.connect(E_SERVER, E_PORT); 
+        this.stomp.connect(E_SERVER, E_PORT, "eos", "eos"); 
     },
     
     send: function (rq) {
@@ -326,6 +339,7 @@ hubConnection = {
     },
     
     ack_rcv: function (rqid) {
+        console.log("ack!");
         delete this.rqe[rqid];
     },
     

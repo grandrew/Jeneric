@@ -1,12 +1,24 @@
 # the URI HUB for jeos3
 
-# TODO: STOMP security so noone can attach to HUB events!!
-# TODO: REDIR support
-# TODO: clean up the request objects on response internally! (in case we're reporting errors)
 
+
+# - terminal registration support
+#   - terminal methods support
+#       - register(tname, tkey)
+#       - auth(tname, tkey): will change tname and send the hook 
+#         XXX may result in bad behaviour since terminal creds change at run-time (mostly security issue)
+#   - 'ping' method support; AND check if any request/response touches session!
+#       - and ping from hubConnection
+#   - announce with credentials tname/tkey
+# - IHCP support (controller, peer)
+# - remove object_name from here and jsobject!
+# - dynamic transport window on both sides
+# - clean up the request objects on response internally! (in case we're reporting errors)
 
 # first, have a memory storage
 
+# test redir
+# test security??
 
 # required: 
 
@@ -16,6 +28,8 @@
 # stompservice egg
 # pyorbited egg
 # orbited egg
+# - patch line 119 /usr/lib/python2.5/site-packages/morbid-0.8.7.3-py2.5.egg/morbid/mqsecurity.py
+#         global security_parameters
 
 from stompservice import StompClientFactory
 from twisted.internet import reactor
@@ -33,6 +47,7 @@ ANNOUNCE_PATH = "/announce"
 # later: data pipes, etc.
 
 HUB_PATH = "/hub"
+HUB_PRIVATE_KEY = "SuPeRkEy" # OMFG!! <-> STOMP -->> orbited
 #SESSION_PATH = "/session"
 
 TIMEOUT_SESSION = 1000 # seconds
@@ -47,9 +62,18 @@ sessions = {}
 terminals = {}
 
 
+# XXX the HUB SHOULD guarantee uniquity of terminalID and sessions in its DB
+#     rather the terminal may supply its SESSIONKEY each time it reconnects (and possibly receives a new terminalID)
 def add_session(t, s):
     sessions[t] = {"s": s, "tm":time.time()}
     terminals[s] = t
+
+def touch_session(s):
+    try:
+        sessions[terminals[s]]["tm"] = time.time()
+    except KeyError:
+        print "No session to touch"
+        
     
 def clean_timeout():
     time.sleep(TIMEOUT_SESSION/2);
@@ -80,7 +104,7 @@ def rq_append(rq, oldid):
 def rq_pull(rq):
     k = str(rq["id"]);
     if not k in rq_pending: return None;
-    r = {"terminal_id": rq_pending[k]["r"]["terminal_id"], "old_id": rq_pending[k]["old_id"]}
+    r = {"terminal_id": rq_pending[k]["r"]["terminal_id"], "old_id": rq_pending[k]["old_id"], "r": rq_pending[k]["r"]}
     del rq_pending[k]
     return r
                 
@@ -94,7 +118,8 @@ def genhash(length=8, chars=string.letters + string.digits):
 
 
 class Hub(StompClientFactory):
-
+    username = "hub"
+    password = HUB_PRIVATE_KEY
     
     
     rqe = {}
@@ -228,6 +253,7 @@ class Hub(StompClientFactory):
                 return
             
             msg["headers"]["session"] = rq["session"]
+            touch_session(rq["session"])
             del rq["session"]
             
             try:
@@ -247,13 +273,15 @@ class Hub(StompClientFactory):
 
             # now pass the request to destination
             
-            if "result" in rq:
-            
+            if "result" in rq or ("status" in rq and rq["status"] != "REDIR"): # XXX protocol mess...
+                
+                    
+                
                 # result arrived, get the caller dest by id and forward
                 
                 d = rq_pull(rq)
                 if d is None:
-                    
+                    # XXX General protection fault..
                     return
                 caller = d["terminal_id"]
                 oid = d["old_id"]
@@ -266,6 +294,18 @@ class Hub(StompClientFactory):
                 
             else:
                 # if it is request: 
+                if ("status" in rq) and (rq["status"] == "REDIR"):
+                    # handle redir
+                    # del rq["status"]
+                    # choose another request as this one
+                    d = rq_pull(rq)
+                    if d is None:
+                        # XXX General protection fault..
+                        return
+                    d["r"]["uri"] = rq["uri"]
+                    rq = d["r"]["uri"]
+                    terminal = rq["terminal_id"] # because we've set the right one already
+
                 rq["terminal_id"] = terminal # just change it
                 oldid = rq["id"] # XXX remove redundancy
                 rq["hub_oid"] = rq["id"]
@@ -277,7 +317,7 @@ class Hub(StompClientFactory):
                 
                 rr = rq["uri"].split("/")[1:];
                 rr[0] = "~"
-                rq["uri"] = string.join(rr, "/") 
+                rq["uri"] = string.join(rr, "/") # TODO XXX DISCUSS: should I change DST URI to terminal shortcut???
                 
                 try:
                     sess = get_session_by_terminal( term )
