@@ -1,10 +1,10 @@
 <html>
 <head>
-<script type="text/javascript" src="jnaric/DataRequestor.js"></script>
-<script type="text/javascript" src="jnaric/json2.js"></script>
-<script type="text/javascript" src="jnaric/jsdefs.js"></script>
-<script type="text/javascript" src="jnaric/jsparse.js"></script>
-<script type="text/javascript" src="jnaric/jsexec.js"></script>
+<script type="text/javascript" src="ratbird/DataRequestor.js"></script>
+<script type="text/javascript" src="ratbird/json2.js"></script>
+<script type="text/javascript" src="ratbird/jsdefs.js"></script>
+<script type="text/javascript" src="ratbird/jsparse.js"></script>
+<script type="text/javascript" src="ratbird/jsexec.js"></script>
 <script type="text/javascript" src="jsobject.js"></script>
 <script type="text/javascript" src="jsdom.js"></script>
 

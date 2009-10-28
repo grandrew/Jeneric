@@ -1,4 +1,11 @@
 // ic.jn
+WRITE_ON = true;
+object.ipc["write"] = function(rq, data) {
+    // write 
+    if(WRITE_ON) {
+        brDOM(); printDOM("Message from "+rq["terminal_id"]+": "+data.substr(0, 1000)); brDOM(); // the RQ may contain 'username' if we use the right security model..
+    }
+}
 
 function printDOM( txt ) {
     var x = document.createElement("DIV");
@@ -99,7 +106,13 @@ while(true) {
         printDOM("  copy <From-URI> <To-URI> - perform a bytecopy of a ramstore");
         brDOM();
 
-        printDOM("  link <What-URI> <Where-URI> - link an object URI to a ramstore parent as specified path");
+        printDOM("  link <What-URI> <As-URI> - link an object URI creating a 'link' child at <As-URI>");
+        brDOM();
+
+        printDOM("  register <name> <key> <identity info> - register a terminal at HUB");
+        brDOM();
+
+        printDOM("  auth <name> <key>  - authenticate a terminal at HUB");
         brDOM();
 
         
@@ -181,7 +194,7 @@ while(true) {
         brDOM();
  
         try {
-            execURI(p1, "write", [p2]);
+            execURI(p1, "write", [p2], 20000);
         } catch (e) {
             printDOM("typeto: write() failed with: "+e+"; trying to create ramstore instead"); brDOM();
             try {
@@ -191,8 +204,8 @@ while(true) {
                 lURI.pop();
                 oparent = lURI.join("/");
                 //printDOM("Creating "+oname+" at "+oparent); brDOM();
-                execURI(oparent, "createChild", [oname, "~/sys/ramstore", "~/sys/anarchic"]);
-                execURI(p1, "write", [p2]);
+                execURI(oparent, "createChild", [oname, "~/sys/ramstore", "~/sys/anarchic"], 20000);
+                execURI(p1, "write", [p2], 20000);
             } catch (e) {
                 printDOM("typeto: failed with: "+e); brDOM();
             }
@@ -217,7 +230,7 @@ while(true) {
         }
         
         try {
-            execURI(p2, "write", [data]);
+            execURI(p2, "write", [data], 20000);
         } catch (e) {
             printDOM("copy: trying to create new ramstore"); brDOM();
             try {
@@ -257,8 +270,48 @@ while(true) {
         
         break;
 
+      case "register":
+        p1 = s.split(" ")[1];
+        p2 = s.split(" ")[2];
+        var p3 = s.split(" ")[3]; // TODO: need multi-word support. like braces or smth?
+        if(!p3) p3 = "";
+        if(!p1 || !p2 || !p3) {
+            printDOM("register: not enough parameters"); brDOM();
+            break;
+        }
+        
+        
+        try {
+            execURI("/", "register", [ p1, p2, p3 ], 20000);
+        } catch (e) {
+            printDOM("register: failed with: "+e); brDOM();
+            break; // does not break out...
+        }
+        printDOM("register OK"); brDOM();
+        break;
+
+
+      case "auth":
+        p1 = s.split(" ")[1];
+        p2 = s.split(" ")[2];
+        if(!p1 || !p2 ) {
+            printDOM("auth: not enough parameters"); brDOM();
+            break;
+        }
+        
+        
+        try {
+            execURI("/", "auth", [ p1, p2 ], 20000);
+        } catch (e) {
+            printDOM("auth: failed with: "+e); brDOM();
+            break; // does not break out...
+        }
+        printDOM("auth OK"); brDOM();
+        break;
+
       
       default:
+        // TODO: search for commands at PATH?
         printDOM(c+": no such command; type 'help' for a list of available commands");
         brDOM();
         

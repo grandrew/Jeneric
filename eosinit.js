@@ -28,7 +28,7 @@ ACK_TIMEOUT = 60000; // milliseconds before give up resending
 MAX_WINDOW_SIZE = 60000; // ms. max window size for ACKs to remember
 KEY_LENGTH = 80; // bytes stringkey length
 // GENERAL INIT part
-
+kconfig = {}; // kernel configuration
 
 _terminal_vm = new Jnaric();
 
@@ -188,7 +188,23 @@ function randomString( string_length ) {
 	return randomstring;
 }
 
-// TODO: ping the server periodically
+// TODO: parse kernel parameters, use terminal_id and terminal_key as logon credentials
+(function () {
+var params = location.href.toString().split('#')[1];
+var nv;
+if(params) {
+    var lp = params.split(",");
+    for(var i=0; i<lp.length; i++) {
+        if(lp[i].search("=") > -1) {
+            nv = lp[i].split("=");
+            kconfig[nv[0]] = nv[1];
+        }
+    }
+}
+})()
+
+// do announce with new credentials if the hubConnectionChanged hook is received
+//       this is rather a terminal issue!
 hubConnection = {
     receive: null, // to be set by jsobject
     fresh: true,
@@ -200,9 +216,13 @@ hubConnection = {
         // TODO: announce ourself with credentials so server says we're the one we need
         //       i.e. send terminal authentication data
         // do announce only when connected!
-        console.log("announcing...");
-        
-        this.stomp.send(JSON.stringify({ "session": this.___SESSIONKEY }), ANNOUNCE_PATH, { "session": this.___SESSIONKEY }); // we will receive our terminal_id back!
+        if(window.console) console.log("announcing...");
+        var ann = { "session": this.___SESSIONKEY };
+        if(kconfig.terminal_id && kconfig.terminal_key) { // TODO document this!
+            ann.terminal_id = kconfig.terminal_id;
+            ann.terminal_key = kconfig.terminal_key;
+        }
+        this.stomp.send(JSON.stringify(ann), ANNOUNCE_PATH); // we will receive our terminal_id back!
     },
     
     init: function () {
@@ -213,15 +233,15 @@ hubConnection = {
         this.stomp.onclose = function(c) { 
             // TODO: notify terminal of events
             setTimeout( (function () { hubConnection.connect(); }), 2000);
-            console.log('Lost Connection, Code: ' + c); // TODO: log to terminal?
+            if(window.console) console.log('Lost Connection, Code: ' + c); // TODO: log to terminal?
         };
 
         this.stomp.onerror = function(error) {
-            console.log("Error: " + error);
+            if(window.console) console.log("Error: " + error);
         };
 
         this.stomp.onerrorframe = function(frame) {
-            console.log("Errorframe: " + frame.body);
+            if(window.console) console.log("Errorframe: " + frame.body);
         };
 
         this.stomp.onconnectedframe = function() {
@@ -267,7 +287,7 @@ hubConnection = {
             try {
                 var rq = JSON.parse(frame.body);
             } catch (e) {
-                console.log("Invalid JSON data received: "+frame.body);
+                if(window.console) console.log("Invalid JSON data received: "+frame.body);
                 return;
             }
             
@@ -277,7 +297,7 @@ hubConnection = {
             }
             
             if(rq.error && rq.error == "NOSESSION") {
-                console.log("no session, doing announce");
+                if(window.console) console.log("no session, doing announce");
                 hubConnection.announce();
                 return;           
             }
@@ -288,13 +308,13 @@ hubConnection = {
             // now pass further
             self.receive(rq);
             
-            console.log(frame.body)
+            if(window.console) console.log(frame.body)
         };
 
     },
     
     connect: function () {
-        console.log("starting HUB connection...");
+        if(window.console) console.log("starting HUB connection...");
         this.stomp.connect(E_SERVER, E_PORT, "eos", "eos"); 
     },
     
@@ -339,7 +359,7 @@ hubConnection = {
     },
     
     ack_rcv: function (rqid) {
-        console.log("ack!");
+        if(window.console) console.log("ack!");
         delete this.rqe[rqid];
     },
     
@@ -347,7 +367,7 @@ hubConnection = {
         var t = true;
         if(rqid in this.acks) t = false;
         this.acks[rqid] = (new Date()).getTime(); // XXX make sure the local rqID and response (HUB ones) namespaces never get intersected
-        console.log("sending ack");
+        if(window.console) console.log("sending ack");
         this.stomp.send(JSON.stringify({ack: rqid}), HUB_PATH, {ack: rqid});
         return t;
     },
@@ -356,6 +376,9 @@ hubConnection = {
         delete this.rqe[rqid];
     }
 };
+
+// start the pinger
+setTimeout((function() {hubConnection.send({id: __jn_stacks.newId(), uri: "/", method: "ping", args: []});}), 90000)
 
 hubConnection.init();
 hubConnection.receive = eos_rcvEvent; // XXX this interconnects with jsobject.js in an ugly way...

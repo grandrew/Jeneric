@@ -1,4 +1,11 @@
 // ic.jn
+WRITE_ON = true;
+object.ipc["write"] = function(rq, data) {
+    // write 
+    if(WRITE_ON) {
+        brDOM(); printDOM("Message from "+rq["terminal_id"]+": "+data.substr(0, 1000)); brDOM(); // the RQ may contain 'username' if we use the right security model..
+    }
+}
 
 function printDOM( txt ) {
     var x = document.createElement("DIV");
@@ -89,8 +96,9 @@ while(true) {
         brDOM();
         printDOM("  cat <URI> - try to read() the object at <URI> as if it was a ramstore-like object.");
         brDOM();
-        printDOM("  typeto <URI> - write() the text typed next, to specified <URI> ramstore object, create if nesessary.");
+        printDOM("  typeto <URI> - write() the text typed next, to specified <URI> ramstore object, create if nesessary. You may also type to another ic# console: like typeto /mycomp/console");
         brDOM();
+        
         
         printDOM("  delete <URI> - call deleteChild on ramstore");
         brDOM();
@@ -99,7 +107,13 @@ while(true) {
         printDOM("  copy <From-URI> <To-URI> - perform a bytecopy of a ramstore");
         brDOM();
 
-        printDOM("  link <What-URI> <Where-URI> - link an object URI to a ramstore parent as specified path");
+        printDOM("  link <What-URI> <As-URI> - link an object URI creating a 'link' child at <As-URI>");
+        brDOM();
+
+        printDOM("  register <name> <key> <identity info> - register a terminal at HUB");
+        brDOM();
+
+        printDOM("  auth <name> <key>  - authenticate a terminal at HUB");
         brDOM();
 
         
@@ -257,8 +271,48 @@ while(true) {
         
         break;
 
+      case "register":
+        p1 = s.split(" ")[1];
+        p2 = s.split(" ")[2];
+        var p3 = s.split(" ")[3]; // TODO: need multi-word support. like braces or smth?
+        if(!p3) p3 = "";
+        if(!p1 || !p2 || !p3) {
+            printDOM("register: not enough parameters"); brDOM();
+            break;
+        }
+        
+        
+        try {
+            execURI("/", "register", [ p1, p2, p3 ], 20000);
+        } catch (e) {
+            printDOM("register: failed with: "+e); brDOM();
+            break; // does not break out...
+        }
+        printDOM("register OK"); brDOM();
+        break;
+
+
+      case "auth":
+        p1 = s.split(" ")[1];
+        p2 = s.split(" ")[2];
+        if(!p1 || !p2 ) {
+            printDOM("auth: not enough parameters"); brDOM();
+            break;
+        }
+        
+        
+        try {
+            execURI("/", "auth", [ p1, p2 ], 20000);
+        } catch (e) {
+            printDOM("auth: failed with: "+e); brDOM();
+            break; // does not break out...
+        }
+        printDOM("auth OK"); brDOM();
+        break;
+
       
       default:
+        // TODO: search for commands at PATH?
         printDOM(c+": no such command; type 'help' for a list of available commands");
         brDOM();
         

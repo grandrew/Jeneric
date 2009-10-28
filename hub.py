@@ -3,13 +3,15 @@
 
 
 # - terminal registration support
-#   - terminal methods support
-#       - register(tname, tkey)
-#       - auth(tname, tkey): will change tname and send the hook 
+#   + terminal methods support
+#       + register(tname, tkey)
+#       + auth(tname, tkey): will change tname and send the hook 
 #         XXX may result in bad behaviour since terminal creds change at run-time (mostly security issue)
-#   - 'ping' method support; AND check if any request/response touches session!
-#       - and ping from hubConnection
-#   - announce with credentials tname/tkey
+#       - passwd (tname, kurkey, newkey) - change password
+#   + 'ping' method support; AND check if any request/response touches session!
+#       + and ping from hubConnection
+#   + announce with credentials tname/tkey -> from init ## parameters
+#   + ic# write() ipc!
 # - remove object_name from here and jsobject!
 # - IHCP support (controller, peer)
 # - dynamic transport window on both sides
@@ -36,7 +38,9 @@ from twisted.internet import reactor
 from twisted.internet.task import LoopingCall
 from random import random,seed,choice
 from orbited import json
-import string,time,thread,copy
+import string,time,thread,copy,sqlite3
+
+REGISTRAR_DB = "/var/lib/eoshub/registrar.sqlite"
 
 PFX = "t" # terminal ID prefix
 # SFX = "" # hub domain suffix
@@ -50,10 +54,13 @@ HUB_PATH = "/hub"
 HUB_PRIVATE_KEY = "SuPeRkEy" # OMFG!! <-> STOMP -->> orbited
 #SESSION_PATH = "/session"
 
-TIMEOUT_SESSION = 1000 # seconds
+TIMEOUT_SESSION = 200 # seconds
 MAX_WINDOW_SIZE = 60 # transport layer maximum window size [ack]
 RQ_RESEND_INTERVAL = 10 # seconds between resend attempts
 ACK_TIMEOUT = 60 # seconds timeout to give up resending
+
+###########################################################################################
+
 
 rq_pending = {}
 idsource = 0
@@ -61,6 +68,13 @@ idsource = 0
 sessions = {}
 terminals = {}
 
+
+dbconn = sqlite3.connect(REGISTRAR_DB);
+c = dbconn.cursor()
+c.execute('''create table if not exists reg
+(name text UNIQUE, key text, identity text, created int, accessed int)''')
+dbconn.commit()
+c.close()
 
 # XXX the HUB SHOULD guarantee uniquity of terminalID and sessions in its DB
 #     rather the terminal may supply its SESSIONKEY each time it reconnects (and possibly receives a new terminalID)
@@ -211,15 +225,162 @@ class Hub(StompClientFactory):
     def clientConnectionLost(self, connector, reason):
         print 'Connection Lost. Reason:', reason
         self.clientConnectionFailed(connector, reason)
+    
+    def processHUBRequest(self, rq, msg):
+        # process the request and return the rs object
+        r = ""
+        s = ""
+        m = rq["method"]
+        
+        
+        
+        if m == "register":
+            try:
+                name = rq["args"][0]
+                key = rq["args"][1]
+                ident = rq["args"][2]
+            except KeyError:
+                s = "EEXCP"
+                r = "invalid arguments"
+            if len(s) == 0: # XXX arbitrary length limitations??
+                if len(name) < 2: 
+                  s = "EEXCP"
+                  r = "name cannot be less than two chars"
+                if len(key) < 2:
+                  s = "EEXCP"
+                  r = "key cannot be less than two chars"
+            if len(s) == 0:
+                # try to register the terminal
+                c = dbconn.cursor();
+                try:
+                    
+                    c.execute("insert into reg (name, key, identity, created, accessed) values (?,?,?,?,?)", (rq["args"][0],rq["args"][1],rq["args"][2], int(time.time()),int(time.time())))
+                    dbconn.commit()
+                    s = "OK"
+                    r = "registered"
+                except sqlite3.Error, e:
+                    # deny registration with errror
+                    s = "EEXCP"
+                    r = repr(e.args[0])
+                c.close()
+        elif m == "passwd":
+            try:
+                name = rq["args"][0]
+                key_old = rq["args"][1]
+                key_new = rq["args"][2]
+            except KeyError:
+                s = "EEXCP"
+                r = "invalid arguments"
+            if len(s) == 0:
+                c = dbconn.cursor();
+                try:
+                    c.execute("update or fail reg set key=? where name=? and key=?", (key_new, name, key_old))
+                    dbconn.commit()
+                    s = "OK"
+                    r = "changed"
+                except sqlite3.Error, e:
+                    # deny registration with errror
+                    s = "EEXCP"
+                    r = "incorrect credentials"
+                c.close()            
+        elif m == "auth": 
+            # XXX THIS procedure should be run from terminal object only, if at all...
+            #     or the system will be unable to re-authenticate itself upon hub request if the kernel parameters not set
+            # change current session credentials
+            try:
+                name = rq["args"][0]
+                key = rq["args"][1]
+            except KeyError:
+                s = "EEXCP"
+                r = "invalid arguments"
+            if len(s) == 0: # XXX arbitrary length limitations??                
+                c = dbconn.cursor()
+                s = "EEXCP"
+                r = "wrong name/key pair"
+                try:
+                #if 1:
+                    c.execute('select * from reg where name=? and key=?', (name, key))
+                    termname = c.fetchone()[0]
+                    add_session(termname, msg["headers"]["session"]) 
+                    
+                    rq2 = {
+                           "id": genhash(10)+str(newId()), 
+                           # "user_name": "none", # XXX get rid of this!!
+                           "terminal_id": "hub",
+                           #// optional but mandatory for local calls
+                           # "object_name": "",
+                           "object_type": "",
+                           "object_uri": "/",
+                           #// now the actual params
+                           "uri": "~",
+                           "method": "hubConnectionChanged",
+                           "args": [termname]
+                    };
+                    
+                    rq2["hub_oid"] = rq2["id"] # for compat
+                    self.send(msg["headers"]["session"], rq2)
+                    s = "OK"
+                    r = ""
+                    
+                except sqlite3.Error, e:
+                    print "Could not authenticate terminal (auth):", e.args[0]
+                except:
+                    print "Other general error:"
+                c.close()
 
+        elif m == "logout":
+            # drop session
+            try:
+                ss = msg["headers"]["session"]
+                del sessions[terminals[ss]]
+                del terminals[ss]    
+            except KeyError:
+                print "dropping unknown session. WTF?"
+                pass
+            
+            s = "OK"
+            r = ""
+        elif m == "ping":
+            s = "OK"
+            r = "pong"
+        else:
+            s = "EEXCP"
+            r = "no such method"
+        
+        
+        try:
+            del rq["args"]
+        except KeyError:
+            pass;
+        rq["result"] = r
+        rq["status"] = s
+        return rq
 
     def recv_message(self,msg):
         print "Received", repr(msg)
         if msg["headers"]["destination"] == ANNOUNCE_PATH:
             # the client wants another session, give it
             print "Caught announce!"
+            
+            rq = json.decode(msg["body"])
+            
             termname = PFX+str(newId())
-            msg["headers"]["session"] = json.decode(msg["body"])["session"]
+            
+            if "terminal_id" in rq and "terminal_key" in rq:
+                c = dbconn.cursor()
+                try:
+                    name = rq["terminal_id"]
+                    key = rq["terminal_key"]
+                    c.execute('select * from reg where name=? and key=?', (name, key))
+                    termname = c.fetchone()[0]
+                except sqlite3.Error, e:
+                    print "Could not authenticate terminal:", e.args[0]
+                except:
+                    print "Other general error:"
+                c.close()
+            
+            
+            msg["headers"]["session"] = rq["session"]
             session = msg["headers"]["session"]
             add_session(termname, session) 
             
@@ -293,6 +454,12 @@ class Hub(StompClientFactory):
                 # XXX: no such object here -> notify callee??
                 
             else:
+                # first, check if the request is for our own subsystem
+                if rq["uri"] == "/":
+                    # process the request and send the response
+                    self.send( msg["headers"]["session"] , self.processHUBRequest(rq, msg))
+                    return
+                
                 # if it is request: 
                 if ("status" in rq) and (rq["status"] == "REDIR"):
                     # handle redir

@@ -70,6 +70,9 @@ ErrorConsole.log("running crech");
 // TODO: error reporting here!!! in case SMTH not available, etc! //  TODO: TEST it without sleep!
 child = object.createChild("console", "~/sys/ic", "~/sys/anarchic", xd); // unprivileged... auto-bind to DOM div, etc.
 
+// TODO: do announce with new credentials if the hubConnectionChanged hook is received
+//       this is rather a terminal issue!
+
 // now register our terminal methods
 // (no methods except for the execURI which is left a default kernel implementation)
 

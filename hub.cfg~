@@ -3,7 +3,7 @@ session.ping_interval = 300
 
 [listen]
 http://:9000
-stomp://:61613
+stomp://:61613 morbidq.cfg
 
 [access]
 * -> localhost:61613

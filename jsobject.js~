@@ -1,6 +1,6 @@
-// Be completely free to do what you want, write what you want, share what you want, customize, modify, invent...
+// Be completely free to do what you want, create what you want, share what you want, customize, modify, invent...
 // Whatever.
-// Unlock your mind. jnaric. together we are free.
+// Unlock your mind. jeneric. together we are free.
 
 /*
 
@@ -480,10 +480,12 @@ function eos_hubRequest(vm, cs, sUri, sMethod, lArgs, timeout, _mystop) {
     //       XXX XXX XXX need another mechanism to remove locks 
     //       TODO: ping server regularly! (or the session will expire and be deleted)
     ///// var to = 60000; 
-    if(typeof(timeout) == "Number") {
-
+    if(typeof(timeout) == "number") {
+        //console.log("setting timeout");
         var tmf = function () {
+            //console.log("timeout hit!!");
             if(cs.STOP != _mystop) return;
+            //console.log("timeout hit!!2");
             cs.EXCEPTION = THROW;
             var ex = new vm.global.InternalError("execURL failed with TIMEOUT");
             ex.status = "TIMEOUT";
@@ -505,7 +507,7 @@ function eos_rcvEvent(rq) {
 
    //rq = JSON.parse(data);
     
-    if(rq.result) {
+    if(rq.result || rq.status) {
         // this is result arrived;
         if(!(rq.id in __eos_requests)) return; // silently fail? XXX
 
@@ -526,7 +528,7 @@ function eos_rcvEvent(rq) {
             if (rq.status == "EEXCP") {
                 var ex = new vm.global.InternalError("execURL failed with exception: "+rq.result);
                 ex.result = rq.result;
-            } else if (rq.status == "ECONN") {
+            } else if (rq.status == "ECONN") { // XXX unused
 
                 cs.EXCEPTION = THROW;
                 var ex = new vm.global.InternalError("connection failed: "+rq.result);
