@@ -28,7 +28,7 @@
 # twisted (install...
 # cjson (install... (python-cjson?)
 # stompservice egg
-# pyorbited egg
+##### pyorbited egg
 # orbited egg
 # - patch line 119 /usr/lib/python2.5/site-packages/morbid-0.8.7.3-py2.5.egg/morbid/mqsecurity.py
 #         global security_parameters
@@ -277,11 +277,11 @@ class Hub(StompClientFactory):
                     c.execute("update or fail reg set key=? where name=? and key=?", (key_new, name, key_old))
                     dbconn.commit()
                     s = "OK"
-                    r = "registered"
+                    r = "changed"
                 except sqlite3.Error, e:
                     # deny registration with errror
                     s = "EEXCP"
-                    r = repr(e.args[0])
+                    r = "incorrect credentials"
                 c.close()            
         elif m == "auth": 
             # XXX THIS procedure should be run from terminal object only, if at all...

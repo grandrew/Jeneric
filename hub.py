@@ -26,9 +26,9 @@
 
 # python 2.5
 # twisted (install...
-# cjson (install... (python-cjson?)
+# cjson egg [or (install... (python-cjson?)
 # stompservice egg
-# pyorbited egg
+##### pyorbited egg
 # orbited egg
 # - patch line 119 /usr/lib/python2.5/site-packages/morbid-0.8.7.3-py2.5.egg/morbid/mqsecurity.py
 #         global security_parameters

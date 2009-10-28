@@ -28,5 +28,5 @@ warn=STDERR,error.log
 error=STDERR,error.log
 
 #Don't enable debug by default
-enabled.default=debug,info,access,warn,error
-
+#enabled.default=debug,info,access,warn,error
+enabled.default=info,access,warn,error
