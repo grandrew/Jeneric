@@ -26,7 +26,7 @@
 
 # python 2.5
 # twisted (install...
-# cjson (install... (python-cjson?)
+# cjson egg [or (install... (python-cjson?)
 # stompservice egg
 ##### pyorbited egg
 # orbited egg
@@ -480,7 +480,20 @@ class Hub(StompClientFactory):
                 rq_append(rq, oldid)
                 
                 # XXX report malformed URI!
-                term = rq["uri"].split("/")[1];
+                try:
+                    term = rq["uri"].split("/")[1];
+                except IndexError:
+                    print "URI parse failed:", rq["uri"]
+                    # exc[
+                    rq["id"] = rq["hub_oid"] # XXX redundancy issue here too
+                    rq["result"] = "HUB: URI parse failed!";
+                    rq["status"] = "EEXCP"
+                    try:
+                        del rq["args"]
+                    except KeyError:
+                        pass
+                    self.send(msg["headers"]["session"], rq)                    
+                    return # will cause to timeout sending to HUB XXX change this to exception
                 
                 rr = rq["uri"].split("/")[1:];
                 rr[0] = "~"

@@ -96,8 +96,9 @@ while(true) {
         brDOM();
         printDOM("  cat <URI> - try to read() the object at <URI> as if it was a ramstore-like object.");
         brDOM();
-        printDOM("  typeto <URI> - write() the text typed next, to specified <URI> ramstore object, create if nesessary.");
+        printDOM("  typeto <URI> - write() the text typed next, to specified <URI> ramstore object, create if nesessary. You may also type to another ic# console: like typeto /mycomp/console");
         brDOM();
+        
         
         printDOM("  delete <URI> - call deleteChild on ramstore");
         brDOM();
@@ -138,7 +139,7 @@ while(true) {
         break;
       case "ls":
         if( s.split(" ")[1] ) p1 = s.split(" ")[1];
-        else p1 = "";
+        else p1 = "/";
         // TODO!!! p1 = s.split(" ")[1] || p1; does not work (evals to bool) for unknown reason!
         try {
             ldata = execURI(p1, "listChildren", []);

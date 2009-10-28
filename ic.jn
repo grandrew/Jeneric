@@ -139,7 +139,7 @@ while(true) {
         break;
       case "ls":
         if( s.split(" ")[1] ) p1 = s.split(" ")[1];
-        else p1 = "";
+        else p1 = "~";
         // TODO!!! p1 = s.split(" ")[1] || p1; does not work (evals to bool) for unknown reason!
         try {
             ldata = execURI(p1, "listChildren", []);

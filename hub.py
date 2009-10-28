@@ -480,7 +480,20 @@ class Hub(StompClientFactory):
                 rq_append(rq, oldid)
                 
                 # XXX report malformed URI!
-                term = rq["uri"].split("/")[1];
+                try:
+                    term = rq["uri"].split("/")[1];
+                except IndexError:
+                    print "URI parse failed:", rq["uri"]
+                    # exc[
+                    rq["id"] = rq["hub_oid"] # XXX redundancy issue here too
+                    rq["result"] = "HUB: URI parse failed!";
+                    rq["status"] = "EEXCP"
+                    try:
+                        del rq["args"]
+                    except KeyError:
+                        pass
+                    self.send(msg["headers"]["session"], rq)                    
+                    return 
                 
                 rr = rq["uri"].split("/")[1:];
                 rr[0] = "~"
