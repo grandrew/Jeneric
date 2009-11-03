@@ -1317,14 +1317,14 @@ Jnaric.prototype.bind_om = function () {
         //console.log("Me is "+__tihs.name+" request createObj to ~");
         eos_execURI(__tihs, "~", "createObject", [name, typeURI, secURI, DOMElement]); 
     };
-    this.global.createChild = this.global.object.createChild;
+    //this.global.createChild = this.global.object.createChild;
     
     
     this.global.object.deleteChild = function(name) {
         
         eos_deleteChild(__tihs, name);
     };
-    this.global.deleteChild = this.global.object.deleteChild;
+    //this.global.deleteChild = this.global.object.deleteChild;
     
     
     this.global.object.linkChild = function(name, URI) {
@@ -1337,7 +1337,7 @@ Jnaric.prototype.bind_om = function () {
         __tihs.childList[name] = URI;
     };
     
-    this.global.linkChild = this.global.object.linkChild;
+    //this.global.linkChild = this.global.object.linkChild;
 
 
 
@@ -1353,31 +1353,31 @@ Jnaric.prototype.bind_om = function () {
         //__tihs.cur_stack.push(S_EXEC, {n: {type:TRUE}, x: {}, Nodes: {}, Context: cs.exc, NodeNum: 0, pmy: __tihs.cur_stack.my.myObj});
         
     };
-    this.global.enumerateChildren = this.global.object.enumerateChildren;
+    //this.global.enumerateChildren = this.global.object.enumerateChildren;
 
     
     this.global.object.getMyURI = function() {
         return __tihs.uri;
         
     };
-    this.global.getMyURI = this.global.object.getMyURI;
+    //this.global.getMyURI = this.global.object.getMyURI;
 
     this.global.object.release = function(setit) { // TODO document this: true - set the flag, false = do not release
         eos_om.release(__tihs, setit);
         // return nothing...
     };
-    this.global.release = this.global.object.release;
+    //this.global.release = this.global.object.release;
 
     this.global.object.serialize = function() { // request serialization
         eos_om.serialize(__tihs);
     };
-    this.global.serialize = this.global.object.serialize;
+    //this.global.serialize = this.global.object.serialize;
     
     this.global.object.destroyInstance = function () {
         // delete myself and all my children - from my parent
         eos_deleteChild(this.parent, this.name);
     };
-    this.global.destroyInstance = this.global.object.destroyInstance;
+    //this.global.destroyInstance = this.global.object.destroyInstance;
     
     this.global.object.kconfig = function (p, v) {
         return eos_om.kconfig(__tihs, p, v);

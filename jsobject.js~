@@ -1253,6 +1253,38 @@ eos_om = {
     }
 }
 
+
+// WARNING! API CHANGE - CHECK THE KERNEL METHODS API FOR PREDICTABILITY
+function eos_deleteChild(vm, name) {
+    // get child
+    var ch = vm.childList[name];
+    if(!ch) vm.cur_stack.my.x2.result = -1; // set an exception??
+    
+    // first, force-delete all sub-child objects of a selected child
+    for(cch in ch.childList) {
+        eos_deleteChild(ch, cch);
+    }
+    
+    // stop all stacks of a child silently
+    for(var j=0; j<__jn_stacks.stacks_running.length;j++) {
+        if(__jn_stacks.stacks_running[j].vm == vm) {
+            __jn_stacks.stacks_running.splice(j,1);
+        }
+    }
+
+    for(var j=0; j<__jn_stacks.stacks_sleeping.length;j++) {
+        if(__jn_stacks.stacks_sleeping[j].vm == vm) {
+            __jn_stacks.stacks_sleeping.splice(j,1);
+        }
+    }
+    
+    // delete from vm
+    delete vm.childList[name];
+    // delete last reference in __eos_objects
+    delete __eos_objects[ch.uri];
+}
+
+
 Jnaric.prototype.bind_om = function () {
     // bind object model to VM global
     var __tihs = this;
@@ -1285,14 +1317,14 @@ Jnaric.prototype.bind_om = function () {
         //console.log("Me is "+__tihs.name+" request createObj to ~");
         eos_execURI(__tihs, "~", "createObject", [name, typeURI, secURI, DOMElement]); 
     };
-    this.global.createChild = this.global.object.createChild;
+    //this.global.createChild = this.global.object.createChild;
     
     
     this.global.object.deleteChild = function(name) {
         
         eos_deleteChild(__tihs, name);
     };
-    this.global.deleteChild = this.global.object.deleteChild;
+    //this.global.deleteChild = this.global.object.deleteChild;
     
     
     this.global.object.linkChild = function(name, URI) {
@@ -1360,36 +1392,6 @@ Jnaric.prototype.bind_om = function () {
     // TODO: set this.parent on init
     
 };
-
-// WARNING! API CHANGE - CHECK THE KERNEL METHODS API FOR PREDICTABILITY
-function eos_deleteChild(vm, name) {
-    // get child
-    var ch = vm.childList[name];
-    if(!ch) vm.cur_stack.my.x2.result = -1; // set an exception??
-    
-    // first, force-delete all sub-child objects of a selected child
-    for(cch in ch.childList) {
-        eos_deleteChild(ch, cch);
-    }
-    
-    // stop all stacks of a child silently
-    for(var j=0; j<__jn_stacks.stacks_running.length;j++) {
-        if(__jn_stacks.stacks_running[j].vm == vm) {
-            __jn_stacks.stacks_running.splice(j,1);
-        }
-    }
-
-    for(var j=0; j<__jn_stacks.stacks_sleeping.length;j++) {
-        if(__jn_stacks.stacks_sleeping[j].vm == vm) {
-            __jn_stacks.stacks_sleeping.splice(j,1);
-        }
-    }
-    
-    // delete from vm
-    delete vm.childList[name];
-    // delete last reference in __eos_objects
-    delete __eos_objects[ch.uri];
-}
 
 Jnaric.prototype.bind_terminal = function () {
     var __tihs = this;
