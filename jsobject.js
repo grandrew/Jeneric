@@ -676,15 +676,33 @@ Jnaric.prototype.execIPC = function (rq, cbOK, cbERR) {
         // wait for the main stack to issue onfinish??
         // TODO switch to Semaphores interface!
         if(this.DEBUG) this.ErrorConsole.log("in execIPC... lock there! waiting");
-        if(this.onfinish) {
+        if(this.onfinish) { 
             var old_onf = this.onfinish;
         } else {
             var old_onf = function () {};
         }
+        // XXX use semaphores (external?!) !! object main stack may not finish at all
+        var fflag = true; // tmp workaround
         this.onfinish = function () {
+            if(!fflag) return; // tmp workaround
+            fflag = false;
             old_onf();
             self.execIPC(rq, cbOK, cbERR);
         }
+        
+        // XXX temporarily workaround: use timeout to avoid deadlock
+        var tmf = function () {
+            if(!fflag) return;
+            fflag = false;
+            if(this.global.initIPCLock || this.global.wakeupIPCLock) {
+                cbERR({id: rq.id, status: "EEXCP", result: "object init lock timeout"});
+                return;
+            }
+            self.execIPC(rq, cbOK, cbERR);        
+        };
+        // wait for onfinish for 8 seconds
+        setTimeout(tmf, 8000);
+        
         // XXX may cause process deadlock here
         // TODO: some sort of a timeout here
         return;
@@ -741,7 +759,9 @@ Jnaric.prototype.getChild = function (lURI) {
     //if( (typeof(trg) == "string") && (trg.charAt(0) == "@") ) {
     if(typeof(trg) == "number") {
         // this means we have a serialized object, wake it up!
-        trg = eos_wakeObject(this, lURI[0], trg); // TODO and TODO to serialize objects awaiting serialization
+        if(!KCONFIG.autorestore) return null; // XXX work in progress...
+        trg = eos_wakeObject(this, lURI[0], trg); 
+        if(trg == -1) return null; // XXX in case we failed to get the object due to wakeup fail :-\
         // this may take a while though... TODO some optimization and prioritization
         // or make this a user-level task
     }
@@ -792,6 +812,7 @@ function eos_wakeObject(parent, name, serID) {
     // first, get the data
     if(!window.google) {
         // gears is inaccessible, return anerror
+        // XXX return -1 on any error - this will instruct getChild to return 'object unavailable' error
         return -1;
         // and call onerror, if applicable (??? TODO decide on this)
         
@@ -894,69 +915,24 @@ function eos_createObject(vm, name, type_src, sec_src, parentURI, typeURI, secUR
     // parentURI may only be a local object...
     // TODO: special security policy should apply here since the method may be globally IPC accessed
     //       but doing so will lead to method arguments inconsistency
-    // first, stop the stack as usual
     
     var cs = vm.cur_stack;
     var x2 = cs.my.x2;
-    /*
-    cs.EXCEPTION = RETURN;
-    x2.result = true;
-    cs.push(S_EXEC, {n: {type:TRUE}, x: {}, Nodes: {}, Context: cs.exc, NodeNum: 0, pmy: cs.my.myObj});
-    __jn_stacks.start(cs.pid);
-    */
-    
-/*
+
     // DO NOT STOP THE STACK!!
     //    since theres nothing to check for 'onfinish' ...
-    var cs = vm.cur_stack;
-    cs.EXCEPTION = false;
-    cs.STOP = true;
-    // store the result here
-    var x2 = cs.my.x2;
-*/
-
-    
-    // the result of this method is a wrapper object (see getChild and ___ property protection)
     
     // the most of this method should be executed inside VM or it will be getting too complex
-    /*
-    // JN like:
-    function createChild(name, typeURI, secURI) {
-        // now, do get the code
-        code = execURI(typeURI, "read", []);
-        sec = execURI(secURI, "read", []);
-        return __createObject(name, code, sec); // will now create the wrapper object
-    }
-    __ipc["createChild"] = createChild;
-    */
-    
-    // add
-    
+    // XXX this is actually bad and slow and shows actually why object creation is so slow in general
+        
     var obj = new Jnaric();
     
     obj.onerror = function (ex) {
-        /*
-        cs.EXCEPTION = THROW;
-        var exx = new vm.global.InternalError("createChild failed with exception: "+ex);
-        exx.result = ex;
-        cs.exc.result = exx;
-        cs.STOP = false;
-        __jn_stacks.start(cs.pid);   
-        */
-        vm.global.ErrorConsole.log("created child main thread died with exception: "+ex);
-        
+        vm.global.ErrorConsole.log("created child main thread died with exception: "+ex);        
     }; 
     
 /*    
     obj.onfinish = function () {
-        x2.result = true; //{ ___vm: obj }; // the wrapper object
-        
-        // the following is the procedure just to release the stack
-        cs.EXCEPTION = RETURN;
-        cs.STOP = false;
-        cs.push(S_EXEC, {n: {type:TRUE}, x: {}, Nodes: {}, Context: cs.exc, NodeNum: 0, pmy: cs.my.myObj});
-        __jn_stacks.start(cs.pid);
-
     }; 
 */
     
@@ -977,7 +953,6 @@ function eos_createObject(vm, name, type_src, sec_src, parentURI, typeURI, secUR
     obj.evaluate(type_src);
 
     //obj.execIPC();
-
 
     obj.parent.childList[name] = obj;
     __eos_objects[obj.uri] = obj; // DUP name issue???
@@ -1002,14 +977,107 @@ Jnaric.prototype.getChildList = function () {
 };
 
 
-Jnaric.prototype.swapout = function () {
+// DOC - API here!
+Jnaric.prototype.swapout = function (force) { // DOC this - force means clean out regardless the running stacks
     // swap the object out of memory
+    
+    var hs = this.has_stacks();
+    var j;
+    
+    if(!force && hs) return -1; // DOC this, cannot continue
+    
+    if(!(this.serID > 0)) return -2;
+    
+    if(hs) {
+        // forget the stacks and all the shit
+        var newss = [];
+        for(j=0;j<__jn_stacks.stacks_sleeping.length;j++)
+            if(__jn_stacks.stacks_sleeping[j].vm != this)
+                 newss.push(__jn_stacks.stacks_sleeping[j]);
+        __jn_stacks.stacks_sleeping = newss;
+        newss = [];
+        for(j=0;j<__jn_stacks.stacks_running.length;j++)
+            if(__jn_stacks.stacks_running[j].vm == this)
+                newss.push(__jn_stacks.stacks_running[j]);
+        __jn_stacks.stacks_running = newss;
+    }
     
     this.parent.childList[this.name] = this.serID;
     delete this.parent.childList[this.name];
     delete __eos_objects[this.uri];
+    return 0;
 }
 
+
+// return true if the object has running/sleeping tasks, else - false
+Jnaric.prototype.has_stacks() {
+        var i,j;
+        for(j=0;j<__jn_stacks.stacks_sleeping.length;j++)
+            if(__jn_stacks.stacks_sleeping[j].vm == this)
+                return true; 
+
+
+        for(j=0;j<__jn_stacks.stacks_running.length;j++)
+            if(__jn_stacks.stacks_running[j].vm == this)
+                return true;
+
+}
+
+
+function GearsStore() {
+    this.db = google.gears.factory.create("beta.database");
+    this.db.open("jeos3-ss");
+    this.db.execute("create table if not exists Serialize (URI text UNIQUE, TypeURI text, SecurityURI text, SecurityProp text, ChildList text, Data blob, Created int, Modified int)");
+}
+
+GearsStore.prototype.checkID(ID) {
+    // check if the ID is available in serial form
+    var r = this.db.execute("SELECT * FROM Serialize WHERE OID=?", [ID]);
+    if(r.isValidRow()) {
+        r.close();
+        return true;
+    }
+    r.close();
+    return false;
+}
+
+GearsStore.prototype.update(ID, data) {
+    // may fail here??
+    this.db.execute("UPDATE Serialize SET SecurityProp=?, ChildList=?, Data=?, Modified=? WHERE OID=?", 
+                            [data.SecurityProp, data.ChildList, data.Data, (new Date()).getTime(), ID]); 
+}
+
+GearsStore.prototype.insert(data) {
+    // may fail here??
+    this.db.execute("INSERT INTO Serialize (URI, TypeURI, SecurityURI, SecurityProp, ChildList, Data, Created, Modified) VALUES (?,?,?,?,?,?,?,?)", 
+                            [data.URI, data.TypeURI, data.SecurityURI, data.SecurityProp, data.ChildList, data.Data, (new Date()).getTime(), (new Date()).getTime()]); 
+                    
+    // now get and set the oid of the shitty thing
+    var oidr = this.db.execute("SELECT OID FROM Serialize WHERE URI=?", [self.uri]);
+    var iid = parseInt(oidr.field(0)); // not sure parseInt is required here
+    oidr.close();
+    return iid;
+
+}
+
+GearsStore.prototype.remove(ID) { // remove from storage...
+    // may fail here??
+    this.db.execute("DELETE FROM Serialize WHERE OID=?", [ID]); 
+}
+
+
+GearsStore.prototype.close() {
+    // may fail here??
+    this.db.close();
+}
+
+
+function getFixedStorage() {
+    if(!window.google) {
+        return undefined;
+    }
+    return (new GearsStore());
+}
 
 // WARNING! different error handling API here
 // WARNING! need all children to be serialized too
@@ -1020,7 +1088,9 @@ Jnaric.prototype.serialize = function (onfinish, onerror) {
     // now issue the call to 'getState' method (if any) to get the object representation
     
     // okay, now init the Gears DB and save the result via a call
-    if(!window.google) {
+    var stor = getFixedStorage();
+    if(!stor) {
+    // if(!window.google) {
         // gears is inaccessible, return anerror
         return -1;
         // and call onerror, if applicable (??? TODO decide on this)
@@ -1038,54 +1108,48 @@ Jnaric.prototype.serialize = function (onfinish, onerror) {
     // first, get the object data state
     
     var onGetState = function (resultData) {
-        
-        // execute further
-        
         var onGetSec = function (resultSec) {
-            
-            var db = google.gears.factory.create("beta.database");
-            db.open("jeos3-ss");
-            
-            
-            db.execute("create table if not exists Serialize (URI text, TypeURI text, SecurityURI text, SecurityProp text, ChildList text, Data blob, Created int, Modified int)");
-            
-            // TODO: another database to cache typeURIs and secURIs (the objects they're linked to)
-            // TODO: 2 storage methods: Database and Filelike
-            
-            // 'INSERT OR REPLACE' SQLite request does not suite our needs since it cannot handle creation timestamps
-            
-            
-            // stop. there are two possibilities:
+            // TODO: another database to cache typeURIs and secURIs (the objects they're linked to WW-> they may be links)
+            // TODO: 2 storage methods: Database and Filelike            
+
+            // TODO: serialization error still possible here!!! - REPORT!!
+            //try { // ... etc
+
             // 1. the object is serialized already -> search by id (this.serID) - OR - ERROR !!!
-            // 2. the object is not serialized
-            if(self.serID != null) {
-                var r = db.execute("SELECT * FROM Serialize WHERE OID=?", [self.serID]);
-                if(r.isValidRow()) {
-                    // update
-                    // TODO: think of using Gears BLOBs here
-                    db.execute("UPDATE Serialize SET SecurityProp='?', ChildList='?', Data='?', Modified=?", [JSON.stringify(resultSec), sChildList, JSON.stringify(resultData), (new Date()).getTime()]); // TODO: get child list
-                    r.close();
+            if(self.serID > 0) {
+                if(stor.checkID(self.serID)) {
+                    // update me
+                    var data = {
+                        SecurityProp: JSON.stringify(resultSec),
+                        Data: JSON.stringify(resultData),
+                        ChildList: sChildList
+                    };
+                    stor.update(self.serID, data);
                 } else {
                     // error, the object has been serialized but is not available or some other programming error occurred
                     // TODO: possible solutions: 1. serialize as new object. 2. throw an exception (WHERE??)
                     // suggestion is 2. TODO this at earlier stages!
                 }
+            // 2. the object is not serialized
             } else {
                     // insert
-                    // use SQLite OID special column -> integer
-                    var date = (new Date()).getTime();
-                    db.execute("INSERT INTO Serialize (URI, TypeURI, SecurityURI, SecurityProp, ChildList, Data, Created, Modified) VALUES (?,?,?,?,?,?,?,?)", 
-                                                      [self.uri, self.TypeURI, self.SecurityURI, resultSec, sChildList, resultData, date, date]);
-                    // now get and set the oid of the shitty thing
-                    var oidr = db.execute("SELECT OID FROM Serialize WHERE URI=?", [self.uri]);
-                    self.serID = parseInt(oidr.field(0)); // XXX not sure parseInt is required here
+                    var data = {
+                        SecurityProp: JSON.stringify(resultSec),
+                        Data: JSON.stringify(resultData),
+                        ChildList: sChildList,
+                        TypeURI: self.TypeURI,
+                        SecurityURI: self.SecurityURI,
+                        URI: self.uri
+                    };
+
+                    seld.serID = stor.insert(data);
             }
-            db.close();
-            onfinish(self.serID);
+            stor.close();
+            onfinish && onfinish(self.serID);
         };
         
         var onGetSecError = function (exc) {
-            onerror(exc);
+            onerror && onerror(exc);
         };
         
         self.execf_thread(self.global.getSecurityState, [], onGetSec, onGetSecError); 
@@ -1093,66 +1157,145 @@ Jnaric.prototype.serialize = function (onfinish, onerror) {
     
     var onGetStateError = function (exc) {
         // execute onerror
-        onerror(exc);
+        onerror && onerror(exc);
     };
     
     // second, get the security state
     self.execf_thread(self.global.getState, [], onGetState, onGetStateError); 
-    
-    // with all this data, call the remainder of operation
-    
-    
-    
-    
-    
-    // then issue 'setState' if we're restoring
-    
-    
-    
-    
-    
-    
-    
-    // the time for reference-aware serialization will come... later
-    
-    // get the stacks snapshot
-    
-    /*
-    var stacklist_sleeping = [];
-    var stacklist_running = [];
-    var i;
-    for(i=0;i<__jn_stacks.stacks_sleeping.length;i++)
-        if(__jn_stacks.stacks_sleeping[i].vm == this) 
-            stacklist_sleeping.push(JSON.stringify(__jn_stacks.stacks_sleeping[i].stack)); // bad...
-            
-    for(i=0;i<__jn_stacks.stacks_running.length;i++)
-        if(__jn_stacks.stacks_running[i].vm == this)
-            stacklist_running.push(JSON.stringify(__jn_stacks.stacks_running[i].stack)); // bad...
-    */
-    // get the object global variables representation, excluding built-in methods and objects and DOM
-    //    using the hack of temporary object comparison
-    //    seems that the entire reference tree is not serializable either
-    
-    
-    // save DOM tree XXX UNIMPLEMENTED
-    // var dom_repr = JSON.stringify(this.DOM); // XXX can it be undefined??
-    
-    // store everything as an object
-    // finally serialize the object to disk storage
 }
+
+eos_om = {
+    release: function (__tihs, setit) {
+        // first, search if we're in the list?
+        if(typeof(setit) == 'undefined') setit = true;
+        for(var i=0; i<__eos_serial.length; i++) {
+            if(__eos_serial[i] == __tihs) {
+                    __eos_serial.splice(i,1);
+                    break;
+            }
+        }
+        setit && __eos_serial.push(__tihs); // the topmost object to be swapped out first...    
+    },
+    
+    serialize: function (vm) {
+        for(var i=0; i<__eos_serial_weak.length; i++) {
+            if(__eos_serial_weak[i] == vm) {
+                    __eos_serial_weak.splice(i,1);
+                    break;
+            }
+        }
+        __eos_serial_weak.push(vm); // the topmost object to be swapped out first...    
+    },
+    
+    listObjects: function () {
+        var ro = [];
+        for(ob in __eos_objects) {
+            ro.push(__eos_objects[ob].uri); 
+        }
+        return ro;        
+    },
+    
+    getReleaseList: function () {
+
+        var ro = [];
+        
+        var i=0
+        for(i=0; i< __eos_serial.length; i++) {
+            ro.push(__eos_serial[i].uri); 
+        }
+        
+        return ro;
+    },
+    
+    getSerializeList: function () {
+
+        var ro = [];
+        
+        var i=0
+        for(i=0; i< __eos_serial_weak.length; i++) {
+            ro.push(__eos_serial_weak[i].uri); 
+        }
+        
+        return ro;
+    },
+    
+    kconfig: function (vm, p, v) {
+        if(typeof(v) != 'undefined') {
+            for(var i=0; i<vm.kconfig_w; i++) {
+                if(p == vm.kconfig_w[i]) { 
+                    KCONFIG[p] = v;
+                    return v;
+                }
+            }
+            return undefined;
+        } else {
+            for(var i=0; i<vm.kconfig_r; i++) {
+                if(p == vm.kconfig_r[i]) return KCONFIG[p];
+            }
+            return undefined;            
+        }
+    },
+    
+    kbind: function (vm, childName, methodStruct, kconfig_r, kconfig_w) {
+        // DOC 'no such child' is exception!
+        if(!(childName in vm.childList)) {
+            vm.cur_stack.EXCEPTION = THROW;
+            vm.cur_stack.my.x2.result = "object not found by URI";
+            return;
+        }
+        var ch = vm.childList[childName];
+        for(var ob in methodStruct) {
+            ch.global.object[ob] = methodStruct[ob]; // DOC overwrite if nesessary...
+        }
+        // now SET the kconfig access strings
+        ch.kconfig_r = kconfig_r; // TODO error checking here (if kconfig_ list is incorrect
+        ch.kconfig_w = kconfig_w;
+    }
+}
+
+
+// WARNING! API CHANGE - CHECK THE KERNEL METHODS API FOR PREDICTABILITY
+function eos_deleteChild(vm, name) {
+    // get child
+    var ch = vm.childList[name];
+    if(!ch) vm.cur_stack.my.x2.result = -1; // set an exception??
+    
+    // first, force-delete all sub-child objects of a selected child
+    for(cch in ch.childList) {
+        eos_deleteChild(ch, cch);
+    }
+    
+    // stop all stacks of a child silently
+    for(var j=0; j<__jn_stacks.stacks_running.length;j++) {
+        if(__jn_stacks.stacks_running[j].vm == vm) {
+            __jn_stacks.stacks_running.splice(j,1);
+        }
+    }
+
+    for(var j=0; j<__jn_stacks.stacks_sleeping.length;j++) {
+        if(__jn_stacks.stacks_sleeping[j].vm == vm) {
+            __jn_stacks.stacks_sleeping.splice(j,1);
+        }
+    }
+    
+    // delete from vm
+    delete vm.childList[name];
+    // delete last reference in __eos_objects
+    delete __eos_objects[ch.uri];
+}
+
 
 Jnaric.prototype.bind_om = function () {
     // bind object model to VM global
-    // thus allowing to 
     var __tihs = this;
-    /*
-    this.global.getObject = function (URI) {
-        eos_getObject(__tihs, 
-    };
-    */
  
+    this.kconfig_r = ['init', 'terminal_id']; // access nothing
+    this.kconfig_w = [];
+    
     this.global.object = {name: this.name, version: this.VERSION};
+    this.global._object = this.global.object; // backup object...
     this.global.object.ipc = {};
+    
     
     // XX timeout is optional -  if the 'timeout' is hit it is not necessary that the method does not get successfully executed on the callee side
     this.global.execURI = function(sUri, sMethod, oData, timeout) {
@@ -1214,74 +1357,50 @@ Jnaric.prototype.bind_om = function () {
 
     
     this.global.object.getMyURI = function() {
-/*
-        var x2 = __tihs.cur_stack.my.x2;
-        x2.result = __tihs.uri;
-*/
         return __tihs.uri;
         
     };
     this.global.getMyURI = this.global.object.getMyURI;
 
-    this.global.object.releaseMemory = function(rem) {
-        // first, search if we're in the list?
-        if(typeof(rem) == 'undefined') rem = true;
-        for(var i=0; i<__eos_serial.length; i++) {
-            if(__eos_serial[i] == this) {
-                if(rem) return;
-                else {
-                    __eos_serial.splice(i,1);
-                    return;
-                }
-            }
-        }
-        rem && __eos_serial.push(this);
+    this.global.object.release = function(setit) { // TODO document this: true - set the flag, false = do not release
+        eos_om.release(__tihs, setit);
+        // return nothing...
     };
-    this.global.object.releaseMemory = this.global.releaseMemory;
+    this.global.release = this.global.object.release;
+
+    this.global.object.serialize = function() { // request serialization
+        eos_om.serialize(__tihs);
+    };
+    this.global.serialize = this.global.object.serialize;
     
     this.global.object.destroyInstance = function () {
         // delete myself and all my children - from my parent
         eos_deleteChild(this.parent, this.name);
     };
-    this.global.object.destroyInstance = this.global.destroyInstance;
+    this.global.destroyInstance = this.global.object.destroyInstance;
+    
+    this.global.object.kconfig = function (p, v) {
+        return eos_om.kconfig(__tihs, p, v);
+    };
+    
+    this.global.object.kbind = function (childName, methodStruct, kconfig_r, kconfig_w) {
+        return eos_om.kbind(__tihs, childName, methodStruct, kconfig_r, kconfig_w);
+    };
+    
     // getMethodList ?? describeObject ?? or is it security code??
     
     // TODO: set this.parent on init
     
 };
 
-// WARNING! API CHANGE - CHECK THE KERNEL METHODS API FOR PREDICTABILITY
-function eos_deleteChild(vm, name) {
-    // get child
-    var ch = vm.childList[name];
-    if(!ch) vm.cur_stack.my.x2.result = -1; // set an exception??
-    
-    // first, force-delete all sub-child objects of a selected child
-    for(cch in ch.childList) {
-        eos_deleteChild(ch, cch);
-    }
-    
-    // stop all stacks of a child silently
-    for(var j=0; j<__jn_stacks.stacks_running.length;j++) {
-        if(__jn_stacks.stacks_running[j].vm == vm) {
-            __jn_stacks.stacks_running.splice(j,1);
-        }
-    }
-
-    for(var j=0; j<__jn_stacks.stacks_sleeping.length;j++) {
-        if(__jn_stacks.stacks_sleeping[j].vm == vm) {
-            __jn_stacks.stacks_sleeping.splice(j,1);
-        }
-    }
-    
-    // delete from vm
-    delete vm.childList[name];
-    // delete last reference in __eos_objects
-    delete __eos_objects[ch.uri];
-}
-
 Jnaric.prototype.bind_terminal = function () {
     var __tihs = this;
+    
+    for(var ob in KCONFIG) {
+        this.kconfig_r.push(ob);
+        this.kconfig_w.push(ob);
+    }
+    
     this.GRANTED = true; // grant changing NICE, etc...  - see jsexec.js; also need more nice control of children so TODO
     //                                   (name, code, sec,   rq.object_uri, typeURI, secURI, DOMElement)
     this.global.__createObject = function(name, stype, ssec, parentURI, typeURI, secURI, DOMElement) {
@@ -1289,8 +1408,7 @@ Jnaric.prototype.bind_terminal = function () {
         eos_createObject(__tihs, name, stype, ssec, parentURI, typeURI, secURI, DOMElement);
     };
     
-    // TODO: serialization routines here
-    this.global.serialize = function (URI, blocking) {
+    this.global.object.serializeURI = function (URI, blocking) {
         if(typeof(blocking) == 'undefined')
             blocking = false;
         
@@ -1302,7 +1420,7 @@ Jnaric.prototype.bind_terminal = function () {
             var x2 = cs.my.x2;
         }
         // get the object by uri
-        var vm = __eos_objects["terminal"].getChild(URI);
+        var vm = __eos_objects["terminal"].getChild(URI); // XXX warning! do not wake up just to serialize?!
         
 
         var cbOK = function (rs) { // callback on OK
@@ -1313,7 +1431,7 @@ Jnaric.prototype.bind_terminal = function () {
                 // the following is the procedure just to release the stack
                 cs.EXCEPTION = RETURN;
                 cs.STOP = false;
-                cs.push(S_EXEC, {n: {type:TRUE}, x: {}, Nodes: {}, Context: cs.exc, NodeNum: 0, pmy: cs.my.myObj});
+                //cs.push(S_EXEC, {n: {type:TRUE}, x: {}, Nodes: {}, Context: cs.exc, NodeNum: 0, pmy: cs.my.myObj});
                 __jn_stacks.start(cs.pid);
             }
             
@@ -1335,45 +1453,16 @@ Jnaric.prototype.bind_terminal = function () {
     };
     
     // TODO: how do we denote that the object has been or has not been serialized / swapped out??
-    this.global.swapout = function (URI) {
+    this.global.object.swapoutURI = function (URI, force) {
           
         var vm = __eos_objects["terminal"].getChild(URI);
         
-        vm.swapout();    
+        return vm.swapout(force);    // XXX DOC strange API here! (see .swapout)
     };
     
-    this.global.listObjects = function () {
-        //var x2 = __tihs.cur_stack.my.x2;
-        var ro = {};
-        for(ob in __eos_objects) {
-            ro[ob] = __eos_objects[ob].uri; // XXX will be like uri = uri list except for the terminal object itself where the info will be useless anyways ;-)
-        }
-        
-        //x2.result = ro;
-        
-        //__tihs.cur_stack.EXCEPTION = RETURN;
-        //__tihs.cur_stack.push(S_EXEC, {n: {type:TRUE}, x: {}, Nodes: {}, Context: cs.exc, NodeNum: 0, pmy: __tihs.cur_stack.my.myObj});
-        return ro;
-        
-    };
+    this.global.object.listObjects = eos_om.listObjects;
     
-    this.global.listSerials = function () {
-        
-        //var x2 = __tihs.cur_stack.my.x2;
-        var ro = {};
-        
-        var i=0
-        for(i=0; i< __eos_serial.length; i++) {
-            ro[__eos_serial[i].name] = __eos_serial[i].uri; // XXX this should probably be a list as discussed above
-        }
-        
-        //x2.result = ro;
-        
-        //__tihs.cur_stack.EXCEPTION = RETURN;
-        //__tihs.cur_stack.push(S_EXEC, {n: {type:TRUE}, x: {}, Nodes: {}, Context: cs.exc, NodeNum: 0, pmy: __tihs.cur_stack.my.myObj});
-        return ro;
-
-    };
+    this.global.object.getReleaseList = eos_om.getReleaseList;
 
 };
 

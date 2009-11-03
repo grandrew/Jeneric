@@ -315,6 +315,7 @@
 
 /*
     SUBJIT PROPOSAL
+    - do not do context switching at every step: integrate with bursting...
     - new interpreter Node.type = JIT: instructs to run natively
     - run native method: JIT compiler will compile code 
         - to functions and use __methodname_locals to store local vars and __methodname_globals

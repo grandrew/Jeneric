@@ -28,7 +28,7 @@ ACK_TIMEOUT = 60000; // milliseconds before give up resending
 MAX_WINDOW_SIZE = 60000; // ms. max window size for ACKs to remember
 KEY_LENGTH = 80; // bytes stringkey length
 // GENERAL INIT part
-kconfig = {}; // kernel configuration
+KCONFIG = {autorestore: false}; // kernel configuration
 
 _terminal_vm = new Jnaric();
 
@@ -197,7 +197,7 @@ if(params) {
     for(var i=0; i<lp.length; i++) {
         if(lp[i].search("=") > -1) {
             nv = lp[i].split("=");
-            kconfig[nv[0]] = nv[1];
+            KCONFIG[nv[0]] = nv[1];
         }
     }
 }
@@ -218,9 +218,9 @@ hubConnection = {
         // do announce only when connected!
         if(window.console) console.log("announcing...");
         var ann = { "session": this.___SESSIONKEY };
-        if(kconfig.terminal_id && kconfig.terminal_key) { // TODO document this!
-            ann.terminal_id = kconfig.terminal_id;
-            ann.terminal_key = kconfig.terminal_key;
+        if(KCONFIG.terminal_id && KCONFIG.terminal_key) { // TODO document this!
+            ann.terminal_id = KCONFIG.terminal_id;
+            ann.terminal_key = KCONFIG.terminal_key;
         }
         this.stomp.send(JSON.stringify(ann), ANNOUNCE_PATH); // we will receive our terminal_id back!
     },
