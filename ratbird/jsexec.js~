@@ -922,7 +922,7 @@ function Jnaric() {
             return t_id;
         },
         
-        start_new_thread: function ( fun, args ) { // DOC; args is optional Array
+        start_new_thread: function ( fun, args ) { // args is optional Array
             
             var x2 = new __tihs.ExecutionContext(FUNCTION_CODE);
                 

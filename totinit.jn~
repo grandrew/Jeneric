@@ -1,0 +1,51 @@
+// total init for jeneric project
+
+// initialize the serializer
+// create the serializer daemon threads
+function s_agent() {
+    var suri, i;
+    while(true) {
+        i = 0;
+        // swapout is done automatically... so we only need to periodically serialize
+        
+        // TODO: watch for fails
+        // TODO: 'release' priorititzation
+        // rename the conventions: 'weak' is object to be released, 'save' is object to be serialized
+
+        // TODO: hardware semaphore AKA IRQ interrupt on serialization object availability
+        //       ... just an lIPC event may be registered via STD hooking!
+        suri = object.getSerializeObj(i); // to not check every 5 secs...
+        while (suri) {
+                try {
+                    object.serializeURI(suri, true);
+                    // if success
+                    object.delSerializeObj(suri);
+                } catch (e) {
+                    ErrorConsole.log("requested serialization of '"+suri+"' failed with exception: "+e);
+                }
+                suri = object.getSerializeObj(++i);
+        }
+        
+        sleep(object.kconfig("saveinterval")); // 5-second interval?
+    }
+}
+
+// first, set autorestore to true
+if(object.serializeURI) {
+    object.kconfig("autorestore", true); // currently se assume that serialization is accessible
+    object.kconfig("autoswapout", true);
+    start_new_thread(s_agent);
+}
+
+// now run init tasks from /sys/init ramdir
+// TODO HERE ->
+objs = execURI(object.getMyTypeURI(), "listChildren", []);
+for(var i=0; i<objs.length; i++) {
+    // give DOM or not to give DOM??
+    xd = document.createElement("DIV");
+    xd.style.width="100%";
+    xd.style.fontSize="100%";
+    document.body.appendChild(xd);
+    object.createChild(objs[i], object.getMyTypeURI()+"/"+objs[i], "~/sys/anarchic", xd);
+}
+// and finally create init folder and this init at /sys/init location (folder-store!!)

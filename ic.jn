@@ -3,7 +3,7 @@ WRITE_ON = true;
 object.ipc["write"] = function(rq, data) {
     // write 
     if(WRITE_ON) {
-        brDOM(); printDOM("Message from "+rq["terminal_id"]+": "+data.substr(0, 1000)); brDOM(); // the RQ may contain 'username' if we use the right security model..
+        brDOM(); printDOM("Message from "+rq["terminal_id"]+rq["object_uri"]+": "+data.substr(0, 1000)); brDOM(); // the RQ may contain 'username' if we use the right security model..
     }
 }
 
@@ -309,7 +309,10 @@ while(true) {
         }
         printDOM("auth OK"); brDOM();
         break;
-
+      
+      
+      case "":
+        break;
       
       default:
         // TODO: search for commands at PATH?

@@ -67,12 +67,47 @@ document.body.appendChild(xd);
 
 ErrorConsole.log("running crech");
 
-// TODO: error reporting here!!! in case SMTH not available, etc! //  TODO: TEST it without sleep!
-child = object.createChild("console", "~/sys/ic", "~/sys/anarchic", xd); // unprivileged... auto-bind to DOM div, etc.
+/*
+
+terminal: 
+  - run init from KCONFIG - typically some home autorun script. 
+  - if failed, run init2 from KCONFIG 
+  - ~/var/init
+//  - /sys/ic 
+  - ~/sys/ic - ic is a basic software piece available in any configuration as a ramstore object code
+
+*/
+
+// XXX SECURITY MODEL!!
+ok = false;
+try {
+    object.createChild("init", object.kconfig("init"), "~/sys/anarchic", xd);
+    ok = true;
+} catch (e) {
+    try {
+        object.createChild("init", object.kconfig("init2"), "~/sys/anarchic", xd);
+        ok = true;
+    } catch (e) {
+        // TODO: error reporting here!!! in case SMTH not available, etc! //  TODO: TEST it without sleep!
+        try {
+            object.createChild("init", "~/var/init", "~/sys/anarchic", xd); 
+            ok = true;
+        } catch (e) {
+            object.createChild("init", "~/sys/ic", "~/sys/anarchic", xd); // this may not fail
+            ok = true;
+        }
+    }
+}
+
+// TODO: createChild to return a value??
+if(ok) {
+    // TODO: pass other serializer methods to init..
+    object.kbind("init", {getSerializeObj : object.getSerializeObj, serializeURI: object.serializeURI}, ["autorestore", "saveinterval", "autoswapout"], ["autorestore", "autoswapout"]);
+}
 
 // TODO: do announce with new credentials if the hubConnectionChanged hook is received
 //       this is rather a terminal issue!
 
 // now register our terminal methods
-// (no methods except for the execURI which is left a default kernel implementation)
+// (no methods 
 

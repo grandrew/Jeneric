@@ -28,7 +28,12 @@ ACK_TIMEOUT = 60000; // milliseconds before give up resending
 MAX_WINDOW_SIZE = 60000; // ms. max window size for ACKs to remember
 KEY_LENGTH = 80; // bytes stringkey length
 // GENERAL INIT part
-KCONFIG = {autorestore: false}; // kernel configuration
+KCONFIG = {
+  autorestore: false,
+  autoswapout: false,
+  MEMOBJECTS: 1000, // max allowed amount of objects in memory (in __eos_objects)}; // kernel configuration
+  saveinterval: 10000 // interval of object serialization turnaround in ms.
+}
 
 _terminal_vm = new Jnaric();
 
@@ -99,6 +104,18 @@ _sys_vm.load("ramstore.jn");
 // register it
 _terminal_vm.childList["sys"] = _sys_vm;
 __eos_objects["~/sys"] = _sys_vm;
+
+
+// okay, now deserialize terminal childList
+_stor = getFixedStorage();
+if(_stor) {
+    // if fixed storage is accessible
+    var d = _stor.getByURI("~");
+    _terminal_vm.childList = JSON.parse(d.ChildList);
+}
+delete d;
+delete _stor;
+
 
 _cn = 0;
 
