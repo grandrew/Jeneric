@@ -1,0 +1,18 @@
+// anarchic.jn
+
+function setSecurityState(state) {
+    wakeupIPCLock = false;
+}
+
+function getSecurityState() {
+    return {};
+}
+
+function validateRequest (rq) {
+    return true; // always allow...
+}
+
+initIPCLock = false; // means we have been initializes XXX do we ever need this??? 
+// deal with locks when you'll implement signRequest security
+// wakeupIPCLock = false; // means we do not need any further initializations (???)
+

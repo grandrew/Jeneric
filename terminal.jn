@@ -90,7 +90,7 @@ try {
     } catch (e) {
         // TODO: error reporting here!!! in case SMTH not available, etc! //  TODO: TEST it without sleep!
         try {
-            object.createChild("init", "~/var/init", "~/sys/anarchic", xd); 
+            object.createChild("init", "~/sys/init", "~/sys/anarchic", xd); // XXX or /var/init??
             ok = true;
         } catch (e) {
             object.createChild("init", "~/sys/ic", "~/sys/anarchic", xd); // this may not fail
@@ -99,10 +99,17 @@ try {
     }
 }
 
+if(object.serializeURI) {
+    ErrorConsole.log("Serialization available!");
+}
+
 // TODO: createChild to return a value??
 if(ok) {
-    // TODO: pass other serializer methods to init..
-    object.kbind("init", {getSerializeObj : object.getSerializeObj, serializeURI: object.serializeURI}, ["autorestore", "saveinterval", "autoswapout"], ["autorestore", "autoswapout"]);
+    // XXX maybe bind terminal to init?
+    object.kbind("init", ["bind_serial"], ["autorestore", "saveinterval", "autoswapout"], ["autorestore", "autoswapout"]);
+    object.execURI("./init", "start_s_agent", []);
+} else {
+    ErrorConsole.log("PANIC: could not start init. Try passing init= kernel parameter.");
 }
 
 // TODO: do announce with new credentials if the hubConnectionChanged hook is received

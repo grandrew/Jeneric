@@ -2,7 +2,7 @@
 session.ping_interval = 300
 
 [listen]
-http://:8080
+http://:9000
 stomp://:61613 morbidq.cfg
 
 [access]
@@ -18,7 +18,10 @@ ratbird=ratbird
 anarchic.jn=anarchic.jn
 ic.jn=ic.jn
 ramstore.jn=ramstore.jn
+tmpstore.jn=tmpstore.jn
 terminal.jn=terminal.jn
+totinit.jn=totinit.jn
+gears_init.js=gears_init.js
 
 [logging]
 debug=STDERR,debug.log

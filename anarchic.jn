@@ -12,5 +12,4 @@ function validateRequest (rq) {
     return true; // always allow...
 }
 
-initIPCLock = false;
-
+initIPCLock = false; // means we have been initialized

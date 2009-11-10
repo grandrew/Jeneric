@@ -30,6 +30,7 @@ KEY_LENGTH = 80; // bytes stringkey length
 // GENERAL INIT part
 KCONFIG = {
   autorestore: false,
+  autoswapout: false,
   MEMOBJECTS: 1000, // max allowed amount of objects in memory (in __eos_objects)}; // kernel configuration
   saveinterval: 10000 // interval of object serialization turnaround in ms.
 }
@@ -37,13 +38,12 @@ KCONFIG = {
 _terminal_vm = new Jnaric();
 
 _terminal_vm.name = "terminal"+(new Date()).getTime(); // TODO! get real terminal name!!! (somehow??)
-_terminal_vm.TypeURI = "terminal"; // no real URI
-_terminal_vm.SecurityURI = "terminal"; // no IPC for terminal at all
-_terminal_vm.parent = "/guest"; // the server root?? username?? FUCK!!! XXX TODO !!!!!!!!!!!!
-                          // the parent should be our username - REATTACH PARENT when authenticated!!
-_terminal_vm.uri = "~";//_terminal_vm.parent + "/"+name; // rewrite THIS when authenticated...!!
-_terminal_vm.serID = -1; // can never be serialized
-_terminal_vm.childList = {}; // TODO: init the CL from somewhere !!!
+_terminal_vm.TypeURI = "terminal"; // no real tURI
+_terminal_vm.SecurityURI = "terminal"; 
+_terminal_vm.parent = "/"; // the server root
+_terminal_vm.uri = "~";//_terminal_vm.parent + "/"+name;
+_terminal_vm.serID = -1; 
+_terminal_vm.childList = {}; // init the CL later
 
 _terminal_vm.global.initIPCLock = true; // THIS to be flushed by security validateRequest method init
 _terminal_vm.global.wakeupIPCLock = false; 
@@ -80,10 +80,10 @@ _sys_vm = new Jnaric();
 _sys_vm.name = "sys";
 _sys_vm.TypeURI = "~/sys/ramstore";
 _sys_vm.SecurityURI = "~/sys/anarchic"; // no IPC for terminal at all
-_sys_vm.parent = _terminal_vm; // the server root?? username?? FUCK!!! XXX TODO !!!!!!!!!!!!
-                          // the parent should be our username - REATTACH PARENT when authenticated!!
-_sys_vm.uri = _sys_vm.parent.uri + "/"+_sys_vm.name; // rewrite THIS when authenticated...!!
-                          // WARNING!!! XXX TODO will get the wrong URI when authenticated!!
+_sys_vm.parent = _terminal_vm; 
+                          
+_sys_vm.uri = _sys_vm.parent.uri + "/"+_sys_vm.name; 
+                         
 _sys_vm.serID = -1; // can never be serialized
 _sys_vm.childList = {}; 
 
@@ -97,7 +97,7 @@ _sys_vm.bind_om(); // bind the protected EOS object model
 // TWEAKINIT part
 
 _sys_vm.load("anarchic.jn");
-_sys_vm.load("ramstore.jn");
+_sys_vm.load("tmpstore.jn"); // XXX CHEATING!
 
 
 // register it
@@ -105,26 +105,16 @@ _terminal_vm.childList["sys"] = _sys_vm;
 __eos_objects["~/sys"] = _sys_vm;
 
 
-// okay, now deserialize terminal childList
-_stor = getFixedStorage();
-if(_stor) {
-    // if fixed storage is accessible
-    var d = _stor.getByURI("~");
-    _terminal_vm.childList = JSON.parse(d.ChildList);
-}
-delete d;
-delete _stor;
-
-
 _cn = 0;
-
+/////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////// THE tweak part here
 ffoo = function () { 
     _cn++; 
-    if(_cn == 4) {
+    if(_cn == 5) { // XXX run terminal when 5 objects initialized!
         _terminal_vm.load("terminal.jn"); 
         hubConnection.connect();
     }
-}; // XXX run terminal when 4 objects initialized!
+}; 
 
 _sys_vm.onfinish = function () {
     _sys_vm.onfinish = ffoo;
@@ -138,10 +128,10 @@ function manualRamstoreObject(oname, oparent) {
     _vm.name = oname;
     _vm.TypeURI = "~/sys/ramstore";
     _vm.SecurityURI = "~/sys/anarchic"; // no IPC for terminal at all
-    _vm.parent = oparent; // the server root?? username?? FUCK!!! XXX TODO !!!!!!!!!!!!
-                              // the parent should be our username - REATTACH PARENT when authenticated!!
-    _vm.uri = _vm.parent.uri + "/"+oname; // rewrite THIS when authenticated...!!
-                              // WARNING!!! XXX TODO will get the wrong URI when authenticated!!
+    _vm.parent = oparent; 
+                              
+    _vm.uri = _vm.parent.uri + "/"+oname; 
+                          
     _vm.serID = -1; // can never be serialized
     _vm.childList = {}; 
 
@@ -155,7 +145,7 @@ function manualRamstoreObject(oname, oparent) {
     // TWEAKINIT part
 
     _vm.load("anarchic.jn");
-    _vm.load("ramstore.jn");
+    _vm.load("tmpstore.jn"); // XXX THIS IS CHEATING!!!
         
     oparent.childList[oname] = _vm;
     __eos_objects[_vm.uri] = _vm;
@@ -166,7 +156,8 @@ function manualRamstoreObject(oname, oparent) {
 // NOW CREATE anarchic OBJECT
 
 
-
+// TODO: beautify it ;-)
+//       1. create a struct {objname: url,} 2. use object count or length in THE tweak part
 _anarchic_vm = manualRamstoreObject("anarchic", _sys_vm);
 _anarchic_vm.onfinish = function () {
     _anarchic_vm.onfinish = ffoo;
@@ -180,12 +171,89 @@ _ramstore_vm.onfinish = function () {
     _ramstore_vm.evaluate("sdata = fetchUrl('ramstore.jn');wakeupIPCLock=false;"); 
 }; // WARNING!? XXX precedence test heeded here!!!!!!
 
+// NOW CREATE public security model OBJECT
+_public_vm = manualRamstoreObject("public", _sys_vm);
+_public_vm.onfinish = function () { 
+    _public_vm.onfinish = ffoo;
+    _public_vm.evaluate("sdata = fetchUrl('public.jn');wakeupIPCLock=false;"); 
+}; 
+
+
 // create ic.jn object
 _ic_vm = manualRamstoreObject("ic", _sys_vm);
 _ic_vm.onfinish = function () {
     _ic_vm.onfinish = ffoo;
     _ic_vm.evaluate("sdata = fetchUrl('ic.jn');wakeupIPCLock=false;"); 
 }; 
+
+// create totinit.jn object
+_init_vm = manualRamstoreObject("init", _sys_vm);
+_init_vm.onfinish = function () {
+    _init_vm.onfinish = ffoo;
+    _init_vm.evaluate("sdata = fetchUrl('totinit.jn');wakeupIPCLock=false;"); 
+}; 
+
+
+
+
+
+
+
+
+////////////////////////////////////////////////////////////////////////////////////
+// okay, now deserialize 'var' ramstore object and its childlist!
+
+var _var_vm = new Jnaric();
+
+_var_vm.name = "var";
+_var_vm.TypeURI = "~/sys/ramstore";
+_var_vm.SecurityURI = "~/sys/anarchic"; // no IPC for terminal at all
+_var_vm.parent = _terminal_vm; 
+                          
+_var_vm.uri = _var_vm.parent.uri + "/var"; 
+                      
+_var_vm.serID = -1; // can never be serialized
+_var_vm.childList = {}; 
+
+_var_vm.global.initIPCLock = true; // this will be normally unset
+_var_vm.global.wakeupIPCLock = true; // this will emulate like we're deserializing and will lock IPC until we explicitly unlock
+
+// BINDING part
+_var_vm.bind_dom(); // XXX not ever bind DOM???
+_var_vm.bind_om(); // bind the protected EOS object model
+
+// TWEAKINIT part
+
+_var_vm.load("anarchic.jn");
+_var_vm.load("ramstore.jn");
+    
+_terminal_vm.childList["var"] = _var_vm;
+__eos_objects[_var_vm.uri] = _var_vm;
+
+_var_vm.onfinish = function () {
+    _var_vm.onfinish = ffoo;
+    _var_vm.evaluate("wakeupIPCLock=false;"); 
+}; 
+
+
+_stor = getFixedStorage();
+if(_stor) {
+    // if fixed storage is accessible
+    var d = _stor.getByURI("~/var");
+    if(d) {
+      _var_vm.ErrorConsole.log("restoring ~/var childList...");
+      _var_vm.childList = JSON.parse(d.ChildList);
+      _var_vm.serID = parseInt(d.OID);
+    }
+    _stor.close();
+}
+delete d;
+delete _stor;
+
+
+
+
+
 
 
 

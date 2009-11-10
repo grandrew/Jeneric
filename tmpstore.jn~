@@ -1,52 +1,43 @@
 // ramstore.jn
 
 // TODO: error checking everywhere!!
-// no! dont init it here!
-// object.data.data = "";
-if(!object.data.data) object.data.data = ""; // init data if not
 
-// XXX THESE ARE IGNORED BY TQLW principle XXX
+sdata = "";
+
 function getState() {
-    return object.data;
+    return {data: sdata};
 }
 
 function setState(data) {
-    object.data.data = data.data;
+    sdata = data.data;
 }
-// XXX END XXX
-
 
 function read(rq, offset, len) {
     // TODO: error checking?
     //ErrorConsole.log("ramstore: returning data: "+sdata.substr(offset, len) + " params: "+offset+" l "+len);
     offset = offset || 0;
-    len = len || object.data.data.length;
-    return object.data.data.substr(offset, len);
+    len = len || sdata.length;
+    return sdata.substr(offset, len);
 }
 
 function write(rq, data, offset) {
     // TODO: error checking?
     offset = offset || 0;
-
-    object.data.data = "".concat(object.data.data.substr(0, offset), data, object.data.data.substr(offset+data.length, object.data.data.length));
-    object.release(); // save and release
+    sdata = "".concat(sdata.substr(0, offset), data, sdata.substr(offset+data.length, sdata.length));
     return true;
 }
 
 function ipc_addAsChild(rq, name, uri) {
     // add as child the object of uri URI named name
     object.linkChild(name, uri);
-    object.release(); // save and release
 }
 
 function ipc_createChild(rq, name, type, sec) {
     object.createChild(name, type, sec); // create without any DOM binding!! (of course)
-    object.release(); // save and release
 }
 
 function ipc_deleteChild(rq, name) {
     object.deleteChild(name);
-    object.release(); // save and release
 }
 
 function ipc_listChildren(rq) {
@@ -60,7 +51,7 @@ object.ipc["createChild"] = ipc_createChild;
 object.ipc["deleteChild"] = ipc_deleteChild;
 object.ipc["listChildren"] = ipc_listChildren;
 
-if(!wakeupIPCLock) object.release(); // mark that we can release safely // we dont want to save uninitialized file; only after write()!
+object.release(); // mark that we can release safely
 
 // TODO: this should be set in security method
 //       as well as wakeupIPCLock (in setSecurityState())

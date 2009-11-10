@@ -25,7 +25,7 @@ TODO response did not reach recipient(caller) in HUB and HERE! work out the issu
     + deleteChild(chldname)
         + recursive delete!
     + linkChild(name, URI) - only for link/forward requests 
-    + enumerateChildren -- this may use the same request as vm.getChildList (see vm.serialize())
+    + enumerateChildren -- this may use the same request as 
     + getMyURI
    check if anything left non-recursive and accessing internal child list defined in global
 + serialization
@@ -233,7 +233,7 @@ __eos_requests = {}; // object storing all the waiting requests
 __eos_objects = {};
 __eos_comet = {getID: function() {return 1;}}; // TODO
 __eos_serial = []; // list of objects to be freed
-
+__eos_serial_weak = [];
 
 
 
@@ -309,13 +309,14 @@ function eos_execURI(vm, sUri, sMethod, lArgs, timeout) {
             if(vm.DEBUG) vm.ErrorConsole.log("in execURI... child is: "+dest.name);
             var rq = {
                 id: __jn_stacks.newId(), 
-                user_name: __eos_objects["terminal"].global.my_username ? __eos_objects["terminal"].global.my_username : "", // XXX can be undefined..??
-                terminal_name: __eos_objects["terminal"].global.my_terminal ? __eos_objects["terminal"].global.my_terminal : "",
-                terminal_id: __eos_comet.getID(), // TODO: persistent comet connection ID!
+                //user_name: __eos_objects["terminal"].global.my_username ? __eos_objects["terminal"].global.my_username : "", // XXX can be undefined..??
+                terminal_name: "~", // always 'myself'
+                //terminal_id: __eos_comet.getID(), // TODO: persistent comet connection ID!
                 // optional but mandatory for local calls
-                object_name: vm.name,
-                object_type: vm.type,
+                // object_name: vm.name, // part of uri
+                object_type: vm.TypeURI,
                 object_uri: vm.uri,
+                object_security: vm.SecurityURI,
                 // now the actual params
                 method: sMethod,
                 args: lArgs
@@ -383,11 +384,12 @@ function eos_hubRequest(vm, cs, sUri, sMethod, lArgs, timeout, _mystop) {
         id: __jn_stacks.newId(), 
         //user_name: __eos_objects["terminal"].global.my_username ? __eos_objects["terminal"].global.my_username : "", // XXX can be undefined..??
         //terminal_name: __eos_objects["terminal"].global.my_terminal ? __eos_objects["terminal"].global.my_terminal : "",
-        terminal_id: __eos_comet.getID(), // TODO: persistent comet connection ID!
+        terminal_id: "~",//__eos_comet.getID(), // TODO: persistent comet connection ID!
         // optional but mandatory for local calls
-        object_name: vm.name,
-        object_type: vm.type,
+        //object_name: vm.name,
+        object_type: vm.TypeURI,
         object_uri: vm.uri,
+        object_security: vm.SecurityURI,
         // now the actual params
         uri: sUri,
         method: sMethod,
@@ -510,7 +512,18 @@ function eos_rcvEvent(rq) {
     if(rq.result || rq.status) {
         // this is result arrived;
         if(!(rq.id in __eos_requests)) return; // silently fail? XXX this is okay for pinger
-
+        if(__eos_requests[rq.id].onok) { // XXX this code needs to be tested!!
+            if(rq.status == "OK") {
+                __eos_requests[rq.id].onok(rq);
+            } else {
+                if(__eos_requests[rq.id].onerror) {
+                   __eos_requests[rq.id].onerror(rq);
+                } else {
+                   __eos_requests[rq.id].onok(rq);
+                } 
+            }
+            return;
+        }
         var x2 = __eos_requests[rq.id]["context"];
         var cs = __eos_requests[rq.id]["stack"];
         var vm = __eos_requests[rq.id]["vm"];
@@ -691,11 +704,15 @@ Jnaric.prototype.execIPC = function (rq, cbOK, cbERR) {
         }
         
         // XXX temporarily workaround: use timeout to avoid deadlock
+        // XXX WARNING: the timeout may fire on slow/heavy loaded machines
+        // TODO: do something with this
         var tmf = function () {
             if(!fflag) return;
             fflag = false;
-            if(this.global.initIPCLock || this.global.wakeupIPCLock) {
+
+            if(self.global.initIPCLock || self.global.wakeupIPCLock) {
                 cbERR({id: rq.id, status: "EEXCP", result: "object init lock timeout"});
+                self.ErrorConsole.log("object init lock timeout:" + self.uri + " i:"+self.global.initIPCLock+" w:"+self.global.wakeupIPCLock);
                 return;
             }
             self.execIPC(rq, cbOK, cbERR);        
@@ -783,6 +800,71 @@ Jnaric.prototype.getParent = function () {
     return this.parent; // TODO: always set 'parent' !!!
 };
 
+
+// universal request method
+// TODO: REWRITE THE eos_execURI to BE STACK_INDEPENDENT!!!
+//       like do kIPC() and have eos_execURI as a wrapper??
+function kIPC(vm, uri, method, args, onok, onerr) {
+console.log("in kIPC");
+    var rq = {
+        id: __jn_stacks.newId(), 
+        terminal_name: "~", // always 'myself'
+        object_type: vm.TypeURI,
+        object_uri: vm.uri, // named request
+        object_security: vm.SecurityURI,
+        method: method,
+        args: args
+    };
+
+    var lURI = uri.split("/");
+    if(lURI[0] == "") { // means this is root HUB request
+        if(vm.DEBUG) vm.ErrorConsole.log("in kIPC... request for HUB");
+        console.log("in kIPC - HUB");
+        // DOC if no onerror and only onok: call onok always -> as a standard kernel programming practice
+        __eos_requests[rq.id] = {request: rq, onok: onok, onerror: onerr}; 
+        hubConnection.send(rq);
+    } else {         // TODO: URI caching
+    console.log("in kIPC - local");
+        var dest = vm.getChild(lURI);
+        if(dest == null) {
+            onerr({id: rq.id, status: "EEXCP", result: "object not found by uri"});
+            console.log("in kIPC errooor");
+        }
+        console.log("in kIPC - dest" + dest);
+        if(typeof(dest)=="string") { // means we're redirect 
+            if(vm.DEBUG) vm.ErrorConsole.log("in kIPC... again kIPC!");
+            console.log("in kIPC - redir string");
+            kIPC(vm, dest, method, args, onok, onerr); // we're taking advantage of the 'GIL' in js engine
+        } else { // means it is a VM instance, so execute the request
+            console.log("in kIPC - execIPC reached");
+            try {
+                dest.execIPC(rq, onok, onerr); // XXX parse results?? if not -> change wakeObject!!    
+            } catch (e) {
+                console.log("in kIPC - execIPC error:: " + e);
+            }
+            console.log("in kIPC - execIPC end");
+        }
+    }
+}
+
+
+// XXX UNUSED ->>>
+function kLIPC(vm, uri, method, args, onok, onerr) {
+    var obj = vm.getChild(uri.split("/"));
+    // now form the request objec
+    var rq = {
+        id: __jn_stacks.newId(), 
+        terminal_name: "~", // always 'myself'
+        object_type: vm.TypeURI,
+        object_uri: vm.uri, // named request
+        object_security: vm.SecurityURI,
+        method: method,
+        args: args
+    };
+
+    obj.execIPC(rq, onok, onerr); // XXX parse results?? if not -> change wakeObject!!    
+}
+
 /*
 function eos_createChild_unpriv(vm, name, typeURI, secURI) {
     
@@ -808,61 +890,32 @@ function eos_createChild_unpriv(vm, name, typeURI, secURI) {
 function eos_wakeObject(parent, name, serID) {
     // XXX: delay the request until the objects get deserialized!!! this is accomplished via execIPC - check that!
     // TODO: what if the object does not exist?? - system error!!
-    
-    // first, get the data
+    // TEMPORARY SOLUTION GOES HERE
     
     var stor = getFixedStorage();
     
-    if(!stor) {
-        // gears is inaccessible, return anerror
-        // XXX return -1 on any error - this will instruct getChild to return 'object unavailable' error
-        return -1;
-        // and call onerror, if applicable (??? TODO decide on this)
-        
-    }
-    
+    if(!stor) return -1; // should getChild abandon the failing object or just ignore it??
     
     var self = this;
-    
-    /*
-    var db = google.gears.factory.create("beta.database");
-    db.open("jeos3-ss");
-    
-    var rs = db.execute("SELECT OID,TypeURI,SecurityURI,SecurityProp,ChildList,Data FROM Serialize WHERE OID=?", [serID]);
-    
-    var dump = {};
-    for(var i=0;i<rs.fieldCount();i++) {
-        ob[rs.fieldName(i)] = rs.field(i);
-        rs.next();
-    }
-    rs.close();
-    */
-    
     var dump = stor.getByID(serID);
     stor.close();
+    if(!dump) return -1;
     
     var obj = new Jnaric();
     
-    obj.onfinish = function () {
-        // we should call setState and setSecurityState on finish
-        
-        // THESE methods should drop the ready flag immediately and restore it later on to avoid possible requests from being run on obj
-        // TODO TODO XXX need another method to identify that th object is not ready here yet
-        //               maybe it is a variable set to WakingUp in global namespace or something... (wakeupIPCLock && initIPCLock ?)
-        
-        
-        // now add to parent?? -- no, we've added earlier
-        
-    };
-    
+console.log("in wakeobject");    
     ////////////////////////////
-    // copypaste part of eos_createObject
+    // copypaste part of eos_createObject TODO: write a single initObject kernel method
     // URI text, TypeURI text, SecurityURI text, SecurityProp text, ChildList text, Data blob, Created int, Modified int)");
     obj.name = name;
     obj.TypeURI = dump.TypeURI;
     obj.SecurityURI = dump.SecurityURI;
     obj.parent = parent;
     obj.uri = obj.parent.uri+"/"+name; 
+    // assert here
+    if(obj.parent.uri+"/"+name != dump.URI) {
+        __eos_objects["terminal"].ErrorConsole.log("ASSERT FAILED: obj.parent.uri+\"/\"+name != dump.URI: "+obj.parent.uri+"/"+name+" != "+dump.URI);
+    }
     obj.serID = dump.OID;
     obj.childList = JSON.parse(dump.ChildList);
     
@@ -872,20 +925,58 @@ function eos_wakeObject(parent, name, serID) {
     obj.bind_dom(); // TODO bind to fake DOM element since it is currently impossible to serialize DOM-enabled elements
     obj.bind_om(); // bind the protected EOS object model
     
-    obj.evaluate(sec_src); // XXX this should set the initIPCLock to false
-    obj.evaluate(type_src);
-
-    /////////////// end copypaste part
-    var dummy = function () {};
-    // TODO error reporting of wakeup process
-    //    XXX or a deadlock may occur!
-    // now feed the object with setState data
     
-    obj.execf_thread(obj.global.setState, [JSON.parse(dump.Data)], dummy, dummy); 
-    // XXX we do this in this order since 1. setSecurityState will release locks and 
-    //    2. the serializable object IS to release main thread!! this is a requirement for it to serialize though..
-    obj.execf_thread(obj.global.setSecurityState, [JSON.parse(dump.SecurityProp)], dummy, dummy); // XXX this should set the wakeupIPCLock to false
-    // now feed the obj with setSecurityState data
+    /////////////// end copypaste part
+    var dummy = function () {
+        console.log("dummy..");
+    };
+    var dummy_assert = function () {
+        __eos_objects["terminal"].ErrorConsole.log("error while executing setSecurityState!!");
+        //    XXX a deadlock may occur!
+    };
+
+    /*
+    obj.onfinish = function () {
+        // we should call setState and setSecurityState on finish        
+        // THESE methods should drop the ready flag immediately and restore it later on to avoid possible requests from being run on obj        
+    };
+    */
+        
+    // OKAY, write 2 more kernel methods: - to read() the data via URI and [LATER] to create system object manually
+    //      i.e. createObject method
+    // the kernel ipc loop: set the rq ids and callees as kIPC("URI", "", args)
+    // ---the method will sign read request as if it was from the current object IPC---
+    // kLIPC always executes from terminal identity
+    
+    var onerror = function (e) {
+        // TODO: abandon object on error!
+        // TODO: remove wakeup lock on any IPC semaphores/timeouts!
+        __eos_objects["terminal"].ErrorConsole.log("wakeObject kIPC error: "+e);
+        //    XXX a deadlock may occur!
+    }
+    
+    var onft = function (sec_src) {
+    console.log("ONFT!!");
+        // we'll be setting Sec while getting Type..
+        obj.evaluate(sec_src.result); // this will set the initIPCLock to false (XXX why ever initLock needed here??)
+        var onfs = function (type_src) {
+        console.log("ONFS!!");
+            obj.evaluate(type_src.result);
+            
+            obj.global.object.data = JSON.parse(dump.Data); // set data variable directly
+            obj.onfinish = function () {
+            console.log("and finally!!");
+                // XXX this should set the wakeupIPCLock to false
+                obj.execf_thread(obj.global.setSecurityState, [JSON.parse(dump.SecurityProp)], dummy, dummy_assert); 
+            };
+        };
+        kIPC(__eos_objects["terminal"], obj.TypeURI, "read", [], onfs, onerror);
+    };
+    kIPC(__eos_objects["terminal"], obj.SecurityURI, "read", [], onft, onerror); 
+    
+    //    the Security model init should NEVER block and unset initIPCLock. the later setSecurityState drops the wakeupIPCLock flag
+  
+    
     
     // now check & serialize-swapout somebody if appropriate
     if(KCONFIG.autoswapout && (__eos_objects.length > KCONFIG.MEMOBJECTS)) {
@@ -897,10 +988,6 @@ function eos_wakeObject(parent, name, serID) {
             // should be the oldest accessed!
             var vmo = __eos_serial[i];
             
-            // TODO HERE!!!!
-            // REFRESH interval in KCONFIG!! -> for s_agent
-            // different lists: the object READY for swapout and NOT!!!
-            
             for(var j=0; j<__eos_serial_weak.length; j++) {
                 if(vmo == __eos_serial_weak[j]) break;
             }
@@ -911,8 +998,12 @@ function eos_wakeObject(parent, name, serID) {
         __eos_serial = snew;
     }
     
+    
+    
+    
     // TODO: handle errors with duplicate names on wakeup?? or it is impossible situatuin? assert?
     parent.childList[name] = obj;
+    __eos_objects[obj.uri] = obj;
     return obj;
 }
 
@@ -950,7 +1041,7 @@ function eos_createObject(vm, name, type_src, sec_src, parentURI, typeURI, secUR
     obj.serID = -1;
     obj.childList = {};
     obj.global.initIPCLock = true; // flush this by validateRequest init XXX
-    
+    obj.global.wakeupIPCLock = false;
     obj.bind_dom(DOMElement); // TODO bind to protected wrapped DOM or to fake DOM element
     obj.bind_om(); // bind the protected EOS object model
     
@@ -971,6 +1062,7 @@ Jnaric.prototype.getChildList = function () {
     var r = {};
     var good = true;
     for (ob in this.childList) {
+        if(ob == "__defineProperty__") continue; // XXX FUCK!!!!!!!! XXX XXX XXX
         if(typeof this.childList[ob] == "number" || typeof this.childList[ob] == "string") {
             r[ob] = this.childList[ob];
         } else { // XXX this does not nessesarily indicate there is a non-serialized object; this may indicate a programming error instead!
@@ -1032,7 +1124,7 @@ Jnaric.prototype.has_stacks = function () {
 function GearsStore() {
     this.db = google.gears.factory.create("beta.database");
     this.db.open("jeos3-ss");
-    this.db.execute("create table if not exists Serialize (URI text UNIQUE, TypeURI text, SecurityURI text, SecurityProp text, ChildList text, Data blob, Created int, Modified int)");
+    this.db.execute("create table if not exists Serialize (URI text UNIQUE, TypeURI text, SecurityURI text, SecurityProp text, ChildList text, Data text, Created int, Modified int)");
 };
 
 GearsStore.prototype.checkID = function (ID) {
@@ -1054,23 +1146,27 @@ GearsStore.prototype.update = function (ID, data) {
 
 GearsStore.prototype.insert = function (data) {
     // may fail here??
-    this.db.execute("INSERT INTO Serialize (URI, TypeURI, SecurityURI, SecurityProp, ChildList, Data, Created, Modified) VALUES (?,?,?,?,?,?,?,?)", 
+    // console.log("Doing insert with "+[data.URI, data.TypeURI, data.SecurityURI, data.SecurityProp, data.ChildList, data.Data, (new Date()).getTime(), (new Date()).getTime()].join(" ; "));
+    //this.db.execute("INSERT INTO Serialize (URI, TypeURI, SecurityURI, SecurityProp, ChildList, Data, Created, Modified) VALUES (?,?,?,?,?,?,?,?)",
+    this.db.execute("INSERT INTO Serialize values (?,?,?,?,?,?,?,?)",  
                             [data.URI, data.TypeURI, data.SecurityURI, data.SecurityProp, data.ChildList, data.Data, (new Date()).getTime(), (new Date()).getTime()]); 
-                    
+
     // now get and set the oid of the shitty thing
-    var oidr = this.db.execute("SELECT OID FROM Serialize WHERE URI=?", [self.uri]);
+    var oidr = this.db.execute("SELECT OID FROM Serialize WHERE URI=?", [data.URI]);
     var iid = parseInt(oidr.field(0)); // not sure parseInt is required here
     oidr.close();
     return iid;
 };
 
 GearsStore.prototype.getByID = function (serID) {
-    var rs = this.db.execute("SELECT OID,TypeURI,SecurityURI,SecurityProp,ChildList,Data FROM Serialize WHERE OID=?", [serID]);
-    
+    var rs = this.db.execute("SELECT URI,OID,TypeURI,SecurityURI,SecurityProp,ChildList,Data FROM Serialize WHERE OID=?", [serID]);
+    if(!rs.isValidRow()) {
+      rs.close();
+      return null;
+    }
     var dump = {};
     for(var i=0;i<rs.fieldCount();i++) {
-        ob[rs.fieldName(i)] = rs.field(i);
-        rs.next();
+        dump[rs.fieldName(i)] = rs.field(i);
     }
     rs.close();
     return dump;
@@ -1078,11 +1174,13 @@ GearsStore.prototype.getByID = function (serID) {
 
 GearsStore.prototype.getByURI = function (uri) {
     var rs = this.db.execute("SELECT OID,TypeURI,SecurityURI,SecurityProp,ChildList,Data FROM Serialize WHERE URI=?", [uri]);
-    
+    if(!rs.isValidRow()) {
+      rs.close();
+      return null;
+    }
     var dump = {};
     for(var i=0;i<rs.fieldCount();i++) {
-        ob[rs.fieldName(i)] = rs.field(i);
-        rs.next();
+        dump[rs.fieldName(i)] = rs.field(i);
     }
     rs.close();
     return dump;
@@ -1113,84 +1211,80 @@ function getFixedStorage() {
 //          may result in a deadlock for calling stack if not all children provide the capability of serialization
 Jnaric.prototype.serialize = function (onfinish, onerror) {
     // return null if serialization is not possible
-    
-    // now issue the call to 'getState' method (if any) to get the object representation
-    
-    // okay, now init the Gears DB and save the result via a call
     var stor = getFixedStorage();
-    if(!stor) {
-    // if(!window.google) {
-        // gears is inaccessible, return anerror
-        return -1;
-        // and call onerror, if applicable (??? TODO decide on this)
-        
-    }
+    if(!stor) return -1;
     
     var self = this;
     var oChildList = self.getChildList();
     
     // make sure we are clean to serialize
     // WARNING: do something more adequeate here?
-    if(!oChildList.good) onerror("object not ready - some children not serialized, skip to another");
+    if(!oChildList.good) { 
+        onerror && onerror("object not ready - some children not serialized, skip to another"); 
+        return -2;
+    }
     
     var sChildList = JSON.stringify(oChildList.list);
     // first, get the object data state
     
-    var onGetState = function (resultData) {
-        var onGetSec = function (resultSec) {
-            // TODO: another database to cache typeURIs and secURIs (the objects they're linked to WW-> they may be links)
-            // TODO: 2 storage methods: Database and Filelike            
+    //var onGetState = function (resultData) {
+    var onGetSec = function (resultSec) {
+        // TODO: 2 storage methods: Database and Filelike            
 
-            // TODO: serialization error still possible here!!! - REPORT!!
-            //try { // ... etc
+        // TODO: serialization error still possible here!!! - REPORT!!
+        //try { // ... etc
 
-            // 1. the object is serialized already -> search by id (this.serID) - OR - ERROR !!!
-            if(self.serID > 0) {
-                if(stor.checkID(self.serID)) {
-                    // update me
-                    var data = {
-                        SecurityProp: JSON.stringify(resultSec),
-                        Data: JSON.stringify(resultData),
-                        ChildList: sChildList
-                    };
-                    stor.update(self.serID, data);
-                } else {
-                    // error, the object has been serialized but is not available or some other programming error occurred
-                    // TODO: possible solutions: 1. serialize as new object. 2. throw an exception (WHERE??)
-                    // suggestion is 2. TODO this at earlier stages!
-                }
-            // 2. the object is not serialized
+        // 1. the object is serialized already -> search by id (this.serID) - OR - ERROR !!!
+        if(self.serID > 0) {
+            if(stor.checkID(self.serID)) {
+                // update me
+                var data = {
+                    SecurityProp: JSON.stringify(resultSec),
+                    //Data: JSON.stringify(resultData),
+                    Data: JSON.stringify(self.global.object.data),
+                    ChildList: sChildList
+                };
+                stor.update(self.serID, data);
             } else {
-                    // insert
-                    var data = {
-                        SecurityProp: JSON.stringify(resultSec),
-                        Data: JSON.stringify(resultData),
-                        ChildList: sChildList,
-                        TypeURI: self.TypeURI,
-                        SecurityURI: self.SecurityURI,
-                        URI: self.uri
-                    };
-
-                    seld.serID = stor.insert(data);
+                // error, the object has been serialized but is not available or some other programming error occurred
+                // TODO: possible solutions: 1. serialize as new object. 2. throw an exception (WHERE??)
+                // suggestion is 2. TODO this at earlier stages!
             }
-            stor.close();
-            onfinish && onfinish(self.serID);
-        };
-        
-        var onGetSecError = function (exc) {
-            onerror && onerror(exc);
-        };
-        
-        self.execf_thread(self.global.getSecurityState, [], onGetSec, onGetSecError); 
+        // 2. the object is not serialized
+        } else {
+                // insert
+                var data = {
+                    SecurityProp: JSON.stringify(resultSec),
+                    Data: JSON.stringify(resultData),
+                    ChildList: sChildList,
+                    TypeURI: self.TypeURI,
+                    SecurityURI: self.SecurityURI,
+                    URI: self.uri
+                };
+
+                self.serID = stor.insert(data);
+        }
+        stor.close();
+        onfinish && onfinish(self.serID);
     };
     
+    var onGetSecError = function (exc) {
+        onerror && onerror(exc);
+    };
+    
+    self.execf_thread(self.global.getSecurityState, [], onGetSec, onGetSecError); 
+    //};
+    
+    /*
     var onGetStateError = function (exc) {
         // execute onerror
         onerror && onerror(exc);
     };
+    */
     
     // second, get the security state
-    self.execf_thread(self.global.getState, [], onGetState, onGetStateError); 
+    //self.execf_thread(self.global.getState, [], onGetState, onGetStateError);
+ 
 }
 
 eos_om = {
@@ -1252,6 +1346,29 @@ eos_om = {
         return ro;
     },
 */  
+    createChild: function (__tihs, name, typeURI, secURI, DOMElement) {
+        // make sure it is possible to pass any object reference via LIPC
+        if(name in __tihs.childList) {
+            __tihs.cur_stack.EXCEPTION = THROW;
+            __tihs.cur_stack.my.x2.result = "duplicate child name";
+            return;
+        }
+        if( (typeof(typeURI) != "string") && !(typeURI instanceof String)) {
+            __tihs.cur_stack.EXCEPTION = THROW;
+            __tihs.cur_stack.my.x2.result = (new __tihs.global.TypeError("TypeURI must be a string")); 
+            return;
+        }
+
+        if( (typeof(secURI) != "string") && !(secURI instanceof String)) {
+            __tihs.cur_stack.EXCEPTION = THROW;
+            __tihs.cur_stack.my.x2.result = (new __tihs.global.TypeError("SecurityURI must be a string")); 
+            return;
+        }
+
+        //console.log("Me is "+__tihs.name+" request createObj to ~");
+        eos_execURI(__tihs, "~", "createObject", [name, typeURI, secURI, DOMElement]); 
+    },
+
 
     getReleaseObj: function (i) {
       if(i >= __eos_serial.length) return null;
@@ -1293,7 +1410,7 @@ eos_om = {
 
     kconfig: function (vm, p, v) {
         if(typeof(v) != 'undefined') {
-            for(var i=0; i<vm.kconfig_w; i++) {
+            for(var i=0; i<vm.kconfig_w.length; i++) {
                 if(p == vm.kconfig_w[i]) { 
                     KCONFIG[p] = v;
                     return v;
@@ -1301,14 +1418,14 @@ eos_om = {
             }
             return undefined;
         } else {
-            for(var i=0; i<vm.kconfig_r; i++) {
+            for(var i=0; i<vm.kconfig_r.length; i++) {
                 if(p == vm.kconfig_r[i]) return KCONFIG[p];
             }
             return undefined;            
         }
     },
     
-    kbind: function (vm, childName, methodStruct, kconfig_r, kconfig_w) {
+    kbind: function (vm, childName, bindList, kconfig_r, kconfig_w) {
         // DOC 'no such child' is exception!
         if(!(childName in vm.childList)) {
             vm.cur_stack.EXCEPTION = THROW;
@@ -1316,8 +1433,8 @@ eos_om = {
             return;
         }
         var ch = vm.childList[childName];
-        for(var ob in methodStruct) {
-            ch.global.object[ob] = methodStruct[ob]; // DOC overwrite if nesessary...
+        for(var i=0; i<bindList.length; i++) {
+            ch[bindList[i]](); // DOC this is dangerous kernel method!!
         }
         // now SET the kconfig access strings
         ch.kconfig_r = kconfig_r; // TODO error checking here (if kconfig_ list is incorrect
@@ -1367,7 +1484,7 @@ Jnaric.prototype.bind_om = function () {
     this.global.object = {name: this.name, version: this.VERSION};
     this.global._object = this.global.object; // backup object...
     this.global.object.ipc = {};
-    
+    this.global.object.data = {}; // the TQLW
     
     // XX timeout is optional -  if the 'timeout' is hit it is not necessary that the method does not get successfully executed on the callee side
     this.global.execURI = function(sUri, sMethod, oData, timeout) {
@@ -1380,6 +1497,9 @@ Jnaric.prototype.bind_om = function () {
     // this.global.__child = {}; // DELETE THIS!!
 
     this.global.object.createChild = function(name, typeURI, secURI, DOMElement) {
+        eos_om.createChild(__tihs, name, typeURI, secURI, DOMElement);
+    };
+/*
         // make sure it is possible to pass any object reference via LIPC
         if(name in __tihs.childList) {
             __tihs.cur_stack.EXCEPTION = THROW;
@@ -1389,6 +1509,7 @@ Jnaric.prototype.bind_om = function () {
         //console.log("Me is "+__tihs.name+" request createObj to ~");
         eos_execURI(__tihs, "~", "createObject", [name, typeURI, secURI, DOMElement]); 
     };
+*/
     //this.global.createChild = this.global.object.createChild;
     
     
@@ -1432,10 +1553,10 @@ Jnaric.prototype.bind_om = function () {
         return __tihs.uri;        
     };
     this.global.object.getMyTypeURI = function() {
-        return __tihs.uri;        
+        return __tihs.TypeURI;        
     };
     this.global.object.getMySecurityURI = function() {
-        return __tihs.uri;        
+        return __tihs.SecurityURI;        
     };
 
 
@@ -1463,13 +1584,11 @@ Jnaric.prototype.bind_om = function () {
         return eos_om.kconfig(__tihs, p, v);
     };
     
-    this.global.object.kbind = function (childName, methodStruct, kconfig_r, kconfig_w) {
-        return eos_om.kbind(__tihs, childName, methodStruct, kconfig_r, kconfig_w);
-    };
     
     // getMethodList ?? describeObject ?? or is it security code??
     
     // TODO: set this.parent on init
+
     
 };
 
@@ -1483,12 +1602,26 @@ Jnaric.prototype.bind_terminal = function () {
     
     this.GRANTED = true; // grant changing NICE, etc...  - see jsexec.js; also need more nice control of children so TODO
     //                                   (name, code, sec,   rq.object_uri, typeURI, secURI, DOMElement)
+    
+    // TODO: move entirely to object.?
     this.global.__createObject = function(name, stype, ssec, parentURI, typeURI, secURI, DOMElement) {
         
         return eos_createObject(__tihs, name, stype, ssec, parentURI, typeURI, secURI, DOMElement);
     };
+    this.global.object.createObject = this.global.__createObject;
+
+    this.global.object.kbind = function (childName, bindList, kconfig_r, kconfig_w) {
+        return eos_om.kbind(__tihs, childName, bindList, kconfig_r, kconfig_w);
+    };
+
     
-    
+    this.bind_serial();    
+
+};
+
+Jnaric.prototype.bind_serial = function () {
+    var __tihs = this;
+
     // serialization is only accessible if it is possible to get storage!
     var ts = getFixedStorage();
     
@@ -1496,16 +1629,16 @@ Jnaric.prototype.bind_terminal = function () {
         this.global.object.serializeURI = function (URI, blocking) {
             if(typeof(blocking) == 'undefined')
                 blocking = false;
-            
+            var cs = __tihs.cur_stack;
+            var x2 = cs.my.x2;
+             
             if(blocking) { // stop the stack
-                var cs = __tihs.cur_stack;
                 cs.EXCEPTION = false;
                 cs.STOP = true;
                 // store the result here
-                var x2 = cs.my.x2;
             }
             // get the object by uri
-            var vm = __eos_objects["terminal"].getChild(URI); // XXX warning! do not wake up just to serialize?!
+            var vm = __eos_objects["terminal"].getChild(URI.split("/")); // XXX warning! do not wake up just to serialize?!
             
 
             var cbOK = function (rs) { // callback on OK
@@ -1525,9 +1658,9 @@ Jnaric.prototype.bind_terminal = function () {
             var cbERR = function (rs) {
                 if(blocking) {              
                     cs.EXCEPTION = THROW;
-                    var ex = rs;
+                    // var ex = rs;
                     //ex.result = rs.result;
-                    cs.exc.result = ex;
+                    cs.exc.result = rs;
                     cs.STOP = false;
                     __jn_stacks.start(cs.pid);   
                 }
@@ -1535,7 +1668,7 @@ Jnaric.prototype.bind_terminal = function () {
             };
             
             if(blocking) { 
-                __tihs.cur_stack.my.x2=vm.serialize(cbOK, cbERR);
+                vm.serialize(cbOK, cbERR);
             } else {
                 return vm.serialize(cbOK, cbERR);
             }
@@ -1544,12 +1677,12 @@ Jnaric.prototype.bind_terminal = function () {
         // TODO: how do we denote that the object has been or has not been serialized / swapped out??
         this.global.object.swapoutURI = function (URI, force) {
               
-            var vm = __eos_objects["terminal"].getChild(URI);
+            var vm = __eos_objects["terminal"].getChild(URI.split("/"));
             
             return vm.swapout(force);    // XXX DOC strange API here! (see .swapout)
         };
         
-        this.global.object.listObjects = eos_om.listObjects;
+        this.global.object.listSystemObjects = eos_om.listSystemObjects;
         
         this.global.object.getReleaseLength = eos_om.getReleaseLength;
         this.global.object.getSerializeLength = eos_om.getSerializeLength;
@@ -1557,10 +1690,10 @@ Jnaric.prototype.bind_terminal = function () {
         this.global.object.getSerializeObj = eos_om.getSerializeObj;
         this.global.object.delReleaseObj = eos_om.delReleaseObj;
         this.global.object.delSerializeObj = eos_om.delSerializeObj;
+        ts.close();
     }
-    ts.close();
     delete ts;
-};
 
+};
 
 

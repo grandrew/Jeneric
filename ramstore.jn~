@@ -3,7 +3,7 @@
 // TODO: error checking everywhere!!
 // no! dont init it here!
 // object.data.data = "";
-if(!object.data.data) object.data.data = ""; // init data if not
+
 
 // XXX THESE ARE IGNORED BY TQLW principle XXX
 function getState() {
@@ -27,7 +27,7 @@ function read(rq, offset, len) {
 function write(rq, data, offset) {
     // TODO: error checking?
     offset = offset || 0;
-
+    if(!object.data.data) object.data.data = ""; // init data if not
     object.data.data = "".concat(object.data.data.substr(0, offset), data, object.data.data.substr(offset+data.length, object.data.data.length));
     object.release(); // save and release
     return true;
