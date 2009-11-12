@@ -25,6 +25,29 @@ function ipc_listChildren(rq) {
 }
 object.ipc["listChildren"] = ipc_listChildren;
 
+/*
+// now methods for child object creation
+// XXX can not serialize because the tree can not be serialized in the whole..
+function ipc_addAsChild(rq, name, uri) {
+    // add as child the object of uri URI named name
+    object.linkChild(name, uri);
+    object.serialize();
+}
+
+function ipc_createChild(rq, name, type, sec) {
+    object.createChild(name, type, sec); // create without any DOM binding!! (of course)
+    object.serialize();
+}
+
+function ipc_deleteChild(rq, name) {
+    object.deleteChild(name);
+    object.serialize();
+}
+object.ipc["addAsChild"] = ipc_addAsChild;
+object.ipc["createChild"] = ipc_createChild;
+object.ipc["deleteChild"] = ipc_deleteChild;
+*/
+
 // get some server data anonymously (luckily we know the location ;-)
 // TODO: a native method for this shit... 
 // LATER
@@ -105,8 +128,8 @@ if(object.serializeURI) {
 
 // TODO: createChild to return a value??
 if(ok) {
-    // TODO: pass other serializer methods to init..
-    object.kbind("init", {getSerializeObj : object.getSerializeObj, serializeURI: object.serializeURI}, ["autorestore", "saveinterval", "autoswapout"], ["autorestore", "autoswapout"]);
+    // XXX maybe bind terminal to init?
+    object.kbind("init", ["bind_serial"], ["autorestore", "saveinterval", "autoswapout"], ["autorestore", "autoswapout"]);
     object.execURI("./init", "start_s_agent", []);
 } else {
     ErrorConsole.log("PANIC: could not start init. Try passing init= kernel parameter.");

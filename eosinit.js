@@ -37,12 +37,12 @@ KCONFIG = {
 
 _terminal_vm = new Jnaric();
 
-_terminal_vm.name = "terminal"+(new Date()).getTime(); // TODO! get real terminal name!!! (somehow??)
+_terminal_vm.name = "~"; // "terminal"+(new Date()).getTime(); // TODO! get real terminal name!!! (somehow??)
 _terminal_vm.TypeURI = "terminal"; // no real tURI
 _terminal_vm.SecurityURI = "terminal"; 
 _terminal_vm.parent = "/"; // the server root
 _terminal_vm.uri = "~";//_terminal_vm.parent + "/"+name;
-_terminal_vm.serID = -1; 
+_terminal_vm.serID = -1; // set to real value, if exists
 _terminal_vm.childList = {}; // init the CL later
 
 _terminal_vm.global.initIPCLock = true; // THIS to be flushed by security validateRequest method init
@@ -244,6 +244,12 @@ if(_stor) {
       _var_vm.ErrorConsole.log("restoring ~/var childList...");
       _var_vm.childList = JSON.parse(d.ChildList);
       _var_vm.serID = parseInt(d.OID);
+    }
+    d = _stor.getByURI("~");
+    if(d) {
+      _terminal_vm.ErrorConsole.log("restoring ~ childList...");
+      _terminal_vm.childList = JSON.parse(d.ChildList);
+      _terminal_vm.serID = parseInt(d.OID); // ok.
     }
     _stor.close();
 }

@@ -25,6 +25,29 @@ function ipc_listChildren(rq) {
 }
 object.ipc["listChildren"] = ipc_listChildren;
 
+
+// now methods for child object creation
+
+function ipc_addAsChild(rq, name, uri) {
+    // add as child the object of uri URI named name
+    object.linkChild(name, uri);
+    object.serialize();
+}
+
+function ipc_createChild(rq, name, type, sec) {
+    object.createChild(name, type, sec); // create without any DOM binding!! (of course)
+    object.serialize();
+}
+
+function ipc_deleteChild(rq, name) {
+    object.deleteChild(name);
+    object.serialize();
+}
+object.ipc["addAsChild"] = ipc_addAsChild;
+object.ipc["createChild"] = ipc_createChild;
+object.ipc["deleteChild"] = ipc_deleteChild;
+
+
 // get some server data anonymously (luckily we know the location ;-)
 // TODO: a native method for this shit... 
 // LATER

@@ -231,9 +231,9 @@ EXAMPLE:
 
 __eos_requests = {}; // object storing all the waiting requests
 __eos_objects = {};
-__eos_comet = {getID: function() {return 1;}}; // TODO
+__eos_comet = {getID: function() {return 1;}}; // TODO get rid of this
 __eos_serial = []; // list of objects to be freed
-__eos_serial_weak = [];
+__eos_serial_weak = []; // objects that can NOT be swapped out now // XXX name misspelled
 
 
 
@@ -286,13 +286,31 @@ function eos_execURI(vm, sUri, sMethod, lArgs, timeout) {
         // create a request
         // ... and callback
         if(vm.DEBUG) vm.ErrorConsole.log("in execURI... request for HUB");
-        eos_hubRequest(vm, cs, sUri, sMethod, lArgs, timeout, mystop); 
+        try {
+            eos_hubRequest(vm, cs, sUri, sMethod, lArgs, timeout, mystop); 
+        } catch (e) {
+            cs.EXCEPTION = THROW;
+            cs.exc.result = e;
+            cs.STOP = false;
+            return;
+        }
         
     } else {
         // TODO: URI caching
         if(vm.DEBUG) vm.ErrorConsole.log("in execURI... getting child");
         // execute locally
-        var dest = vm.getChild(lURI);
+    
+        try {
+            var dest = vm.getChild(lURI);
+            //console.log("getChild returner");
+            //console.log(dest);
+        } catch (e) {
+            cs.EXCEPTION = THROW;
+            cs.exc.result = e;
+            cs.STOP = false;
+            return;
+        }
+        
         if(dest == null) {
             // child not found...
             cs.EXCEPTION = THROW;
@@ -303,7 +321,10 @@ function eos_execURI(vm, sUri, sMethod, lArgs, timeout) {
         
         if(typeof(dest)=="string") { // means we're redirect to ... eos_execURI back 
             if(vm.DEBUG) vm.ErrorConsole.log("in execURI... again execURI!");
+            
+            // XXX EXECURI is NOT ALLOWED TO FAIL!!!
             eos_execURI(vm, dest, sMethod, lArgs); // we're taking advantage of the 'GIL' in js engine
+        
         } else { // means it is a VM instance, so execute the request
             // create the request object
             if(vm.DEBUG) vm.ErrorConsole.log("in execURI... child is: "+dest.name);
@@ -356,7 +377,14 @@ function eos_execURI(vm, sUri, sMethod, lArgs, timeout) {
                 
             };
             if(vm.DEBUG) vm.ErrorConsole.log("in execURI... doing execIPC!");
-            dest.execIPC(rq, cbOK, cbERR); 
+            try {
+                dest.execIPC(rq, cbOK, cbERR); 
+            } catch (e) {
+                cs.EXCEPTION = THROW;
+                cs.exc.result = e;
+                cs.STOP = false;
+                return;
+            }
         }
 
             
@@ -581,9 +609,8 @@ function eos_rcvEvent(rq) {
         // parse the URI
         var lURI = rq.uri.split("/");
         
-        // TODO: URI caching
         
-        var dest = t.getChild(lURI); 
+        var dest = t.getChild(lURI); // XXX strange.. it works :-\
         
         if(dest == null) {
             // child not found...
@@ -593,7 +620,7 @@ function eos_rcvEvent(rq) {
             return;
         }
         
-        // TODO HERE
+
         if(typeof(dest) == "string") {
             // redir 
             // 1. locally
@@ -706,6 +733,8 @@ Jnaric.prototype.execIPC = function (rq, cbOK, cbERR) {
         // XXX temporarily workaround: use timeout to avoid deadlock
         // XXX WARNING: the timeout may fire on slow/heavy loaded machines
         // TODO: do something with this: like use the time between first line read and last object init as a benchmark
+
+        // XXX many race conditions possible here if run from multi-tasking setTimeout/event scope!!
         var tmf = function () {
             if(!fflag) return;
             fflag = false;
@@ -715,18 +744,30 @@ Jnaric.prototype.execIPC = function (rq, cbOK, cbERR) {
                 self.ErrorConsole.log("object init lock timeout:" + self.uri + " i:"+self.global.initIPCLock+" w:"+self.global.wakeupIPCLock);
                 return;
             }
-            self.execIPC(rq, cbOK, cbERR);        
+            self.execIPC(rq, cbOK, cbERR); 
         };
-        // wait for onfinish for 8 seconds
+        // wait for onfinish for 8 seconds to timeout entirely
         setTimeout(tmf, 8000);
         
-        // XXX may cause process deadlock here
-        // TODO: some sort of a timeout here
+        // XXX TQLW mode (semaphoreless solution) ->
+        var tick_fun = function () {
+            // begin closured tick...
+            if(!fflag) return;
+            
+            if(self.global.initIPCLock || self.global.wakeupIPCLock) {
+                // run ticker again
+                setTimeout(arguments.callee, 600); // ECMA ECMA.. 
+                return;
+            }
+            self.execIPC(rq, cbOK, cbERR); 
+        };
+        setTimeout(tick_fun, 600);
+        // END TQLW MODE
+        
         return;
     }
     
     if(this.global.validateRequest) {
-
         this.execf_thread(this.global.validateRequest, [rq], cbo, cbe); 
     } else {
         cbe("validateRequest is undefined at callee side");
@@ -745,27 +786,79 @@ Jnaric.prototype.execIPC = function (rq, cbOK, cbERR) {
         
 };
 
-Jnaric.prototype.getChild = function (lURI) {
+Jnaric.prototype.getChild = function (lURI, r) {
     // a method to return child
     
     if(lURI.length == 0) return this;
 
+    if(typeof(r) == 'undefined') { // do only if not recursively called
+        // TODO: support for relative URI parsing
+        // create a copy of lURI
+        var llURI = [].concat(lURI);
+        
+        if(llURI[0] == ".") {
+            llURI.shift();
+            llURI = (this.uri.split("/")).concat(llURI);            
+        }
+        else if(llURI[0] == "..") {
+            llURI.shift();
+            llURI = (this.getParent().uri.split("/")).concat(llURI);
+        }
+
+        
+        // abs uri cache
+        var sURI = llURI.join("/"); 
+        if(sURI in __eos_objects) return __eos_objects[sURI];
+        
+        // now check for serialized object
+        // if it is there by URI, -> return eos_wakeObject
+        var stor = getFixedStorage();
+        if(stor) {
+            var d = stor.getChildList(sURI);
+            if(d) {
+                // first, find parent
+                // or invent one
+                var parentURI = [].concat(llURI);
+                var child_name = parentURI.pop();
+                parentURI = parentURI.join("/");
+                var parent = __eos_objects[parentURI];
+                if(!parent) {
+
+                    var td = stor.getChildList(parentURI);
+                    // XXX what if... ??? parent isnt at storage too O_o
+                    parent = {serID: parseInt(td.rowid), uri: parentURI, name: llURI[(llURI.length - 1)]};
+                }
+                console.log("getting ser par from "+parentURI);
+                console.log("got obj oid: "+d.rowid+" from uri "+sURI+" TypeURI "+d.TypeURI);
+                return eos_wakeObject(parent, child_name, parseInt(d.rowid));
+                
+            }
+            stor.close();
+        }
+        
+        
+    }
+    
+    // TODO: support for redirection URI caching 
+    
+    
+
     if(lURI[0] == ".") {
         lURI.shift();
-        return this.getChild(lURI);
+        return this.getChild(lURI, true);
     }
     else if(lURI[0] == "..") {
         lURI.shift();
-        return vm.getParent().getChild(lURI); 
+        return this.getParent().getChild(lURI, true); 
     }
     else if(lURI[0] == "~") {
         
         lURI.shift();
-        return __eos_objects["terminal"].getChild(lURI);
+        return __eos_objects["terminal"].getChild(lURI, true);
     }
     else if(lURI[0] == "") { // skip...
         lURI.shift();
-        return this.getChild(lURI);
+        return this.getChild(lURI, true);
     }
 
     
@@ -776,7 +869,7 @@ Jnaric.prototype.getChild = function (lURI) {
     //if( (typeof(trg) == "string") && (trg.charAt(0) == "@") ) {
     if(typeof(trg) == "number") {
         // this means we have a serialized object, wake it up!
-        if(!KCONFIG.autorestore) return null; // XXX work in progress...
+        if(!KCONFIG.autorestore) return null; // XXX work in progress... TODO later
         trg = eos_wakeObject(this, lURI[0], trg); 
         if(trg == -1) return null; // XXX in case we failed to get the object due to wakeup fail :-\
         // this may take a while though... TODO some optimization and prioritization
@@ -792,12 +885,13 @@ Jnaric.prototype.getChild = function (lURI) {
     }
     
     lURI.shift();
-    return trg.getChild(lURI);
+    return trg.getChild(lURI, true);
 
 };
 
 Jnaric.prototype.getParent = function () {
-    return this.parent; // TODO: always set 'parent' !!!
+
+    return this.parent; //  always set 'parent'! parent may be fake. See serialization internal protocol
 };
 
 
@@ -894,12 +988,18 @@ function eos_wakeObject(parent, name, serID) {
     
     var stor = getFixedStorage();
     
-    if(!stor) return -1; // should getChild abandon the failing object or just ignore it??
+    if(!stor) {
+        __eos_objects["terminal"].ErrorConsole.log("ASSERT FAILED: wakeObject: storage not availabl");
+        return null; // should getChild abandon the failing object or just ignore it??
+    }
     
     var self = this;
     var dump = stor.getByID(serID);
     stor.close();
-    if(!dump) return -1;
+    if(!dump) {
+        __eos_objects["terminal"].ErrorConsole.log("ASSERT FAILED: wakeObject: could not get object by id: "+serID);
+        return null;
+    }
     
     var obj = new Jnaric();
     
@@ -916,7 +1016,7 @@ console.log("in wakeobject");
     if(obj.parent.uri+"/"+name != dump.URI) {
         __eos_objects["terminal"].ErrorConsole.log("ASSERT FAILED: obj.parent.uri+\"/\"+name != dump.URI: "+obj.parent.uri+"/"+name+" != "+dump.URI);
     }
-    obj.serID = dump.OID;
+    obj.serID = dump.rowid;
     obj.childList = JSON.parse(dump.ChildList);
     
     obj.global.initIPCLock = true; // THIS to be flushed by security validateRequest method init
@@ -927,6 +1027,18 @@ console.log("in wakeobject");
     
     
     /////////////// end copypaste part
+    
+    // now try to attach as parent to all possible children!
+    for(var ch in obj.childList) {
+        for(var ob in __eos_objects) {
+            if(__eos_objects[ob].serID == obj.childList[ch]) {
+                obj.childList[ch] = __eos_objects[ob];
+                __eos_objects[ob].parent = obj; // and forget fake parent
+                break;
+            }
+        }
+    }
+    
     var dummy = function () {
         console.log("dummy..");
     };
@@ -961,9 +1073,11 @@ console.log("in wakeobject");
         obj.evaluate(sec_src.result); // this will set the initIPCLock to false (XXX why ever initLock needed here??)
         var onfs = function (type_src) {
         console.log("ONFS!!");
-            obj.evaluate(type_src.result);
+            obj.evaluate(type_src.result); // XXX TYPE SRC CODE MUST RELEASE MAIN THREAD for serialization..
+                                           // OR IT WILL DEADLOCK THE SYSTEM IPC FOR THAT OBJECT
             
             obj.global.object.data = JSON.parse(dump.Data); // set data variable directly
+
             obj.onfinish = function () {
             console.log("and finally!!");
                 // XXX this should set the wakeupIPCLock to false
@@ -1002,8 +1116,12 @@ console.log("in wakeobject");
     
     
     // TODO: handle errors with duplicate names on wakeup?? or it is impossible situatuin? assert?
-    parent.childList[name] = obj;
+    if(parent.childList) // defeat fake parent!
+        parent.childList[name] = obj;
     __eos_objects[obj.uri] = obj;
+    
+    // now set for release 
+    __eos_serial.push(obj);
     return obj;
 }
 
@@ -1060,14 +1178,25 @@ function eos_createObject(vm, name, type_src, sec_src, parentURI, typeURI, secUR
 Jnaric.prototype.getChildList = function () {
     // return the list of children FOR SERIALIZATION!!!
     var r = {};
-    var good = true;
+    var good = true; // XXX good will be unused from now on...
     for (ob in this.childList) {
         if(ob == "__defineProperty__") continue; // XXX FUCK!!!!!!!! XXX XXX XXX
         if(typeof this.childList[ob] == "number" || typeof this.childList[ob] == "string") {
             r[ob] = this.childList[ob];
         } else { // XXX this does not nessesarily indicate there is a non-serialized object; this may indicate a programming error instead!
             if(this.childList[ob].serID > -1) r[ob] = this.childList[ob].serID;
-            else good = false;
+            /*
+            else {
+                // if the object is in __eos_serial_weak: return bad
+                // TODO HERE
+                // NO! delete everything here!! -> do it at serialize: if parent is not serialized - skip to another
+                //     then when object is serialized - re-serialize parent childList (only)!
+                //     CL only ser and retr is useful for URI pass/cache resolv (today)
+                for() {
+                    good = false;
+                }
+            }
+            */
         }
     }
     return {good: good, list:r}; 
@@ -1084,6 +1213,18 @@ Jnaric.prototype.swapout = function (force) { // DOC this - force means clean ou
     if(!force && hs) return -1; // DOC this, cannot continue
     
     if(!(this.serID > 0)) return -2;
+
+    // clean ALL references!!! -->
+    // 1. as .parent for childList
+    // 2. stacks
+    // 3. from parent
+    // 4. __eos_objects
+    
+    // clean childlist
+    for(var ch in this.childList) {
+        this.childList[ch].parent = {serID: this.serID, uri: this.uri, name: this.name}; // NOTE: .parent is FAKE now
+    }
+
     
     if(hs) {
         // forget the stacks and all the shit
@@ -1094,14 +1235,19 @@ Jnaric.prototype.swapout = function (force) { // DOC this - force means clean ou
         __jn_stacks.stacks_sleeping = newss;
         newss = [];
         for(j=0;j<__jn_stacks.stacks_running.length;j++)
-            if(__jn_stacks.stacks_running[j].vm == this)
+            if(__jn_stacks.stacks_running[j].vm != this)
                 newss.push(__jn_stacks.stacks_running[j]);
         __jn_stacks.stacks_running = newss;
     }
     
-    this.parent.childList[this.name] = this.serID;
-    delete this.parent.childList[this.name];
+    
+    // if the parent got swapped out -> do nothing
+    /// this.parent.childList[this.name] = this.serID; 
+    (this.getParent()).childList[this.name] = this.serID; // will just ignore for fake parent...?
+
+    // the sys uri cache
     delete __eos_objects[this.uri];
+
     return 0;
 };
 
@@ -1152,14 +1298,14 @@ GearsStore.prototype.insert = function (data) {
                             [data.URI, data.TypeURI, data.SecurityURI, data.SecurityProp, data.ChildList, data.Data, (new Date()).getTime(), (new Date()).getTime()]); 
 
     // now get and set the oid of the shitty thing
-    var oidr = this.db.execute("SELECT OID FROM Serialize WHERE URI=?", [data.URI]);
+    var oidr = this.db.execute("SELECT rowid FROM Serialize WHERE URI=?", [data.URI]);
     var iid = parseInt(oidr.field(0)); // not sure parseInt is required here
     oidr.close();
     return iid;
 };
 
 GearsStore.prototype.getByID = function (serID) {
-    var rs = this.db.execute("SELECT URI,OID,TypeURI,SecurityURI,SecurityProp,ChildList,Data FROM Serialize WHERE OID=?", [serID]);
+    var rs = this.db.execute("SELECT URI,rowid,TypeURI,SecurityURI,SecurityProp,ChildList,Data FROM Serialize WHERE OID=?", [serID]);
     if(!rs.isValidRow()) {
       rs.close();
       return null;
@@ -1173,7 +1319,7 @@ GearsStore.prototype.getByID = function (serID) {
 };
 
 GearsStore.prototype.getByURI = function (uri) {
-    var rs = this.db.execute("SELECT OID,TypeURI,SecurityURI,SecurityProp,ChildList,Data FROM Serialize WHERE URI=?", [uri]);
+    var rs = this.db.execute("SELECT rowid,TypeURI,SecurityURI,SecurityProp,ChildList,Data FROM Serialize WHERE URI=?", [uri]);
     if(!rs.isValidRow()) {
       rs.close();
       return null;
@@ -1184,6 +1330,36 @@ GearsStore.prototype.getByURI = function (uri) {
     }
     rs.close();
     return dump;
+};
+
+GearsStore.prototype.getChildList = function (URIorID) {
+    if(typeof URIorID == "string") {
+        var rs = this.db.execute("SELECT rowid,TypeURI,SecurityURI,ChildList FROM Serialize WHERE URI=?", [URIorID]);
+    } else {
+        var rs = this.db.execute("SELECT rowid,URI,TypeURI,SecurityURI,ChildList FROM Serialize WHERE OID=?", [URIorID]);
+    }
+        
+    if(!rs.isValidRow()) {
+      rs.close();
+      return null;
+    }
+    var dump = {};
+    for(var i=0;i<rs.fieldCount();i++) {
+        dump[rs.fieldName(i)] = rs.field(i);
+    }
+    rs.close();
+    return dump;
+};
+
+GearsStore.prototype.setChildList = function (ID, schildList) {
+    if(typeof URIorID == "string") {
+        this.db.execute("UPDATE Serialize SET ChildList=?, Modified=? WHERE URI=?", 
+                                [schildList, (new Date()).getTime(), ID]); 
+    } else {
+        this.db.execute("UPDATE Serialize SET ChildList=?, Modified=? WHERE OID=?", 
+                                [schildList, (new Date()).getTime(), ID]); 
+    }
+
 };
 
 
@@ -1217,12 +1393,20 @@ Jnaric.prototype.serialize = function (onfinish, onerror) {
     var self = this;
     var oChildList = self.getChildList();
     
-    // make sure we are clean to serialize
+    // make sure we are clean to serialize: parent is serialized
+    if(!(this.parent.serID > -1)) { 
+        onerror && onerror("object not ready - parent not serialized, skip to another"); 
+        return -2;
+    }
+    
+    
     // WARNING: do something more adequeate here?
+    /*
     if(!oChildList.good) { 
         onerror && onerror("object not ready - some children not serialized, skip to another"); 
         return -2;
     }
+    */  
     
     var sChildList = JSON.stringify(oChildList.list);
     // first, get the object data state
@@ -1255,7 +1439,7 @@ Jnaric.prototype.serialize = function (onfinish, onerror) {
                 // insert
                 var data = {
                     SecurityProp: JSON.stringify(resultSec),
-                    Data: JSON.stringify(resultData),
+                    Data: JSON.stringify(self.global.object.data),
                     ChildList: sChildList,
                     TypeURI: self.TypeURI,
                     SecurityURI: self.SecurityURI,
@@ -1263,6 +1447,13 @@ Jnaric.prototype.serialize = function (onfinish, onerror) {
                 };
 
                 self.serID = stor.insert(data);
+        }
+        // now ensure that we're at the parent's serialized CL
+        var cl = JSON.parse( (stor.getChildList(self.parent.uri)).ChildList); // by URI! this is a requirement for ID-less terminal to work (restored manually)
+        if(! (self.name in cl)) {
+            // push and store
+            cl[self.name] = self.serID;
+            stor.setChildList(self.parent.uri, JSON.stringify(cl));
         }
         stor.close();
         onfinish && onfinish(self.serID);
@@ -1445,32 +1636,114 @@ eos_om = {
 
 // WARNING! API CHANGE - CHECK THE KERNEL METHODS API FOR PREDICTABILITY
 function eos_deleteChild(vm, name) {
-    // get child
-    var ch = vm.childList[name];
-    if(!ch) vm.cur_stack.my.x2.result = -1; // set an exception??
+
+    // possible scenarios:
+    // 1. the parent(vm) and child are real RAM objects
+    // 2. parent is fake ramobject, child is real RAM
+    // 4. parent fake, child serialized (via recursive call from here)
+    // 5. parent serialized, child serialized
+    // 6. parent serialized, child real RAM
+
+    // we should be serialization-aware now.
+    if (typeof(vm) == "number") { // parent is serialized, name is either real or serialized
+        vm = {serID: vm}; // be very accurate.. work only with serial ref!
+    } 
     
-    // first, force-delete all sub-child objects of a selected child
-    for(cch in ch.childList) {
-        eos_deleteChild(ch, cch);
+    if (!vm.global) { // parent is fake, name is real or ser
+        // get the vm childList from serialized state
+
+        var stor = getFixedStorage();
+        if(!stor) {
+            // impossible scenario happened!!!
+            __eos_objects["terminal"].ErrorConsole.log("deleteChild: impossible scenario happened: object not found in storage "+vm.uri+" "+name);
+            return -1;
+        }
+        var cl = JSON.parse( (stor.getChildList(vm.serID)).ChildList); 
+        if(! (name in cl)) {
+            __eos_objects["terminal"].ErrorConsole.log("deleteChild: impossible scenario happened: child not found in stored parent "+vm.uri+" "+name);
+            stor.close();
+            return -2;
+        }
+        vm.childList = cl; // set virtual CL
+        stor.close();
     }
+
+    // get child
+    
+    var ch = vm.childList[name];
+    if(!ch) {
+        __eos_objects["terminal"].ErrorConsole.log("deleteChild: impossible scenario happened: child not found in cl "+vm.uri+" "+name);
+        //vm.cur_stack.my.x2.result = -3; // set an exception?? // another impossible scenario
+        return -3;
+    }
+    // first, try to attach running child, if any
+    if(typeof(ch) == "number") {
+        for(var ob in __eos_objects) {
+            if(__eos_objects[ob].serID == ch) {
+                ch = __eos_objects[ob];
+                break;
+            }
+        }
+    } 
+    
+    if(typeof(ch) == "number") {
+        // here, if the search for running child failed, we should be able to delete sleeping child
+        // with all of it subchildren, if appropriate
+        // for this task we will make ch a fake parent for children
+        // and load childList from storage
+        var stor = getFixedStorage();
+        if(!stor) return -4; // shit. won't deal
+        ch = {name: name, serID: ch, uri: vm.uri+"/"+name};
+        ch.childList = JSON.parse( (stor.getChildList()).ChildList);
+        stor.close();
+    } 
+
+    // force-delete all sub-child objects of a selected child, including serialized ones (???)
+    // now, ch has been found, we may continue to recursively deleting
+    // XXX this is a heavy RECURSIVE algorithm: may OOM if a large subtree is deleted!!! need a more accurate deletion
+    for(var cch in ch.childList) {
+        eos_deleteChild(ch, cch); 
+    }
+
     
     // stop all stacks of a child silently
-    for(var j=0; j<__jn_stacks.stacks_running.length;j++) {
-        if(__jn_stacks.stacks_running[j].vm == vm) {
-            __jn_stacks.stacks_running.splice(j,1);
+    if(ch.global) {
+        var hs = ch.has_stacks();
+        var j;
+        if(hs) {
+            // forget the stacks and all the shit
+            var newss = [];
+            for(j=0;j<__jn_stacks.stacks_sleeping.length;j++)
+                if(__jn_stacks.stacks_sleeping[j].vm != ch)
+                     newss.push(__jn_stacks.stacks_sleeping[j]);
+            __jn_stacks.stacks_sleeping = newss;
+            newss = [];
+            for(j=0;j<__jn_stacks.stacks_running.length;j++)
+                if(__jn_stacks.stacks_running[j].vm != ch)
+                    newss.push(__jn_stacks.stacks_running[j]);
+            __jn_stacks.stacks_running = newss;
         }
     }
 
-    for(var j=0; j<__jn_stacks.stacks_sleeping.length;j++) {
-        if(__jn_stacks.stacks_sleeping[j].vm == vm) {
-            __jn_stacks.stacks_sleeping.splice(j,1);
-        }
-    }
-    
-    // delete from vm
+    // delete from vm (incl. fake)
     delete vm.childList[name];
+
     // delete last reference in __eos_objects
-    delete __eos_objects[ch.uri];
+    delete __eos_objects[ch.uri]; // may silently fail
+
+    var stor = getFixedStorage();
+    if(!stor) return 0; // nono..
+    if(vm.serID > 0) {
+        // serialize new CL automatically if real .global here?? TODO decide on that ->
+        if(!vm.global) stor.setChildList(vm.serID, JSON.stringify(vm.childList)); // access by serID is faster...
+    }
+    if(ch.serID > 0) {
+        // delete child from storage
+        stor.remove(ch.serID);
+    }
+    stor.close();
+
+    return 0;
 }
 
 
