@@ -723,22 +723,27 @@ Jnaric.prototype.execIPC = function (rq, cbOK, cbERR) {
         }
         // XXX use semaphores (external?!) !! object main stack may not finish at all
         var fflag = true; // tmp workaround
+
+        /*
         this.onfinish = function () {
             if(!fflag) return; // tmp workaround
             fflag = false;
             old_onf();
             self.execIPC(rq, cbOK, cbERR);
         }
+        */
         
         // XXX temporarily workaround: use timeout to avoid deadlock
         // XXX WARNING: the timeout may fire on slow/heavy loaded machines
         // TODO: do something with this: like use the time between first line read and last object init as a benchmark
 
         // XXX many race conditions possible here if run from multi-tasking setTimeout/event scope!!
+/*
         var tmf = function () {
+            console.log("timeout tick!");
             if(!fflag) return;
             fflag = false;
-
+console.log("timeout gogo!");
             if(self.global.initIPCLock || self.global.wakeupIPCLock) {
                 cbERR({id: rq.id, status: "EEXCP", result: "object init lock timeout"});
                 self.ErrorConsole.log("object init lock timeout:" + self.uri + " i:"+self.global.initIPCLock+" w:"+self.global.wakeupIPCLock);
@@ -746,16 +751,25 @@ Jnaric.prototype.execIPC = function (rq, cbOK, cbERR) {
             }
             self.execIPC(rq, cbOK, cbERR); 
         };
+      
+      
         // wait for onfinish for 8 seconds to timeout entirely
         setTimeout(tmf, 8000);
-        
+      */  
         // XXX TQLW mode (semaphoreless solution) ->
+        var ticks = 0;
         var tick_fun = function () {
             // begin closured tick...
             if(!fflag) return;
             
             if(self.global.initIPCLock || self.global.wakeupIPCLock) {
                 // run ticker again
+                if(ticks > 25) {
+                    cbERR({id: rq.id, status: "EEXCP", result: "object init lock timeout"});
+                    self.ErrorConsole.log("object init lock timeout:" + self.uri + " i:"+self.global.initIPCLock+" w:"+self.global.wakeupIPCLock);                    
+                    return;
+                }
+                ticks = ticks + 1;
                 setTimeout(arguments.callee, 600); // ECMA ECMA.. 
                 return;
             }
@@ -790,6 +804,7 @@ Jnaric.prototype.getChild = function (lURI, r) {
     // a method to return child
     
     if(lURI.length == 0) return this;
+    if(lURI.length == 1 && lURI[0] == "~") return __eos_objects["terminal"];
 
     if(typeof(r) == 'undefined') { // do only if not recursively called
         // TODO: support for relative URI parsing
@@ -826,6 +841,7 @@ Jnaric.prototype.getChild = function (lURI, r) {
 
                     var td = stor.getChildList(parentURI);
                     // XXX what if... ??? parent isnt at storage too O_o
+                    if(!td) __eos_objects["terminal"].ErrorConsole.log("failed to retreive parent from stor: "+parentURI+" / "+sURI);
                     parent = {serID: parseInt(td.rowid), uri: parentURI, name: llURI[(llURI.length - 1)]};
                 }
                 console.log("getting ser par from "+parentURI);
@@ -1016,7 +1032,7 @@ console.log("in wakeobject");
     if(obj.parent.uri+"/"+name != dump.URI) {
         __eos_objects["terminal"].ErrorConsole.log("ASSERT FAILED: obj.parent.uri+\"/\"+name != dump.URI: "+obj.parent.uri+"/"+name+" != "+dump.URI);
     }
-    obj.serID = dump.OID;
+    obj.serID = dump.rowid;
     obj.childList = JSON.parse(dump.ChildList);
     
     obj.global.initIPCLock = true; // THIS to be flushed by security validateRequest method init
@@ -1298,14 +1314,14 @@ GearsStore.prototype.insert = function (data) {
                             [data.URI, data.TypeURI, data.SecurityURI, data.SecurityProp, data.ChildList, data.Data, (new Date()).getTime(), (new Date()).getTime()]); 
 
     // now get and set the oid of the shitty thing
-    var oidr = this.db.execute("SELECT OID FROM Serialize WHERE URI=?", [data.URI]);
+    var oidr = this.db.execute("SELECT rowid FROM Serialize WHERE URI=?", [data.URI]);
     var iid = parseInt(oidr.field(0)); // not sure parseInt is required here
     oidr.close();
     return iid;
 };
 
 GearsStore.prototype.getByID = function (serID) {
-    var rs = this.db.execute("SELECT URI,OID,TypeURI,SecurityURI,SecurityProp,ChildList,Data FROM Serialize WHERE OID=?", [serID]);
+    var rs = this.db.execute("SELECT URI,rowid,TypeURI,SecurityURI,SecurityProp,ChildList,Data FROM Serialize WHERE OID=?", [serID]);
     if(!rs.isValidRow()) {
       rs.close();
       return null;
@@ -1319,7 +1335,7 @@ GearsStore.prototype.getByID = function (serID) {
 };
 
 GearsStore.prototype.getByURI = function (uri) {
-    var rs = this.db.execute("SELECT OID,TypeURI,SecurityURI,SecurityProp,ChildList,Data FROM Serialize WHERE URI=?", [uri]);
+    var rs = this.db.execute("SELECT rowid,TypeURI,SecurityURI,SecurityProp,ChildList,Data FROM Serialize WHERE URI=?", [uri]);
     if(!rs.isValidRow()) {
       rs.close();
       return null;
@@ -1334,9 +1350,9 @@ GearsStore.prototype.getByURI = function (uri) {
 
 GearsStore.prototype.getChildList = function (URIorID) {
     if(typeof URIorID == "string") {
-        var rs = this.db.execute("SELECT OID,TypeURI,SecurityURI,ChildList FROM Serialize WHERE URI=?", [URIorID]);
+        var rs = this.db.execute("SELECT rowid,TypeURI,SecurityURI,ChildList FROM Serialize WHERE URI=?", [URIorID]);
     } else {
-        var rs = this.db.execute("SELECT OID,URI,TypeURI,SecurityURI,ChildList FROM Serialize WHERE OID=?", [URIorID]);
+        var rs = this.db.execute("SELECT rowid,URI,TypeURI,SecurityURI,ChildList FROM Serialize WHERE OID=?", [URIorID]);
     }
         
     if(!rs.isValidRow()) {
@@ -1449,12 +1465,16 @@ Jnaric.prototype.serialize = function (onfinish, onerror) {
                 self.serID = stor.insert(data);
         }
         // now ensure that we're at the parent's serialized CL
-        var cl = JSON.parse( (stor.getChildList(self.parent.uri)).ChildList); // by URI! this is a requirement for ID-less terminal to work (restored manually)
-        if(! (self.name in cl)) {
-            // push and store
-            cl[self.name] = self.serID;
-            stor.setChildList(self.parent.uri, JSON.stringify(cl));
+        var pardata = stor.getChildList(self.parent.uri);
+        if(pardata) { // XXX the parent ChildList may only not be available for terminal serialization
+            var cl = JSON.parse( pardata.ChildList); // by URI! this is a requirement for ID-less terminal to work (restored manually)
+            if(! (self.name in cl)) {
+                // push and store
+                cl[self.name] = self.serID;
+                stor.setChildList(self.parent.uri, JSON.stringify(cl));
+            }
         }
+        
         stor.close();
         onfinish && onfinish(self.serID);
     };

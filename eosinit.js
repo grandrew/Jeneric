@@ -40,7 +40,7 @@ _terminal_vm = new Jnaric();
 _terminal_vm.name = "~"; // "terminal"+(new Date()).getTime(); // TODO! get real terminal name!!! (somehow??)
 _terminal_vm.TypeURI = "terminal"; // no real tURI
 _terminal_vm.SecurityURI = "terminal"; 
-_terminal_vm.parent = "/"; // the server root
+_terminal_vm.parent = {serID: 0, uri: "/"}; // only for serialization
 _terminal_vm.uri = "~";//_terminal_vm.parent + "/"+name;
 _terminal_vm.serID = -1; // set to real value, if exists
 _terminal_vm.childList = {}; // init the CL later
@@ -69,8 +69,8 @@ _terminal_vm.load("anarchic.jn");
 
 
 // write the object!
-__eos_objects["terminal"] = _terminal_vm;
-
+__eos_objects["terminal"] = _terminal_vm; // conventional... get rid of this later XXX
+__eos_objects["~"] = _terminal_vm;
 
 
 // NOW CREATE SYS OBJECT
@@ -243,13 +243,16 @@ if(_stor) {
     if(d) {
       _var_vm.ErrorConsole.log("restoring ~/var childList...");
       _var_vm.childList = JSON.parse(d.ChildList);
-      _var_vm.serID = parseInt(d.OID);
+      _var_vm.serID = parseInt(d.rowid);
     }
     d = _stor.getByURI("~");
     if(d) {
       _terminal_vm.ErrorConsole.log("restoring ~ childList...");
       _terminal_vm.childList = JSON.parse(d.ChildList);
-      _terminal_vm.serID = parseInt(d.OID); // ok.
+      _terminal_vm.serID = parseInt(d.rowid); // ok.
+
+    } else {
+        __eos_serial_weak.push(_terminal_vm); // 
     }
     _stor.close();
 }

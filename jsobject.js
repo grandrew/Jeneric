@@ -723,22 +723,27 @@ Jnaric.prototype.execIPC = function (rq, cbOK, cbERR) {
         }
         // XXX use semaphores (external?!) !! object main stack may not finish at all
         var fflag = true; // tmp workaround
+
+        /*
         this.onfinish = function () {
             if(!fflag) return; // tmp workaround
             fflag = false;
             old_onf();
             self.execIPC(rq, cbOK, cbERR);
         }
+        */
         
         // XXX temporarily workaround: use timeout to avoid deadlock
         // XXX WARNING: the timeout may fire on slow/heavy loaded machines
         // TODO: do something with this: like use the time between first line read and last object init as a benchmark
 
         // XXX many race conditions possible here if run from multi-tasking setTimeout/event scope!!
+/*
         var tmf = function () {
+            console.log("timeout tick!");
             if(!fflag) return;
             fflag = false;
-
+console.log("timeout gogo!");
             if(self.global.initIPCLock || self.global.wakeupIPCLock) {
                 cbERR({id: rq.id, status: "EEXCP", result: "object init lock timeout"});
                 self.ErrorConsole.log("object init lock timeout:" + self.uri + " i:"+self.global.initIPCLock+" w:"+self.global.wakeupIPCLock);
@@ -746,16 +751,25 @@ Jnaric.prototype.execIPC = function (rq, cbOK, cbERR) {
             }
             self.execIPC(rq, cbOK, cbERR); 
         };
+      
+      
         // wait for onfinish for 8 seconds to timeout entirely
         setTimeout(tmf, 8000);
-        
+      */  
         // XXX TQLW mode (semaphoreless solution) ->
+        var ticks = 0;
         var tick_fun = function () {
             // begin closured tick...
             if(!fflag) return;
             
             if(self.global.initIPCLock || self.global.wakeupIPCLock) {
                 // run ticker again
+                if(ticks > 25) {
+                    cbERR({id: rq.id, status: "EEXCP", result: "object init lock timeout"});
+                    self.ErrorConsole.log("object init lock timeout:" + self.uri + " i:"+self.global.initIPCLock+" w:"+self.global.wakeupIPCLock);                    
+                    return;
+                }
+                ticks = ticks + 1;
                 setTimeout(arguments.callee, 600); // ECMA ECMA.. 
                 return;
             }
@@ -790,6 +804,7 @@ Jnaric.prototype.getChild = function (lURI, r) {
     // a method to return child
     
     if(lURI.length == 0) return this;
+    if(lURI.length == 1 && lURI[0] == "~") return __eos_objects["terminal"];
 
     if(typeof(r) == 'undefined') { // do only if not recursively called
         // TODO: support for relative URI parsing
@@ -826,6 +841,7 @@ Jnaric.prototype.getChild = function (lURI, r) {
 
                     var td = stor.getChildList(parentURI);
                     // XXX what if... ??? parent isnt at storage too O_o
+                    if(!td) __eos_objects["terminal"].ErrorConsole.log("failed to retreive parent from stor: "+parentURI+" / "+sURI);
                     parent = {serID: parseInt(td.rowid), uri: parentURI, name: llURI[(llURI.length - 1)]};
                 }
                 console.log("getting ser par from "+parentURI);
@@ -1449,12 +1465,16 @@ Jnaric.prototype.serialize = function (onfinish, onerror) {
                 self.serID = stor.insert(data);
         }
         // now ensure that we're at the parent's serialized CL
-        var cl = JSON.parse( (stor.getChildList(self.parent.uri)).ChildList); // by URI! this is a requirement for ID-less terminal to work (restored manually)
-        if(! (self.name in cl)) {
-            // push and store
-            cl[self.name] = self.serID;
-            stor.setChildList(self.parent.uri, JSON.stringify(cl));
+        var pardata = stor.getChildList(self.parent.uri);
+        if(pardata) { // XXX the parent ChildList may only not be available for terminal serialization
+            var cl = JSON.parse( pardata.ChildList); // by URI! this is a requirement for ID-less terminal to work (restored manually)
+            if(! (self.name in cl)) {
+                // push and store
+                cl[self.name] = self.serID;
+                stor.setChildList(self.parent.uri, JSON.stringify(cl));
+            }
         }
+        
         stor.close();
         onfinish && onfinish(self.serID);
     };

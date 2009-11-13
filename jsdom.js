@@ -161,7 +161,7 @@ __HTMLElement.prototype.waitEvent = function ( eType, timeout ) {
         x2.result = ev;
         cs.EXCEPTION = RETURN;
         cs.STOP = false;
-        cs.push(S_EXEC, {n: {type:TRUE}, x: {}, Nodes: {}, Context: cs.exc, NodeNum: 0, pmy: cs.my.myObj});
+        // cs.push(S_EXEC, {n: {type:TRUE}, x: {}, Nodes: {}, Context: cs.exc, NodeNum: 0, pmy: cs.my.myObj});
         __jn_stacks.start(cs.pid);
         
 
@@ -180,7 +180,7 @@ __HTMLElement.prototype.waitEvent = function ( eType, timeout ) {
             
             cs.EXCEPTION = RETURN;
             cs.STOP = false;
-            cs.push(S_EXEC, {n: {type:TRUE}, x: {}, Nodes: {}, Context: cs.exc, NodeNum: 0, pmy: cs.my.myObj});
+            // cs.push(S_EXEC, {n: {type:TRUE}, x: {}, Nodes: {}, Context: cs.exc, NodeNum: 0, pmy: cs.my.myObj});
             __jn_stacks.start(cs.pid);
         };
         setTimeout(tm, timeout);
