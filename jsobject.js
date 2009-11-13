@@ -1368,7 +1368,7 @@ GearsStore.prototype.getChildList = function (URIorID) {
 };
 
 GearsStore.prototype.setChildList = function (ID, schildList) {
-    if(typeof URIorID == "string") {
+    if(typeof(ID) == "string") {
         this.db.execute("UPDATE Serialize SET ChildList=?, Modified=? WHERE URI=?", 
                                 [schildList, (new Date()).getTime(), ID]); 
     } else {
@@ -1432,7 +1432,7 @@ Jnaric.prototype.serialize = function (onfinish, onerror) {
         // TODO: 2 storage methods: Database and Filelike            
 
         // TODO: serialization error still possible here!!! - REPORT!!
-        //try { // ... etc
+        //try ... etc
 
         // 1. the object is serialized already -> search by id (this.serID) - OR - ERROR !!!
         if(self.serID > 0) {
@@ -1466,11 +1466,14 @@ Jnaric.prototype.serialize = function (onfinish, onerror) {
         }
         // now ensure that we're at the parent's serialized CL
         var pardata = stor.getChildList(self.parent.uri);
+        console.log("pardata: "+pardata);
         if(pardata) { // XXX the parent ChildList may only not be available for terminal serialization
+            
             var cl = JSON.parse( pardata.ChildList); // by URI! this is a requirement for ID-less terminal to work (restored manually)
             if(! (self.name in cl)) {
                 // push and store
                 cl[self.name] = self.serID;
+                console.log("saving new pardata at "+self.parent.uri+" "+JSON.stringify(cl));
                 stor.setChildList(self.parent.uri, JSON.stringify(cl));
             }
         }
