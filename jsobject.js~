@@ -302,8 +302,7 @@ function eos_execURI(vm, sUri, sMethod, lArgs, timeout) {
     
         try {
             var dest = vm.getChild(lURI);
-            //console.log("getChild returner");
-            //console.log(dest);
+
         } catch (e) {
             cs.EXCEPTION = THROW;
             cs.exc.result = e;
@@ -511,11 +510,11 @@ function eos_hubRequest(vm, cs, sUri, sMethod, lArgs, timeout, _mystop) {
     //       TODO: ping server regularly! (or the session will expire and be deleted)
     ///// var to = 60000; 
     if(typeof(timeout) == "number") {
-        //console.log("setting timeout");
+
         var tmf = function () {
-            //console.log("timeout hit!!");
+
             if(cs.STOP != _mystop) return;
-            //console.log("timeout hit!!2");
+
             cs.EXCEPTION = THROW;
             var ex = new vm.global.InternalError("execURL failed with TIMEOUT");
             ex.status = "TIMEOUT";
@@ -844,8 +843,8 @@ Jnaric.prototype.getChild = function (lURI, r) {
                     if(!td) __eos_objects["terminal"].ErrorConsole.log("failed to retreive parent from stor: "+parentURI+" / "+sURI);
                     parent = {serID: parseInt(td.rowid), uri: parentURI, name: llURI[(llURI.length - 1)]};
                 }
-                console.log("getting ser par from "+parentURI);
-                console.log("got obj oid: "+d.rowid+" from uri "+sURI+" TypeURI "+d.TypeURI);
+                //console.log("getting ser par from "+parentURI);
+                //console.log("got obj oid: "+d.rowid+" from uri "+sURI+" TypeURI "+d.TypeURI);
                 return eos_wakeObject(parent, child_name, parseInt(d.rowid));
                 
             }
@@ -915,7 +914,7 @@ Jnaric.prototype.getParent = function () {
 // TODO: REWRITE THE eos_execURI to BE STACK_INDEPENDENT!!!
 //       like do kIPC() and have eos_execURI as a wrapper??
 function kIPC(vm, uri, method, args, onok, onerr) {
-console.log("in kIPC");
+
     var rq = {
         id: __jn_stacks.newId(), 
         terminal_name: "~", // always 'myself'
@@ -929,24 +928,19 @@ console.log("in kIPC");
     var lURI = uri.split("/");
     if(lURI[0] == "") { // means this is root HUB request
         if(vm.DEBUG) vm.ErrorConsole.log("in kIPC... request for HUB");
-        console.log("in kIPC - HUB");
+
         // DOC if no onerror and only onok: call onok always -> as a standard kernel programming practice
         __eos_requests[rq.id] = {request: rq, onok: onok, onerror: onerr}; 
         hubConnection.send(rq);
     } else {         // TODO: URI caching
-    console.log("in kIPC - local");
         var dest = vm.getChild(lURI);
         if(dest == null) {
             onerr({id: rq.id, status: "EEXCP", result: "object not found by uri"});
-            console.log("in kIPC errooor");
         }
-        console.log("in kIPC - dest" + dest);
         if(typeof(dest)=="string") { // means we're redirect 
             if(vm.DEBUG) vm.ErrorConsole.log("in kIPC... again kIPC!");
-            console.log("in kIPC - redir string");
             kIPC(vm, dest, method, args, onok, onerr); // we're taking advantage of the 'GIL' in js engine
         } else { // means it is a VM instance, so execute the request
-            console.log("in kIPC - execIPC reached");
             try {
                 dest.execIPC(rq, onok, onerr); // XXX parse results?? if not -> change wakeObject!!    
             } catch (e) {
@@ -1368,7 +1362,7 @@ GearsStore.prototype.getChildList = function (URIorID) {
 };
 
 GearsStore.prototype.setChildList = function (ID, schildList) {
-    if(typeof URIorID == "string") {
+    if(typeof(ID) == "string") {
         this.db.execute("UPDATE Serialize SET ChildList=?, Modified=? WHERE URI=?", 
                                 [schildList, (new Date()).getTime(), ID]); 
     } else {
@@ -1717,7 +1711,7 @@ function eos_deleteChild(vm, name) {
         var stor = getFixedStorage();
         if(!stor) return -4; // shit. won't deal
         ch = {name: name, serID: ch, uri: vm.uri+"/"+name};
-        ch.childList = JSON.parse( (stor.getChildList()).ChildList);
+        ch.childList = JSON.parse( (stor.getChildList(ch.serID)).ChildList);
         stor.close();
     } 
 
