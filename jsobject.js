@@ -347,13 +347,55 @@ function eos_execURI(vm, sUri, sMethod, lArgs, timeout) {
             var cbOK = function (rs) { // callback on OK
                 // set the result
                 if(vm.DEBUG) vm.ErrorConsole.log("in execURI... execIPC cbOK");
-                x2.result = rs.result;
+                if(vm.global.validateResponse) {
+                    // now first validate response!
+                    var cbo = function (vr) {
+                        if(vr) {
+                            
+                            x2.result = rs.result;
+                            
+                            // the following is the procedure just to release the stack
+                            cs.EXCEPTION = RETURN;
+                            cs.STOP = false;
+                            //cs.push(S_EXEC, {n: {type:TRUE}, x: {}, Nodes: {}, Context: cs.exc, NodeNum: 0, pmy: cs.my.myObj});
+                            __jn_stacks.start(cs.pid);
+                            
+                            
+                        } else {
+
+                            cs.EXCEPTION = THROW;
+                            var ex = new vm.global.SecurityError("failed to validate RESPONSE that was received");
+                            ex.result = rs.result;
+                            cs.exc.result = ex;
+                            cs.STOP = false; // XXX TODO: MAY it release foreign LOCK??? SHIT!!
+                            __jn_stacks.start(cs.pid);   
+
+                        
+                        }
+                    };
+                    
+                    var cbe = function (vr) {
+                        cs.EXCEPTION = THROW;
+                        var ex = new vm.global.InternalError("validateResponse failed with exception: "+vr);
+                        ex.result = rs.result;
+                        cs.exc.result = ex;
+                        cs.STOP = false; // XXX TODO: MAY it release foreign LOCK??? SHIT!!
+                        __jn_stacks.start(cs.pid);   
+
+                    };
+                    
+                    vm.execf_thread(vm.global.validateResponse, [rq], cbo, cbe); 
+                } else {
+                    x2.result = rs.result;
+                    
+                    // the following is the procedure just to release the stack
+                    cs.EXCEPTION = RETURN;
+                    cs.STOP = false;
+                    //cs.push(S_EXEC, {n: {type:TRUE}, x: {}, Nodes: {}, Context: cs.exc, NodeNum: 0, pmy: cs.my.myObj});
+                    __jn_stacks.start(cs.pid);
+                }
+
                 
-                // the following is the procedure just to release the stack
-                cs.EXCEPTION = RETURN;
-                cs.STOP = false;
-                cs.push(S_EXEC, {n: {type:TRUE}, x: {}, Nodes: {}, Context: cs.exc, NodeNum: 0, pmy: cs.my.myObj});
-                __jn_stacks.start(cs.pid);
                 
             };
             
@@ -554,13 +596,56 @@ function eos_rcvEvent(rq) {
         var x2 = __eos_requests[rq.id]["context"];
         var cs = __eos_requests[rq.id]["stack"];
         var vm = __eos_requests[rq.id]["vm"];
+        
+        delete __eos_requests[rq.id];
 
-        if(rq.status == "OK") {   
-            x2.result = rq.result;
-            // the following is the procedure just to release the stack
-            cs.EXCEPTION = RETURN;
-            //cs.push(S_EXEC, {n: {type:TRUE}, x: {}, Nodes: {}, Context: cs.exc, NodeNum: 0, pmy: cs.my.myObj});
+        if(rq.status == "OK") {
             
+            // now there are two options: we have validateResponse defined - and we  have not.
+            if(vm.global.validateResponse) {
+                    var cbo = function (vr) {
+                        if(vr) {
+                            x2.result = rq.result;
+                            // the following is the procedure just to release the stack
+                            cs.EXCEPTION = RETURN;
+                            //cs.push(S_EXEC, {n: {type:TRUE}, x: {}, Nodes: {}, Context: cs.exc, NodeNum: 0, pmy: cs.my.myObj});
+                            cs.STOP = false;
+                            __jn_stacks.start(cs.pid);
+                            
+                            
+                        } else {
+
+                            cs.EXCEPTION = THROW;
+                            var ex = new vm.global.SecurityError("failed to validate RESPONSE that was received");
+                            ex.result = rq.result;
+                            cs.exc.result = ex;
+                            cs.STOP = false; // XXX TODO: MAY it release foreign LOCK??? SHIT!!
+                            __jn_stacks.start(cs.pid);   
+
+                        
+                        }
+                    };
+                    
+                    var cbe = function (vr) {
+                        cs.EXCEPTION = THROW;
+                        var ex = new vm.global.InternalError("validateResponse failed with exception: "+vr);
+                        ex.result = rs.result;
+                        cs.exc.result = ex;
+                        cs.STOP = false; // XXX TODO: MAY it release foreign LOCK??? SHIT!!
+                        __jn_stacks.start(cs.pid);   
+
+                    };
+                    
+                    vm.execf_thread(vm.global.validateResponse, [rq], cbo, cbe); 
+            } else {
+                x2.result = rq.result;
+                // the following is the procedure just to release the stack
+                cs.EXCEPTION = RETURN;
+                //cs.push(S_EXEC, {n: {type:TRUE}, x: {}, Nodes: {}, Context: cs.exc, NodeNum: 0, pmy: cs.my.myObj});
+                cs.STOP = false;
+                __jn_stacks.start(cs.pid);
+                
+            }
         } else {
 
             cs.EXCEPTION = THROW;
@@ -568,7 +653,7 @@ function eos_rcvEvent(rq) {
             if (rq.status == "EEXCP") {
                 var ex = new vm.global.InternalError("execURL failed with exception: "+rq.result);
                 ex.result = rq.result;
-            } else if (rq.status == "ECONN") { // XXX unused
+            } else if (rq.status == "ECONN") { 
 
                 cs.EXCEPTION = THROW;
                 var ex = new vm.global.InternalError("connection failed: "+rq.result);
@@ -590,13 +675,14 @@ function eos_rcvEvent(rq) {
             }
 
             cs.exc.result = ex;
+            cs.STOP = false;
+            __jn_stacks.start(cs.pid);
+
+
         }
 
-        cs.STOP = false;
-        __jn_stacks.start(cs.pid);
-        delete __eos_requests[rq.id];
 
-
+        // return goes here (nothing below);
         
     } else {
     
@@ -686,7 +772,23 @@ Jnaric.prototype.execIPC = function (rq, cbOK, cbERR) {
             var cbo2 = function (result) {
                 // if(typeof(result) == "undefined") result = -999999999;
                 // TODO: introduce UNDEFINED transfer?
-                cbOK({id: rq.id, status: "OK", result: result});
+                
+                
+                if(self.global.signResponse) {
+
+                    var cbo = function (res) {
+                        cbOK({id: rq.id, status: "OK", result: res});
+                    };
+                    
+                    var cbe = function (ex) {
+                        cbERR({id: rq.id, status: "EEXCP", result: "signResponse failed with exception: "+ex});
+                    };
+
+                    self.execf_thread(self.global.signResponse, [rq], cbo, cbe); 
+                } else {
+                    cbOK({id: rq.id, status: "OK", result: result});
+                }
+
             };
             
             var cbe2 = function (ex) {
@@ -924,14 +1026,37 @@ function kIPC(vm, uri, method, args, onok, onerr) {
         method: method,
         args: args
     };
+    
+    if (vm.global.validateResponse) {
+        var myonok = function (rs) {
+            // validate response, if appropriate
+            // TODO: these are currently unusable for in-stack execution; need to set SecurityError instead
+            //       maybe do not validate response here??
+            var cbo = function (vr) {
+                if(vr) {
+                    onok(rs);                    
+                } else {
+                    onerr({status: "EEXCP", result: "response validation failed"});
+                }
+            };
+            
+            var cbe = function (vr) {
+                onerr({status: "EEXCP", result: "validateResponse failed with exception: "+vr});
+            };
+            
+            vm.execf_thread(vm.global.validateResponse, [rq], cbo, cbe); 
+        };
+    } else {
+        var myonok = onok;
+    }
 
     var lURI = uri.split("/");
     if(lURI[0] == "") { // means this is root HUB request
         if(vm.DEBUG) vm.ErrorConsole.log("in kIPC... request for HUB");
 
         // DOC if no onerror and only onok: call onok always -> as a standard kernel programming practice
-        __eos_requests[rq.id] = {request: rq, onok: onok, onerror: onerr}; 
-        hubConnection.send(rq);
+        __eos_requests[rq.id] = {request: rq, onok: myonok, onerror: onerr}; 
+        hubConnection.send(rq); // TODO: remote kIPC request still untested
     } else {         // TODO: URI caching
         var dest = vm.getChild(lURI);
         if(dest == null) {
@@ -942,7 +1067,7 @@ function kIPC(vm, uri, method, args, onok, onerr) {
             kIPC(vm, dest, method, args, onok, onerr); // we're taking advantage of the 'GIL' in js engine
         } else { // means it is a VM instance, so execute the request
             try {
-                dest.execIPC(rq, onok, onerr); // XXX parse results?? if not -> change wakeObject!!    
+                dest.execIPC(rq, myonok, onerr); // XXX parse results?? if YES -> change wakeObject!!    
             } catch (e) {
                 if(window.console) console.log("in kIPC - execIPC error:: " + e);
             }
@@ -952,6 +1077,7 @@ function kIPC(vm, uri, method, args, onok, onerr) {
 
 
 // XXX UNUSED ->>>
+/*
 function kLIPC(vm, uri, method, args, onok, onerr) {
     var obj = vm.getChild(uri.split("/"));
     // now form the request objec
@@ -967,6 +1093,7 @@ function kLIPC(vm, uri, method, args, onok, onerr) {
 
     obj.execIPC(rq, onok, onerr); // XXX parse results?? if not -> change wakeObject!!    
 }
+*/
 
 /*
 function eos_createChild_unpriv(vm, name, typeURI, secURI) {
@@ -1549,6 +1676,10 @@ eos_om = {
 */  
     createChild: function (__tihs, name, typeURI, secURI, DOMElement) {
         // make sure it is possible to pass any object reference via LIPC
+        var myst = __jn_stacks.newId();
+        var cs=__tihs.cur_stack;
+        
+      
         if(name in __tihs.childList) {
             __tihs.cur_stack.EXCEPTION = THROW;
             __tihs.cur_stack.my.x2.result = "duplicate child name";
@@ -1565,9 +1696,53 @@ eos_om = {
             __tihs.cur_stack.my.x2.result = (new __tihs.global.TypeError("SecurityURI must be a string")); 
             return;
         }
+        
+        cs.STOP = myst;
+        cs.EXCEPTION = false;
 
         //console.log("Me is "+__tihs.name+" request createObj to ~");
-        eos_execURI(__tihs, "~", "createObject", [name, typeURI, secURI, DOMElement]); 
+        //eos_execURI(__tihs, "~", "createObject", [name, typeURI, secURI, DOMElement]);
+        
+        var onok = function(rs) {
+            var type_src = rs.result;
+            var onok = function (rs) {
+                var sec_src = rs.result;
+                // TODO HERE -> test and go on to rq signing!! mb. replace eos_execURI with kIPC
+                // now create the object!
+                cs.STOP = false;
+                cs.EXCEPTION = RETURN;
+                cs.my.x2.result = 1;
+                __jn_stacks.start(cs.pid);
+                eos_createObject(__tihs, name, type_src, sec_src, __tihs.uri, typeURI, secURI, DOMElement);
+            };
+            var onerr = function (ro) {                
+                cs.EXCEPTION = THROW;
+                if(ro.status == "EPERM") {
+                   cs.my.x2.result = (new __tihs.global.SecurityError(ro.result)); 
+                } else {
+                   cs.my.x2.result = (new __tihs.global.Error(ro.result)); 
+                }
+                cs.STOP = false;
+                __jn_stacks.start(cs.pid);
+            };
+            
+            
+            kIPC(__tihs, secURI, 'read', [], onok, onerr);
+        };
+        
+        var onerr = function (ro) {
+            
+            cs.EXCEPTION = THROW;
+            if(ro.status == "EPERM") {
+               cs.my.x2.result = (new __tihs.global.SecurityError(ro.result)); 
+            } else {
+               cs.my.x2.result = (new __tihs.global.Error(ro.result)); 
+            }
+            cs.STOP = false;
+            __jn_stacks.start(cs.pid);
+        };
+        kIPC(__tihs, typeURI, 'read', [], onok, onerr);
+         
     },
 
 
