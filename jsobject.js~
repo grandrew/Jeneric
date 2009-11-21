@@ -1124,10 +1124,17 @@ function kIPC(vm, uri, method, args, onok, onerr) {
 
     var rq = {
         id: __jn_stacks.newId(), 
+        uri: uri,
         terminal_id: "~", // always 'myself'
-        object_type: vm.TypeURI,
-        object_uri: vm.uri, // named request
+/*
+        object_type: vm.TypeURI, // TODO DOC decide on these names! mb. caller_type, caller_uri, etc.?
         object_security: vm.SecurityURI,
+        object_uri: vm.uri, // named request
+*/
+        caller_type: vm.TypeURI, // TODO DOC decide on these names! mb. caller_type, caller_uri, etc.?
+        caller_security: vm.SecurityURI,
+        caller_uri: vm.uri, // named request
+
         method: method,
         args: args
     };

@@ -682,7 +682,7 @@ function eos_rcvEvent(rq) {
 
 
 
-        if(__eos_requests[rq.id].onok) { // XXX this code needs to be tested!!
+        if(__eos_requests[rq.id].onok) { 
             if(rq.status == "OK") {
                 __eos_requests[rq.id].onok(rq);
             } else {
@@ -696,6 +696,7 @@ function eos_rcvEvent(rq) {
             return;
         }
         
+        // XXX UNUSED from here ->>>
         
         var x2 = __eos_requests[rq.id]["context"];
         var cs = __eos_requests[rq.id]["stack"];
@@ -1126,9 +1127,15 @@ function kIPC(vm, uri, method, args, onok, onerr) {
         id: __jn_stacks.newId(), 
         uri: uri,
         terminal_id: "~", // always 'myself'
-        object_type: vm.TypeURI,
-        object_uri: vm.uri, // named request
+/*
+        object_type: vm.TypeURI, // TODO DOC decide on these names! mb. caller_type, caller_uri, etc.?
         object_security: vm.SecurityURI,
+        object_uri: vm.uri, // named request
+*/
+        caller_type: vm.TypeURI, // TODO DOC decide on these names! mb. caller_type, caller_uri, etc.?
+        caller_security: vm.SecurityURI,
+        caller_uri: vm.uri, // named request
+
         method: method,
         args: args
     };
