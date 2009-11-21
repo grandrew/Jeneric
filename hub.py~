@@ -1,6 +1,23 @@
 # the URI HUB for jeos3
 
 
+# INSTALLATION
+# required: 
+
+# python 2.5 USE="sqlite3"
+# twisted (install...
+#   : twisted-web
+#   : zope-interfcae
+# python-cjson egg [or (install... (python-cjson?)
+# stompservice egg
+# orbited egg
+# - patch line 119 /usr/lib/python2.5/site-packages/morbid-0.8.7.3-py2.5.egg/morbid/mqsecurity.py
+# +        global security_parameters
+# access rights for REGISTRAR_DB = "/var/lib/eoshub/registrar.sqlite"
+
+#########################################################################################
+
+
 
 # - terminal registration support
 #   + terminal methods support
@@ -22,16 +39,7 @@
 # test redir
 # test security??
 
-# required: 
 
-# python 2.5
-# twisted (install...
-# cjson egg [or (install... (python-cjson?)
-# stompservice egg
-##### pyorbited egg
-# orbited egg
-# - patch line 119 /usr/lib/python2.5/site-packages/morbid-0.8.7.3-py2.5.egg/morbid/mqsecurity.py
-#         global security_parameters
 
 from stompservice import StompClientFactory
 from twisted.internet import reactor
@@ -493,7 +501,7 @@ class Hub(StompClientFactory):
                     except KeyError:
                         pass
                     self.send(msg["headers"]["session"], rq)                    
-                    return # will cause to timeout sending to HUB XXX change this to exception
+                    return 
                 
                 rr = rq["uri"].split("/")[1:];
                 rr[0] = "~"

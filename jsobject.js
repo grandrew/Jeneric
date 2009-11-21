@@ -236,8 +236,9 @@ __eos_serial = []; // list of objects to be freed
 __eos_serial_weak = []; // objects that can NOT be swapped out now // XXX name misspelled
 
 
-
-function eos_execURI(vm, sUri, sMethod, lArgs, timeout) {
+// XXX UNUSED -->>
+//    does not provide signRequest
+function eos_execURI_old(vm, sUri, sMethod, lArgs, timeout) {
     // this is a blocking call, so block the VM thread first
     var cs = vm.cur_stack;
     cs.EXCEPTION = false;
@@ -330,7 +331,7 @@ function eos_execURI(vm, sUri, sMethod, lArgs, timeout) {
             var rq = {
                 id: __jn_stacks.newId(), 
                 //user_name: __eos_objects["terminal"].global.my_username ? __eos_objects["terminal"].global.my_username : "", // XXX can be undefined..??
-                terminal_name: "~", // always 'myself'
+                terminal_id: "~", // always 'myself'
                 //terminal_id: __eos_comet.getID(), // TODO: persistent comet connection ID!
                 // optional but mandatory for local calls
                 // object_name: vm.name, // part of uri
@@ -437,9 +438,106 @@ function eos_execURI(vm, sUri, sMethod, lArgs, timeout) {
 
 
 
+function eos_execURI(vm, sUri, sMethod, lArgs, timeout) {
+    // this is a blocking call, so block the VM thread first
+    var cs = vm.cur_stack;
+    var x2 = cs.my.x2;
+    cs.EXCEPTION = false;
+    var mystop = __jn_stacks.newId();
+    cs.STOP = mystop;
+    if(vm.DEBUG) vm.ErrorConsole.log("in execURI... stopped stack!");
+    // . means current object
+    // .. means parent object
+    // ~ means current terminal object
+    // otherwise let the URI-HUB decide on what to do
+    
+    // first, find the dest object: if it is local - pass to eos_processRequest (vm, )
+    // else - form&execute query to URI-hub and wait for result via callback
+    
+    
+    if((typeof sUri != "string") && !(sUri instanceof String)) {
+        cs.EXCEPTION = THROW;
+        cs.exc.result = new vm.global.TypeError("First execURI argument must be a string, got: "+typeof(sUri));
+        cs.STOP = false;
+        return;
+    }
+    
+    if((typeof sMethod != "string") && !(sMethod instanceof String)) {
+        cs.EXCEPTION = THROW;
+        cs.exc.result = new vm.global.TypeError("Second execURI argument must be a string, got: "+typeof(sMethod));
+        cs.STOP = false;
+        return;
+    }
+
+    if(!(lArgs instanceof Array)) {
+        cs.EXCEPTION = THROW;
+        cs.exc.result = new vm.global.TypeError("Args execURI argument must be an Array object");
+        cs.STOP = false;
+        return;
+    }
+    
+    if((typeof timeout != "undefined") && !(timeout >= 0)) {
+        cs.EXCEPTION = THROW;
+        cs.exc.result = new vm.global.TypeError("timeout execURI argument must be a number >= 0");
+        cs.STOP = false;
+        return;
+    }
+    
+    // now define actions we will take upon rs object receipt:
+    // no matter, is it an error or OK status, we will parse it as usual
+    
+    // TODO: a smaller closure not to create such an overhead...?
+    var onResponse = function (rq) {
+
+        if(rq.status == "OK") {        
+            x2.result = rq.result;
+
+            // the following is the procedure just to release the stack
+            cs.EXCEPTION = RETURN;
+            cs.STOP = false;
+            __jn_stacks.start(cs.pid);
+        } else {
+
+            cs.EXCEPTION = THROW;
+        
+            if (rq.status == "EEXCP") {
+                var ex = new vm.global.InternalError("execURL failed with exception: "+rq.result);
+                ex.result = rq.result;
+            } else if (rq.status == "ECONN") { 
+                cs.EXCEPTION = THROW;
+                var ex = new vm.global.InternalError("connection failed: "+rq.result);
+                ex.result = rq.result;
+            } else if (rq.status == "EPERM") {
+                cs.EXCEPTION = THROW;
+                var ex = new vm.global.SecurityError(rq.result);
+                ex.result = rq.result;
+            } else if (rq.status == "EDROP") {
+                cs.EXCEPTION = THROW;
+                var ex = new new vm.global.InternalError("connection failed: "+rq.result);
+                ex.result = rq.result;
+            } else {
+                // unknown status received
+                cs.EXCEPTION = THROW;
+                var ex = new vm.global.InternalError("execURL failed with UNKNOWN status: "+rq.status);
+            }
+
+            cs.exc.result = ex;
+            cs.STOP = false;
+            __jn_stacks.start(cs.pid);
+
+        }
+
+
+    };
+    
+    kIPC(vm, sUri, sMethod, lArgs, onResponse, onResponse);
+    
+}
 
 
 
+// XXX UNUSED -->>
+//    does not provide signRequest
 function eos_hubRequest(vm, cs, sUri, sMethod, lArgs, timeout, _mystop) {
 
     // TODO: return something if the HUB connection is not ready!?!?!
@@ -581,6 +679,9 @@ function eos_rcvEvent(rq) {
     if(rq.result || rq.status) {
         // this is result arrived;
         if(!(rq.id in __eos_requests)) return; // silently fail? XXX this is okay for pinger
+
+
+
         if(__eos_requests[rq.id].onok) { // XXX this code needs to be tested!!
             if(rq.status == "OK") {
                 __eos_requests[rq.id].onok(rq);
@@ -591,12 +692,16 @@ function eos_rcvEvent(rq) {
                    __eos_requests[rq.id].onok(rq);
                 } 
             }
+            delete __eos_requests[rq.id];
             return;
         }
+        
+        
         var x2 = __eos_requests[rq.id]["context"];
         var cs = __eos_requests[rq.id]["stack"];
         var vm = __eos_requests[rq.id]["vm"];
         
+                
         delete __eos_requests[rq.id];
 
         if(rq.status == "OK") {
@@ -1019,7 +1124,8 @@ function kIPC(vm, uri, method, args, onok, onerr) {
 
     var rq = {
         id: __jn_stacks.newId(), 
-        terminal_name: "~", // always 'myself'
+        uri: uri,
+        terminal_id: "~", // always 'myself'
         object_type: vm.TypeURI,
         object_uri: vm.uri, // named request
         object_security: vm.SecurityURI,
@@ -1027,52 +1133,76 @@ function kIPC(vm, uri, method, args, onok, onerr) {
         args: args
     };
     
-    if (vm.global.validateResponse) {
-        var myonok = function (rs) {
-            // validate response, if appropriate
-            // TODO: these are currently unusable for in-stack execution; need to set SecurityError instead
-            //       maybe do not validate response here??
-            var cbo = function (vr) {
-                if(vr) {
-                    onok(rs);                    
-                } else {
-                    onerr({status: "EEXCP", result: "response validation failed"});
-                }
+        
+    var afterSign = function () {
+        if (vm.global.validateResponse) {
+            var myonok = function (rs) {
+                // validate response, if appropriate
+                // TODO: these are currently unusable for in-stack execution; need to set SecurityError instead
+                //       maybe do not validate response here??
+                var cbo = function (vr) {
+                    if(vr) {
+                        onok(rs);                    
+                    } else {
+                        onerr({id: rq.id, status: "EPERM", result: "response validation failed"}); // this can actually be parsed as permission error and raise SecurityError..
+                    }
+                };
+                
+                var cbe = function (vr) {
+                    onerr({id: rq.id, status: "EEXCP", result: "validateResponse failed with exception: "+vr});
+                };
+                
+                vm.execf_thread(vm.global.validateResponse, [rq], cbo, cbe); 
             };
-            
-            var cbe = function (vr) {
-                onerr({status: "EEXCP", result: "validateResponse failed with exception: "+vr});
-            };
-            
-            vm.execf_thread(vm.global.validateResponse, [rq], cbo, cbe); 
-        };
-    } else {
-        var myonok = onok;
-    }
-
-    var lURI = uri.split("/");
-    if(lURI[0] == "") { // means this is root HUB request
-        if(vm.DEBUG) vm.ErrorConsole.log("in kIPC... request for HUB");
-
-        // DOC if no onerror and only onok: call onok always -> as a standard kernel programming practice
-        __eos_requests[rq.id] = {request: rq, onok: myonok, onerror: onerr}; 
-        hubConnection.send(rq); // TODO: remote kIPC request still untested
-    } else {         // TODO: URI caching
-        var dest = vm.getChild(lURI);
-        if(dest == null) {
-            onerr({id: rq.id, status: "EEXCP", result: "object not found by uri"});
+        } else {
+            var myonok = onok;
         }
-        if(typeof(dest)=="string") { // means we're redirect 
-            if(vm.DEBUG) vm.ErrorConsole.log("in kIPC... again kIPC!");
-            kIPC(vm, dest, method, args, onok, onerr); // we're taking advantage of the 'GIL' in js engine
-        } else { // means it is a VM instance, so execute the request
-            try {
-                dest.execIPC(rq, myonok, onerr); // XXX parse results?? if YES -> change wakeObject!!    
-            } catch (e) {
-                if(window.console) console.log("in kIPC - execIPC error:: " + e);
+
+        var lURI = uri.split("/");
+        if(lURI[0] == "") { // means this is root HUB request
+            if(vm.DEBUG) vm.ErrorConsole.log("in kIPC... request for HUB");
+
+            // DOC if no onerror and only onok: call onok always -> as a standard kernel programming practice
+            __eos_requests[rq.id] = {request: rq, onok: myonok, onerror: onerr}; 
+            hubConnection.send(rq); // TODO: remote kIPC request still untested
+        } else {         // TODO: URI caching
+            var dest = vm.getChild(lURI);
+            if(dest == null) {
+                onerr({id: rq.id, status: "EEXCP", result: "object not found by uri"});
+                return;
+            }
+            if(typeof(dest)=="string") { // means we're redirect 
+                if(vm.DEBUG) vm.ErrorConsole.log("in kIPC... again kIPC!");
+                kIPC(vm, dest, method, args, onok, onerr); // we're taking advantage of the 'GIL' in js engine
+            } else { // means it is a VM instance, so execute the request
+                try {
+                    dest.execIPC(rq, myonok, onerr); // XXX parse results?? if YES -> change wakeObject!!    
+                } catch (e) {
+                    if(window.console) console.log("in kIPC - execIPC error:: " + e);
+                }
             }
         }
+    };
+
+    // TODO HERE
+    if (vm.global.signRequest) {
+        // do somehow validate request
+        var onSok = function (res){
+            if(res) { // XXX DOC the signRequest should modify the rq object itself and it should return true
+                afterSign();
+            } else {
+                onerr({id: rq.id, status: "EPERM", result: "signRequest refused to sign request"});
+            }
+        };
+        
+        var onSerr = function (exc) {
+            onerr({id: rq.id, status: "EEXCP", result: "signRequest failed with exception: "+exc});
+        };
+        vm.execf_thread(vm.global.signRequest, [rq], onSok, onSerr); 
+    } else {
+        afterSign();
     }
+
 }
 
 
