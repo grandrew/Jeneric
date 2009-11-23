@@ -108,13 +108,19 @@ __HTMLElement.prototype.focus = function ( ) {
     this.___link.focus();
 };
 
+
+// TODO: implement a virtual getter/setter interface here to defeat browser incompatibless
 __setAttrs = {
     contentEditable: null
 };
 
 __getAttrs = {
     contentEditable: null,
-    innerHTML: null
+    innerHTML: null,
+    textContent: function (n) {
+        if(n.textContent) return n.textContent;
+        return n.innerText;
+    }
 };
 
 // WARNING!!! DANGEROUS METHOD - gives access to anything !?!
@@ -126,7 +132,9 @@ __HTMLElement.prototype.setAttr = function ( attrName, value) {
 
 __HTMLElement.prototype.getAttr = function ( attrName ) {
     if(!(attrName in __getAttrs)) return;
-    return this.___link[attrName];
+    if(__getAttrs[attrName]) {
+        return __getAttrs[attrName](___link);
+    } else return this.___link[attrName];
 };
 
 __HTMLElement.prototype.waitEvent = function ( eType, timeout ) {

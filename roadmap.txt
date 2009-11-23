@@ -154,6 +154,8 @@ ASSORTED TODO ITEMS
 - database access methods (if available)
 - BLOB file access/local webstorage access
 - technique to pass methods directly (kbind has failed!!) (watch out for references that will prevent from garbage-collecting!)
+- compiled code? like search for "type_src".o first
+- compiled code cache? like copy - not parse every time
 kernel programming advisory: be careful with methods that stop the stack - report any possible error via try/catch and stack release w/throw
 
 ---------------
@@ -162,7 +164,7 @@ kernel programming advisory: be careful with methods that stop the stack - repor
 - A proposal for security description inside the object to allow for security models interoperability and succesful object serialization
 - A proposal for security setup and/or MVC model for the security setting.
 - The web browser may fail. We should consider different scenarios of what may or should happen.
-- Web services/site integration (hidden frame?)
+- Web services/site integration (hidden frame?) (kernel parameters for LOCATION change and restart?)
 - Eduction - demand driven technique of software development - capable system
 
 ---------------

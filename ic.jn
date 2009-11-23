@@ -65,7 +65,11 @@ function editDOM() {
                                      // this should be used with caution: there is no event queue for the object and it may miss some events
     } while ( !( e.keyCode == 13 && e.ctrlKey == true) )
     x.setAttr("contentEditable", false);
-    return x.getAttr("innerHTML");
+    var s = x.getAttr("innerHTML");
+    s = s.replace(/<br>/g, "\n"); // no other tags are allowed
+    s = s.replace(/&gt;/g, ">"); // no other special chars allowed
+    s = s.replace(/&lt;/g, "<");
+    return s;
 }
 
 brDOM();
@@ -73,6 +77,8 @@ brDOM();
 printDOM("Welcome to ic# - an Interactive Core commandline. Type 'help' for help. Click-TAB to reactivate input (if lost).");
 brDOM();
 // TODO: write Google Gears hint - if not detected
+
+pc = 0;
 
 var s,c,p1, p2;
 while(true) {
@@ -316,8 +322,33 @@ while(true) {
       
       default:
         // TODO: search for commands at PATH?
-        printDOM(c+": no such command; type 'help' for a list of available commands");
-        brDOM();
+        argv = s.split(" ");
+        //p1.shift(); // pass a full array to main
+
+        try {
+            pc++;
+            
+            var xd = document.createElement("DIV");
+            xd.style.width="100%";
+            xd.style.fontSize="100%";
+            document.body.appendChild(xd);    
+            object.createChild("p"+pc, c, "~/sys/anarchic", xd); // TODO: use real default security!!
+
+            // TODO here!! ->> threaded execution!
+            object.execURI("./"+pname, "__ic_main", argv); // start in a thread??
+
+        } catch (e) {
+            // BUG prevents us to use break; here
+            if(e.toString().indexOf("path") > -1) {
+                printDOM("command not found by path: "+c); brDOM();
+                break; // does not break out...                
+            } else {
+                printDOM("ic#: exception at main() in "+c); brDOM();
+                printDOM(":: "+e); brDOM();
+            }
+            
+        }
+
         
     }
 }

@@ -751,6 +751,7 @@ function Jnaric() {
         decodeURI: decodeURI, encodeURI: encodeURI,
         decodeURIComponent: decodeURIComponent,
         encodeURIComponent: encodeURIComponent,
+        escape: escape, unescape: unescape,
 
         // Class constructors.  Where ECMA-262 requires C.length == 1, we declare
         // a dummy formal parameter.
@@ -852,6 +853,14 @@ function Jnaric() {
             toSource: Math.toSource
         },
         
+        // extensions section ->>
+        
+        Lock: function () {
+            // a lock to be acquired and released
+            this.lock = 1;
+            this.___wait_queue = [];
+        },
+        
         sleep: function ( milliseconds ) {
             // sleep will suspend current thread execution until timer event is received (event == interrupt here)
 
@@ -922,7 +931,7 @@ function Jnaric() {
             return t_id;
         },
         
-        start_new_thread: function ( fun, args ) { // args is optional Array
+        start_new_thread: function ( fun, args ) { // DOC; args is optional Array
             
             var x2 = new __tihs.ExecutionContext(FUNCTION_CODE);
                 
@@ -1233,6 +1242,63 @@ function Jnaric() {
         version: __tihs.VERSION
     };
     
+    // TODO: move these out of the closure scope!
+    this.global.Lock.prototype.acquire = function (blocking) {
+        blocking = blocking || true;
+        if(this.lock > 0) { 
+            --this.lock;
+            if(!blocking) return true;
+        }
+        else { // block...
+            if(blocking) {
+                var _mystop = __jn_stacks.newId();
+                __tihs.cur_stack.STOP = _mystop;
+                var __cs = __tihs.cur_stack;
+                __cs.EXCEPTION = false; // do not return till we finish...
+                
+                this.___wait_queue.push({cs: __cs, stop: _mystop}); // DOC the kernel lock should push itself manually
+            } else {
+                return false;
+            }
+            
+        }
+        // not reached by running stack; return does not matter
+    };
+    
+    this.global.Lock.prototype.release = function () {
+        if(this.lock > 0) {
+            // set exception
+            __tihs.cur_stack.EXCEPTION = THROW;
+            __tihs.cur_stack.my.x2.result = (new __tihs.global.Error("release unlocked lock"));
+        }
+        //++this.lock; // is like someone may have requested a lock again, dont release it!
+        var desc = this.___wait_queue.shift();
+        
+        if(!desc) {
+            ++this.lock; // just leave unlocked
+            return;
+        }
+        
+        if(desc.cs) { // release first who waits
+            if( desc.cs.STOP != desc.stop ) { // ASSERT should never happen
+                __tihs.ErrorConsole.log("Lock: ASSERT! tried to release stack with foregin block!");
+                return;
+            }
+            
+            desc.cs.STOP = false;
+            desc.cs.EXCEPTION = RETURN;
+            desc.cs.my.x2.result = true;
+            __jn_stacks.start(desc.cs.pid);
+        }
+        if(desc.callback) { // for hardware locks
+            desc.callback(); // DOC WARNING! the hardware lock should call release() manually
+        }
+        // no return value
+    };
+        
+
+
+    
     this.reflectClass('Array', new Array);
 
     
@@ -1439,12 +1505,30 @@ Jnaric.prototype.bind_scope = function (x) {
 
 Jnaric.prototype.putValue = function (v, w, vn) {
     if (v instanceof Reference) {
-        // temporarily pseudo-watch mechanism
+        // temporary pseudo-watch mechanism
         //if(v.propertyName == "actual") this.ErrorConsole.log("setting value of actual to "+w);
         //if(v.base)this.ErrorConsole.log("v.base is: "+v.base + " v.propName is: "+v.propertyName+ " __call__: "+v.base.__call__);
         if(v.base && v.base.__call__ && (v.propertyName == '__proto__')) throw (new this.global.InternalError("JNARIC: Setting of __proto__ on functionObject is not supported")); // just dont set __proto__ of a function!!!
         if(v.propertyName.substr(0,3) == "___") throw (new this.global.InternalError("JNARIC: triple underscore is reserved")); 
-        return (v.base || this.global)[v.propertyName] = w; 
+        
+        // TODO HERE: 
+        // - implement watchpoints
+        // - implement protected access
+        // - implement getters/setters
+        
+        //var r = (v.base || this.global)[v.propertyName] = w;
+        /*
+        if(v.propertyName in this.waitlist && (v.base === this.waitlist[v.propertyName].scope || this.global === this.waitlist[v.propertyName].scope)) {
+            var wl = this.waitlist[v.propertyName];
+            if(wl.cond == w) {
+                delete this.waitlist[v.propertyName];
+                wl.fn(); // warning: may block
+            }
+            
+        }
+        */
+        //return r; 
+        return (v.base || this.global)[v.propertyName] = w;
         //var vr = w;
         //if(v.base) v.base[v.propertyName] = w;
         //if(v.base) this.ErrorConsole.log("after assignment: v.base is: "+v.base + " v.propName is: "+v.propertyName + " __call__: "+v.base.__call__);
