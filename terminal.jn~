@@ -25,9 +25,9 @@ function ipc_listChildren(rq) {
 }
 object.ipc["listChildren"] = ipc_listChildren;
 
-/*
+
 // now methods for child object creation
-// XXX can not serialize because the tree can not be serialized in the whole..
+
 function ipc_addAsChild(rq, name, uri) {
     // add as child the object of uri URI named name
     object.linkChild(name, uri);
@@ -46,7 +46,7 @@ function ipc_deleteChild(rq, name) {
 object.ipc["addAsChild"] = ipc_addAsChild;
 object.ipc["createChild"] = ipc_createChild;
 object.ipc["deleteChild"] = ipc_deleteChild;
-*/
+
 
 // get some server data anonymously (luckily we know the location ;-)
 // TODO: a native method for this shit... 

@@ -159,7 +159,7 @@ ASSORTED TODO ITEMS
 kernel programming advisory: be careful with methods that stop the stack - report any possible error via try/catch and stack release w/throw
 
 ---------------
-- Need additional interface for the ramstore like object LIST method: creation date, file type, FILE LENGTH!!! etc .
+- Need additional interface for the ramstore like object LIST method: creation date, file type, etc .
 - Some additional standard object description methods should also be defined in Jnaric Standard Protocol Proposal (JSPP?)
 - A proposal for security description inside the object to allow for security models interoperability and succesful object serialization
 - A proposal for security setup and/or MVC model for the security setting.

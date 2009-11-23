@@ -26,9 +26,11 @@ function read(rq, offset, len) {
 
 function write(rq, data, offset) {
     // TODO: error checking?
-    offset = offset || 0;
-
-    object.data.data = "".concat(object.data.data.substr(0, offset), data, object.data.data.substr(offset+data.length, object.data.data.length));
+    if(typeof offset != "undefined") {
+        object.data.data = "".concat(object.data.data.substr(0, offset), data, object.data.data.substr(offset+data.length, object.data.data.length));
+    } else {
+        object.data.data = data;
+    }
     object.release(); // save and release
     return true;
 }
@@ -62,6 +64,6 @@ object.ipc["listChildren"] = ipc_listChildren;
 
 if(!wakeupIPCLock) object.release(); // mark that we can release safely // we dont want to save uninitialized file; only after write()!
 
-// TODO: this should be set in security method
+// TODO: this should be set in security method ??? WHY??
 //       as well as wakeupIPCLock (in setSecurityState())
-// initIPCLock = false; // ready for IPC...
+initIPCLock = false; // ready for IPC...

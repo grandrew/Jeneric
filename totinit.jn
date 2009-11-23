@@ -1,5 +1,5 @@
 // total init for jeneric project
-initIPCLock = true;
+initIPCLock = true; // XXX not needed since security DOES NOT set initIPCLock to false by itself!
 
 // initialize the serializer
 // create the serializer daemon threads
@@ -58,7 +58,7 @@ if(i == 0) {
     xd.style.width="100%";
     xd.style.fontSize="100%";
     document.body.appendChild(xd);    
-    object.createChild("init", "~/sys/ic", "~/sys/anarchic", xd); 
+    object.createChild("console", "~/sys/ic", "~/sys/anarchic", xd); 
 }
 // and finally create init folder and this init at /sys/init location (folder-store!!)
 

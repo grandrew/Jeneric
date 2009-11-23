@@ -7,6 +7,11 @@ object.ipc["write"] = function(rq, data) {
     }
 }
 
+
+object.ipc["listChildren"] = function (rq) {
+    return object.enumerateChildren(); // will return an Array object
+}
+
 function printDOM( txt ) {
     var x = document.createElement("DIV");
     x.style.display = "inline";
@@ -69,6 +74,8 @@ function editDOM() {
     s = s.replace(/<br>/g, "\n"); // no other tags are allowed
     s = s.replace(/&gt;/g, ">"); // no other special chars allowed
     s = s.replace(/&lt;/g, "<");
+    s = s.replace(/&nbsp;/g, " ");
+    s = s.replace(/&amp;/g, "&");
     return s;
 }
 
@@ -77,7 +84,7 @@ function execChild(childPath, progPath, argv) {
     try {
         object.execURI(childPath, "__ic_main", argv); // start in a thread??
     } catch (e) {
-        printDOM("ic#: exception at main() in "+progPath+" (progId: "+childPath")"); brDOM(); // TODO HERE
+        printDOM("ic#: exception at main() in "+progPath+" (progId: "+childPath + ")"); brDOM(); // TODO HERE
         printDOM(":: "+e); brDOM();
     }
     
@@ -345,14 +352,17 @@ while(true) {
             document.body.appendChild(xd);    
             object.createChild("p"+pc, c, "~/sys/anarchic", xd); // TODO: use real default security!!
             
-            var pid = start_new_thread(execChild, ["./"+pname, "p"+pc, argv]); // use pid??
+            var pid = start_new_thread(execChild, ["./p"+pc, c, argv]); // use pid??
 
         } catch (e) {
             // BUG prevents us to use break; here
-            if(e.toString().indexOf("path") > -1) {
-                printDOM("command not found by path: "+c); brDOM();
+            
+            if(e && e.toString().indexOf("URI") > -1) { // + defeat undefiend exception bug
+                printDOM("ic#: command not found by path: "+c); brDOM();
                 break; // does not break out...                
             } else {
+                printDOM("ic#: another error: "+e); brDOM();
+                break; // does not break out...                
             }
             
         }

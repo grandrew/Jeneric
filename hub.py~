@@ -462,6 +462,20 @@ class Hub(StompClientFactory):
                 # XXX: no such object here -> notify callee??
                 
             else:
+                # check for malformed request
+                if not ("uri" in rq and "id" in rq and "method" in rq and "args" in rq):
+                    # exc[
+                    rq["id"] = rq["hub_oid"] # XXX redundancy issue here too
+                    rq["result"] = "HUB: MALFORMED REQUEST";
+                    rq["status"] = "EEXCP"
+                    try:
+                        del rq["args"]
+                    except KeyError:
+                        pass
+                    self.send(msg["headers"]["session"], rq)                    
+                    return 
+                
+                
                 # first, check if the request is for our own subsystem
                 if rq["uri"] == "/":
                     # process the request and send the response

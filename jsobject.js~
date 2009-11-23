@@ -314,7 +314,7 @@ function eos_execURI_old(vm, sUri, sMethod, lArgs, timeout) {
         if(dest == null) {
             // child not found...
             cs.EXCEPTION = THROW;
-            cs.exc.result = new vm.global.InternalError("object not found by path "+sUri);
+            cs.exc.result = new vm.global.InternalError("object not found by URI "+sUri);
             cs.STOP = false;
             return;
         }
@@ -805,7 +805,7 @@ function eos_rcvEvent(rq) {
         
         if(dest == null) {
             // child not found...
-            rq.result = "object not found by path "+rq.uri;
+            rq.result = "object not found by URI "+rq.uri;
             rq.status = "EEXCP";
             hubConnection.send(rq);
             return;
@@ -1173,9 +1173,15 @@ function kIPC(vm, uri, method, args, onok, onerr) {
             __eos_requests[rq.id] = {request: rq, onok: myonok, onerror: onerr}; 
             hubConnection.send(rq); // TODO: remote kIPC request still untested
         } else {         // TODO: URI caching
-            var dest = vm.getChild(lURI);
+            try { // TODO get rid of this.. later
+                var dest = vm.getChild(lURI); // should never fail...
+            } catch (e) {
+                onerr({id: rq.id, status: "EEXCP", result: "FAILED TO EXECUTE GETCHILD"});
+                return;
+            }
             if(dest == null) {
-                onerr({id: rq.id, status: "EEXCP", result: "object not found by uri"});
+                
+                onerr({id: rq.id, status: "EEXCP", result: "object not found by URI"});
                 return;
             }
             if(typeof(dest)=="string") { // means we're redirect 
@@ -1432,8 +1438,8 @@ function eos_createObject(vm, name, type_src, sec_src, parentURI, typeURI, secUR
     obj.bind_dom(DOMElement); // TODO bind to protected wrapped DOM or to fake DOM element
     obj.bind_om(); // bind the protected EOS object model
     
-    obj.evaluate(sec_src); // the single threaded nature here ensures we're not going to receive onfinish not in time
-    obj.evaluate(type_src);
+    obj.evaluate(sec_src, secURI); // the single threaded nature here ensures we're not going to receive onfinish not in time
+    obj.evaluate(type_src, typeURI);
 
     //obj.execIPC();
 
@@ -1852,12 +1858,12 @@ eos_om = {
                 __jn_stacks.start(cs.pid);
                 eos_createObject(__tihs, name, type_src, sec_src, __tihs.uri, typeURI, secURI, DOMElement);
             };
-            var onerr = function (ro) {                
+            var onerr = function (ro) {
                 cs.EXCEPTION = THROW;
                 if(ro.status == "EPERM") {
                    cs.my.x2.result = (new __tihs.global.SecurityError(ro.result)); 
                 } else {
-                   cs.my.x2.result = (new __tihs.global.Error(ro.result)); 
+                   cs.exc.result = (new __tihs.global.Error(ro.result)); 
                 }
                 cs.STOP = false;
                 __jn_stacks.start(cs.pid);
@@ -1873,7 +1879,9 @@ eos_om = {
             if(ro.status == "EPERM") {
                cs.my.x2.result = (new __tihs.global.SecurityError(ro.result)); 
             } else {
-               cs.my.x2.result = (new __tihs.global.Error(ro.result)); 
+               //cs.my.x2.result = (new __tihs.global.Error(ro.result));
+               cs.exc.result =  (new __tihs.global.Error(ro.result));
+//               cs.push(S_EXEC, {n: {type:TRUE}, x: {}, Nodes: {}, Context: cs.exc, NodeNum: 0, pmy: cs.my.myObj});
             }
             cs.STOP = false;
             __jn_stacks.start(cs.pid);
@@ -1965,15 +1973,16 @@ eos_om = {
         var __cs = __tihs.cur_stack;
         
         
-        var exec_f = function (data, obj) {
+        var exec_f = function (rs, obj) {
+            data = rs.result;
             // like evaluate, but push!
             if( __cs.STOP != _mystop ) // means TIMEOUT already fired. Also, if it is != false then a serious programming error may be in place!!
                     return;
             
             try {
-                var _p = parse(data, url, 0);
+                var _p = parse(data, src_uri, 0);
                 //__cs.push(S_EXEC, {n: _p, x: __cs.exc, pmy: {}}); // append it to the 'end' of execution stack
-                __cs.unshift(S_EXEC, {n: _p, x: __cs.exc, pmy: {}}); // virtually 
+                __cs.stack.unshift({n: _p, x: __cs.exc, pmy: {}}); // virtually 
             } catch (e) {
                 __cs.EXCEPTION = THROW;
                 __cs.exc.result = e;// TEST THIS!!
@@ -2245,6 +2254,7 @@ Jnaric.prototype.bind_om = function () {
         // delete myself and all my children - from my parent
         eos_deleteChild(this.parent, this.name);
     };
+    this.global.object.destroy = this.global.object.destroyInstance;
     //this.global.destroyInstance = this.global.object.destroyInstance;
     
     this.global.object.kconfig = function (p, v) {
@@ -2255,7 +2265,7 @@ Jnaric.prototype.bind_om = function () {
         // kernel extension to import code into current stack and scope
         return eos_om.import(__tihs, srcURI);
     };
-    
+    this.global.import = this.global.object.import;
     
     // getMethodList ?? describeObject ?? or is it security code??
     

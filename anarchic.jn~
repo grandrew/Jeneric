@@ -12,7 +12,4 @@ function validateRequest (rq) {
     return true; // always allow...
 }
 
-initIPCLock = false; // means we have been initializes XXX do we ever need this??? 
-// deal with locks when you'll implement signRequest security
-// wakeupIPCLock = false; // means we do not need any further initializations (???)
-
+initIPCLock = false; // means we have been initialized

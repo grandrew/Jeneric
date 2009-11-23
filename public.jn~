@@ -6,7 +6,7 @@ function setSecurityState(state) {
 }
 
 function getSecurityState() {
-    return {terminal: _public_adminterminal};
+    return { terminal: _public_adminterminal };
 }
 
 function validateRequest (rq) {
