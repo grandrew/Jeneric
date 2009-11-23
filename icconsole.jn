@@ -1,0 +1,71 @@
+// ic lib jn
+
+object.ipc["__ic_main"] = function(rq, argv) {
+    main(argv);
+}
+
+function printDOM( txt ) {
+    var x = document.createElement("DIV");
+    x.style.display = "inline";
+    x.style.fontFamily = "courier";
+    var t = document.createTextNode(txt);
+    x.appendChild(t);
+    document.body.appendChild(x);
+    window.scrollTo(0,1000000);
+}
+
+function preDOM( txt ) {
+    var x = document.createElement("PRE");
+    var t = document.createTextNode(txt);
+    x.appendChild(t);
+    document.body.appendChild(x);
+    window.scrollTo(0,1000000);
+}
+
+
+function brDOM() {
+    var x = document.createElement("DIV");
+    document.body.appendChild(x);
+    window.scrollTo(0,1000000);
+}
+
+
+function inputDOM() {
+    var x = document.createElement("DIV");
+    x.style.display = "inline";
+    x.style.fontFamily = "courier";
+    x.setAttr("contentEditable", true);
+    var t = document.createTextNode("");
+    x.appendChild(t);
+    document.body.appendChild(x);
+    x.focus();
+    do {
+        e = x.waitEvent("keypress"); // will temporarily bind an event to the node and wait for it (bind_dom method)
+                                     // this should be used with caution: there is no event queue for the object and it may miss some events
+    } while (e.keyCode != 13)
+    x.setAttr("contentEditable", false);
+    return x.getAttr("innerHTML");
+}
+
+
+function editDOM() {
+    var x = document.createElement("DIV");
+    x.style.display = "inline";
+    x.style.fontFamily = "courier";
+    x.setAttr("contentEditable", true);
+    var t = document.createTextNode("");
+    x.appendChild(t);
+    document.body.appendChild(x);
+    x.focus();
+    do {
+        e = x.waitEvent("keypress"); // will temporarily bind an event to the node and wait for it (bind_dom method)
+                                     // this should be used with caution: there is no event queue for the object and it may miss some events
+    } while ( !( e.keyCode == 13 && e.ctrlKey == true) )
+    x.setAttr("contentEditable", false);
+    var s = x.getAttr("innerHTML");
+    s = s.replace(/<br>/g, "\n"); // no other tags are allowed
+    s = s.replace(/&gt;/g, ">"); // no other special chars allowed
+    s = s.replace(/&lt;/g, "<");
+    return s;
+}
+

@@ -72,6 +72,17 @@ function editDOM() {
     return s;
 }
 
+function execChild(childPath, progPath, argv) {
+    // TODO: killChild ;-)
+    try {
+        object.execURI(childPath, "__ic_main", argv); // start in a thread??
+    } catch (e) {
+        printDOM("ic#: exception at main() in "+progPath+" (progId: "+childPath")"); brDOM(); // TODO HERE
+        printDOM(":: "+e); brDOM();
+    }
+    
+}
+
 brDOM();
 brDOM();
 printDOM("Welcome to ic# - an Interactive Core commandline. Type 'help' for help. Click-TAB to reactivate input (if lost).");
@@ -333,18 +344,17 @@ while(true) {
             xd.style.fontSize="100%";
             document.body.appendChild(xd);    
             object.createChild("p"+pc, c, "~/sys/anarchic", xd); // TODO: use real default security!!
-
-            // TODO here!! ->> threaded execution!
-            object.execURI("./"+pname, "__ic_main", argv); // start in a thread??
+            
+            var pid = start_new_thread(execChild, ["./"+pname, "p"+pc, argv]); // use pid??
 
         } catch (e) {
             // BUG prevents us to use break; here
             if(e.toString().indexOf("path") > -1) {
-                printDOM("command not found by path: "+c); brDOM();
+                printDOM("IC#: command not found by path: "+c); brDOM();
                 break; // does not break out...                
             } else {
-                printDOM("ic#: exception at main() in "+c); brDOM();
-                printDOM(":: "+e); brDOM();
+                printDOM("IC#: another error: "+e); brDOM();
+                break; // does not break out...                
             }
             
         }

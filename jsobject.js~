@@ -682,7 +682,7 @@ function eos_rcvEvent(rq) {
 
 
 
-        if(__eos_requests[rq.id].onok) { // XXX this code needs to be tested!!
+        if(__eos_requests[rq.id].onok) { 
             if(rq.status == "OK") {
                 __eos_requests[rq.id].onok(rq);
             } else {
@@ -696,6 +696,7 @@ function eos_rcvEvent(rq) {
             return;
         }
         
+        // XXX UNUSED from here ->>>
         
         var x2 = __eos_requests[rq.id]["context"];
         var cs = __eos_requests[rq.id]["stack"];
@@ -1951,6 +1952,78 @@ eos_om = {
         // now SET the kconfig access strings
         ch.kconfig_r = kconfig_r; // TODO error checking here (if kconfig_ list is incorrect
         ch.kconfig_w = kconfig_w;
+    },
+    
+    import: function (__tihs, src_uri) {
+        // TODO: DOC: XXX: should an import timeout or not??
+        __tihs.cur_stack.EXCEPTION = false;
+        __tihs.cur_stack.my.v0 = undefined;
+        
+        // set up a stop execution flag
+        var _mystop = __jn_stacks.newId();
+        __tihs.cur_stack.STOP = _mystop;
+        var __cs = __tihs.cur_stack;
+        
+        
+        var exec_f = function (data, obj) {
+            // like evaluate, but push!
+            if( __cs.STOP != _mystop ) // means TIMEOUT already fired. Also, if it is != false then a serious programming error may be in place!!
+                    return;
+            
+            try {
+                var _p = parse(data, url, 0);
+                //__cs.push(S_EXEC, {n: _p, x: __cs.exc, pmy: {}}); // append it to the 'end' of execution stack
+                __cs.unshift(S_EXEC, {n: _p, x: __cs.exc, pmy: {}}); // virtually 
+            } catch (e) {
+                __cs.EXCEPTION = THROW;
+                __cs.exc.result = e;// TEST THIS!!
+            }
+            
+            __cs.STOP = false;
+            //__tihs.step_next(__cs);
+            __jn_stacks.start(__cs.pid);
+        };
+        
+        /*            
+        var timeout_f = function () {
+            if( __cs.STOP != _mystop ) { // it should NEVER appear to place a STOP flag on the same stack twice
+                // if not false -> __tihs.ErrorConsole.log("VM: load: internal programming error!");
+                return;
+            }
+            // XXX XXX TODO WARNING! LOAD may fail in releasing the stack WITH CONTROL FLOW CATCHUP!!
+            // XXX TODO set onfinish to the currently running steck to continue it!!                
+            __cs.EXCEPTION = THROW;
+            var ex = new __tihs.global.InternalError("load( '"+url+"' ): fetch failed with timeout");// TEST THIS!!
+            ex.status = "timeout";
+            __cs.exc.result = ex;
+
+            __cs.STOP = false;
+            //__tihs.step_next(__cs);
+            __jn_stacks.start(__cs.pid);
+        };
+        */
+        
+        // set the timeout watchguard
+        // setTimeout(timeout_f, __tihs.AJAX_TIMEOUT);
+        
+        // fire the ajax load component
+        
+        var onfail = function (rs) {
+            if( __cs.STOP != _mystop ) // means TIMEOUT already fired
+                    return;
+
+            __cs.EXCEPTION = THROW;
+            var ex = new __tihs.global.InternalError("import('"+src_uri+"') failed with exception: "+rs.result);
+            ex.status = rs.status;
+            __cs.exc.result = ex;
+
+            __cs.STOP = false;
+            //__tihs.step_next(__cs);  
+            __jn_stacks.start(__cs.pid);              
+        };
+        
+        kIPC(__tihs, src_uri, "read", [], exec_f, onfail);
+        
     }
 }
 
@@ -2176,6 +2249,11 @@ Jnaric.prototype.bind_om = function () {
     
     this.global.object.kconfig = function (p, v) {
         return eos_om.kconfig(__tihs, p, v);
+    };
+    
+    this.global.object.import = function (srcURI) {
+        // kernel extension to import code into current stack and scope
+        return eos_om.import(__tihs, srcURI);
     };
     
     
