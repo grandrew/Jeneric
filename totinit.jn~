@@ -1,5 +1,5 @@
 // total init for jeneric project
-initIPCLock = true; // XXX not needed since security DOES NOT set ipcLock to false by itself!
+initIPCLock = true; // XXX not needed since security DOES NOT set initIPCLock to false by itself!
 
 // initialize the serializer
 // create the serializer daemon threads

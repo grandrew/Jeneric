@@ -695,7 +695,7 @@ function Jnaric() {
         //window: window,
         //location: location,
         /*
-        alert: function (s) {
+        alert: function (s) { // alert will BLOCK!! so dont have it
             alert(s); // defeat strange firefox behaviour on alert.apply(this, argv) with 'this != null'
         },
         */
@@ -857,7 +857,7 @@ function Jnaric() {
         
         Lock: function () {
             // a lock to be acquired and released
-            this.lock = 1;
+            this.goflag = 1;
             this.___wait_queue = [];
         },
         
@@ -1245,9 +1245,9 @@ function Jnaric() {
     // TODO: move these out of the closure scope!
     this.global.Lock.prototype.acquire = function (blocking) {
         blocking = blocking || true;
-        if(this.lock > 0) { 
-            --this.lock;
-            if(!blocking) return true;
+        if(this.goflag > 0) { 
+            --this.goflag;
+            return true;
         }
         else { // block...
             if(blocking) {
@@ -1265,17 +1265,17 @@ function Jnaric() {
         // not reached by running stack; return does not matter
     };
     
-    this.global.Lock.prototype.release = function () {
-        if(this.lock > 0) {
+    this.global.Lock.prototype.release = function (f) {
+        if(!f && this.goflag > 0) {
             // set exception
             __tihs.cur_stack.EXCEPTION = THROW;
-            __tihs.cur_stack.my.x2.result = (new __tihs.global.Error("release unlocked lock"));
+            __tihs.cur_stack.exc.result = (new __tihs.global.Error("release unlocked lock"));
         }
-        //++this.lock; // is like someone may have requested a lock again, dont release it!
+        //++this.goflag; // is like someone may have requested a lock again, dont release it!
         var desc = this.___wait_queue.shift();
         
         if(!desc) {
-            ++this.lock; // just leave unlocked
+            this.goflag = 1; // just leave unlocked
             return;
         }
         

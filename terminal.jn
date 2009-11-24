@@ -47,7 +47,7 @@ object.ipc["addAsChild"] = ipc_addAsChild;
 object.ipc["createChild"] = ipc_createChild;
 object.ipc["deleteChild"] = ipc_deleteChild;
 
-initIPCLock = false;
+initIPCLock.release();// = false;
 
 // get some server data anonymously (luckily we know the location ;-)
 // TODO: a native method for this shit... 

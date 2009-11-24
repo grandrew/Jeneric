@@ -1,7 +1,7 @@
 // anarchic.jn
 
 function setSecurityState(state) {
-    wakeupIPCLock = false;
+    wakeupIPCLock.release(); // this should be the only place to release wakeupIPCLock!! TQLW here too (the code is first loaded then security)
 }
 
 function getSecurityState() {

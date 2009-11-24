@@ -2,7 +2,7 @@
 _public_adminterminal = null;
 function setSecurityState(state) {
     if(state.terminal) _public_adminterminal = state.terminal;
-    wakeupIPCLock = false;
+    wakeupIPCLock.release(); // = false;
 }
 
 function getSecurityState() {

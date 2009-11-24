@@ -112,22 +112,23 @@ Now, the pipe will go through Gears AJAX:
 ASSORTED TODO ITEMS
 ----------------------------------------------------------------------------
 
-- security: signRequest at work
++ security: signRequest at work
 - getAbsoluteURI method
 - fix encoding (do utf-8 everywhere)
 - LTR a more unix-like shell: cwd, etc..
 - terminal connection init SLOW
    - introduce connection API (in case we will want to disconnect manually?)
 - BUG in try/catch (see below)
-- import keyword (+userspace script injection)
-- semaphores (+think/document select()-like call using dynamic semaphores)
++ import keyword (+userspace script injection)
++ semaphores (+think/document select()-like call using dynamic semaphores)
+  - LTR more semaphore types?
 - IPCLocks - to semaphores!
 + faster createChild
     WHY is object creation so slow?? - probably because of lacking lock/semaphore mechanism?? or what??
         trace/profile that! -> because of the creation algorithm... see 4 full IPC calls + massive user-level code involved
 - hubAuthenticationChanged (and kconfig altering)
 - general notification API?? invent general (kernel??) notification/subscription protocol!
-- maybe add object_security? TypeURI and SecurityURI to request object!?
++ maybe add object_security? TypeURI and SecurityURI to request object!?
 - implement passwd change in ic.jn
   - rename to terminal_auth and terminal_register ??
   - move terminal_auth to terminal.jn responsibility
@@ -146,7 +147,7 @@ ASSORTED TODO ITEMS
 + safe wrapper for Gears
 + THE MOST general terminal init object: read some autostart values locally/remotely(?)
   - DOCument this
-- DOM ceanup upon object removal
+- DOM ceanup upon object removal (+ DOM detach request for iclib)
 - support for remote hibernation BEFORE launch! (why?)
   - need fast native JSON to stringify/back for object setState
 - deal with native object prototyping: properly wrap the 'global' natives!
@@ -156,10 +157,11 @@ ASSORTED TODO ITEMS
 - technique to pass methods directly (kbind has failed!!) (watch out for references that will prevent from garbage-collecting!)
 - compiled code? like search for "type_src".o first
 - compiled code cache? like copy - not parse every time
+- object code parse cache: at least for wakeObject; for createObject too!
 kernel programming advisory: be careful with methods that stop the stack - report any possible error via try/catch and stack release w/throw
 
 ---------------
-- Need additional interface for the ramstore like object LIST method: creation date, file type, etc .
+- Need additional interface for the ramstore like object LIST method: creation date, file type, FILE LENGTH!!! etc .
 - Some additional standard object description methods should also be defined in Jnaric Standard Protocol Proposal (JSPP?)
 - A proposal for security description inside the object to allow for security models interoperability and succesful object serialization
 - A proposal for security setup and/or MVC model for the security setting.

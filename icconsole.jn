@@ -5,6 +5,8 @@ object.ipc["__ic_main"] = function(rq, argv) {
     // execute main thread in blocking mode; destroy instance after that DOC
     delete object.ipc["__ic_main"]; // hence only one single IPC allowed; race conditions may still occur but are not taken into account
     main(argv);
+    // TODO: detach DOM first
+    //      or it will be deleted with object destroy!
     object.destroy(); // a little messy here' but should work -> deleting ourself actually before returning the value 
 }
 
@@ -52,12 +54,13 @@ function inputDOM() {
 }
 
 
-function editDOM() {
+function editDOM(text) {
+    var text = text || "";
     var x = document.createElement("DIV");
     x.style.display = "inline";
     x.style.fontFamily = "courier";
     x.setAttr("contentEditable", true);
-    var t = document.createTextNode("");
+    var t = document.createTextNode(text);
     x.appendChild(t);
     document.body.appendChild(x);
     x.focus();
@@ -75,4 +78,4 @@ function editDOM() {
     return s;
 }
 
-initIPCLock = false; // XXX
+initIPCLock.release();// = false; // XXX

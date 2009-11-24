@@ -918,75 +918,31 @@ Jnaric.prototype.execIPC = function (rq, cbOK, cbERR) {
         cbERR({id: rq.id, status: "EEXCP", result: "request validation failed with exception: "+ex});
     };
     
-    // THE object ready state is set via security method: objectReady = true;
-    if(this.global.initIPCLock || this.global.wakeupIPCLock) { // means we're in the state of initialization
-        // wait for the main stack to issue onfinish??
-        // TODO switch to Semaphores interface!
-        if(this.DEBUG) this.ErrorConsole.log("in execIPC... lock there! waiting");
-        if(this.onfinish) { 
-            var old_onf = this.onfinish;
-        } else {
-            var old_onf = function () {};
-        }
-        // XXX use semaphores (external?!) !! object main stack may not finish at all
-        var fflag = true; // tmp workaround
+    
+    if(this.global.initIPCLock) { // means we're in the state of initialization
 
-        /*
-        this.onfinish = function () {
-            if(!fflag) return; // tmp workaround
-            fflag = false;
-            old_onf();
-            self.execIPC(rq, cbOK, cbERR);
-        }
-        */
-        
-        // XXX temporarily workaround: use timeout to avoid deadlock
-        // XXX WARNING: the timeout may fire on slow/heavy loaded machines
-        // TODO: do something with this: like use the time between first line read and last object init as a benchmark
-
-        // XXX many race conditions possible here if run from multi-tasking setTimeout/event scope!!
-/*
-        var tmf = function () {
-            console.log("timeout tick!");
-            if(!fflag) return;
-            fflag = false;
-console.log("timeout gogo!");
-            if(self.global.initIPCLock || self.global.wakeupIPCLock) {
-                cbERR({id: rq.id, status: "EEXCP", result: "object init lock timeout"});
-                self.ErrorConsole.log("object init lock timeout:" + self.uri + " i:"+self.global.initIPCLock+" w:"+self.global.wakeupIPCLock);
-                return;
-            }
-            self.execIPC(rq, cbOK, cbERR); 
-        };
-      
-      
-        // wait for onfinish for 8 seconds to timeout entirely
-        setTimeout(tmf, 8000);
-      */  
-        // XXX TQLW mode (semaphoreless solution) ->
-        var ticks = 0;
-        var tick_fun = function () {
-            // begin closured tick...
-            if(!fflag) return;
-            
-            if(self.global.initIPCLock || self.global.wakeupIPCLock) {
-                // run ticker again
-                if(ticks > 25) {
-                    cbERR({id: rq.id, status: "EEXCP", result: "object init lock timeout"});
-                    self.ErrorConsole.log("object init lock timeout:" + self.uri + " i:"+self.global.initIPCLock+" w:"+self.global.wakeupIPCLock);                    
-                    return;
-                }
-                ticks = ticks + 1;
-                setTimeout(arguments.callee, 600); // ECMA ECMA.. 
-                return;
-            }
-            self.execIPC(rq, cbOK, cbERR); 
-        };
-        setTimeout(tick_fun, 600);
-        // END TQLW MODE
-        
-        return;
+        if(self.global.initIPCLock.goflag < 1) { // means lock is set
+            var cb = function () {
+                self.global.initIPCLock.release(true);
+                self.execIPC(rq, cbOK, cbERR);
+            };
+            self.global.initIPCLock.___wait_queue.push({callback: cb});
+            return; // this will ensure that only one instance of retying is in the queue!!
+        } // else just continue
+   }
+   
+   if(this.global.wakeupIPCLock) {
+        if(self.global.wakeupIPCLock.goflag < 1) { // means lock is set
+            var cb = function () {
+                self.global.wakeupIPCLock.release(true);
+                self.execIPC(rq, cbOK, cbERR);
+            };
+            self.global.wakeupIPCLock.___wait_queue.push({callback: cb});
+            return;
+        } // else just continue
     }
+
+
     
     if(this.global.validateRequest) {
         this.execf_thread(this.global.validateRequest, [rq], cbo, cbe); 
@@ -1297,9 +1253,13 @@ function eos_wakeObject(parent, name, serID) {
     obj.serID = dump.rowid;
     obj.childList = JSON.parse(dump.ChildList);
     
-    obj.global.initIPCLock = true; // THIS to be flushed by security validateRequest method init
-    obj.global.wakeupIPCLock = true; // THIS to be flushed by a call to setSecurityState method
-    
+    //obj.global.initIPCLock = true; // THIS to be flushed by security validateRequest method init
+    //obj.global.wakeupIPCLock = true; // THIS to be flushed by a call to setSecurityState method
+    obj.global.initIPCLock = new obj.global.Lock(); // THIS to be flushed by security validateRequest method init
+    obj.global.initIPCLock.goflag = 0; // set the lock
+    obj.global.wakeupIPCLock = new obj.global.Lock(); 
+    obj.global.wakeupIPCLock.goflag = 0; // set the lock
+
     obj.bind_dom(); // TODO bind to fake DOM element since it is currently impossible to serialize DOM-enabled elements
     obj.bind_om(); // bind the protected EOS object model
     
@@ -1433,8 +1393,14 @@ function eos_createObject(vm, name, type_src, sec_src, parentURI, typeURI, secUR
     obj.uri = obj.parent.uri+"/"+name; 
     obj.serID = -1;
     obj.childList = {};
-    obj.global.initIPCLock = true; // flush this by validateRequest init XXX
-    obj.global.wakeupIPCLock = false;
+    //obj.global.initIPCLock = true; // flush this by validateRequest init XXX
+    //obj.global.wakeupIPCLock = false;
+
+    obj.global.initIPCLock = new obj.global.Lock(); // THIS to be flushed by security validateRequest method init
+    obj.global.initIPCLock.goflag = 0; // set the lock
+    obj.global.wakeupIPCLock = new obj.global.Lock(); 
+    
+    
     obj.bind_dom(DOMElement); // TODO bind to protected wrapped DOM or to fake DOM element
     obj.bind_om(); // bind the protected EOS object model
     

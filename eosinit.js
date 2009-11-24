@@ -45,8 +45,11 @@ _terminal_vm.uri = "~";//_terminal_vm.parent + "/"+name;
 _terminal_vm.serID = -1; // set to real value, if exists
 _terminal_vm.childList = {}; // init the CL later
 
-_terminal_vm.global.initIPCLock = true; // THIS to be flushed by security validateRequest method init
-_terminal_vm.global.wakeupIPCLock = false; 
+//_terminal_vm.global.initIPCLock = true; // THIS to be flushed by security validateRequest method init
+//_terminal_vm.global.wakeupIPCLock = false; 
+_terminal_vm.global.initIPCLock = new _terminal_vm.global.Lock(); // THIS to be flushed by security validateRequest method init
+_terminal_vm.global.initIPCLock.goflag = 0; // set the lock
+_terminal_vm.global.wakeupIPCLock = new _terminal_vm.global.Lock(); 
 
 
 // BINDING part
@@ -87,8 +90,12 @@ _sys_vm.uri = _sys_vm.parent.uri + "/"+_sys_vm.name;
 _sys_vm.serID = -1; // can never be serialized
 _sys_vm.childList = {}; 
 
-_sys_vm.global.initIPCLock = true; // THIS to be flushed by security validateRequest method init
-_sys_vm.global.wakeupIPCLock = true; // THIS to be flushed by a call to setSecurityState method
+//_sys_vm.global.initIPCLock = true; // THIS to be flushed by security validateRequest method init
+//_sys_vm.global.wakeupIPCLock = true; // THIS to be flushed by a call to setSecurityState method
+_sys_vm.global.initIPCLock = new _sys_vm.global.Lock(); // THIS to be flushed by security validateRequest method init
+_sys_vm.global.initIPCLock.goflag = 0; // set the lock
+_sys_vm.global.wakeupIPCLock = new _sys_vm.global.Lock(); 
+_sys_vm.global.wakeupIPCLock.goflag = 0; // set the lock
 
 // BINDING part
 _sys_vm.bind_dom(); // XXX not ever bind DOM???
@@ -118,7 +125,7 @@ ffoo = function () {
 
 _sys_vm.onfinish = function () {
     _sys_vm.onfinish = ffoo;
-    _sys_vm.evaluate("wakeupIPCLock=false;"); 
+    _sys_vm.evaluate("wakeupIPCLock.release();"); 
 }; 
 
 
@@ -135,8 +142,13 @@ function manualRamstoreObject(oname, oparent) {
     _vm.serID = -1; // can never be serialized
     _vm.childList = {}; 
 
-    _vm.global.initIPCLock = true; // this will be normally unset
-    _vm.global.wakeupIPCLock = true; // this will emulate like we're deserializing and will lock IPC until we explicitly unlock
+//    _vm.global.initIPCLock = true; // this will be normally unset
+//    _vm.global.wakeupIPCLock = true; // this will emulate like we're deserializing and will lock IPC until we explicitly unlock
+
+    _vm.global.initIPCLock = new _vm.global.Lock(); // THIS to be flushed by security validateRequest method init
+    _vm.global.initIPCLock.goflag = 0; // set the lock
+    _vm.global.wakeupIPCLock = new _vm.global.Lock(); 
+    _vm.global.wakeupIPCLock.goflag = 0; // set the lock
 
     // BINDING part
     _vm.bind_dom(); // XXX not ever bind DOM???
@@ -161,21 +173,22 @@ function manualRamstoreObject(oname, oparent) {
 _anarchic_vm = manualRamstoreObject("anarchic", _sys_vm);
 _anarchic_vm.onfinish = function () {
     _anarchic_vm.onfinish = ffoo;
-    _anarchic_vm.evaluate("sdata = fetchUrl('anarchic.jn');wakeupIPCLock=false;"); 
+//    _anarchic_vm.evaluate("sdata = fetchUrl('anarchic.jn');wakeupIPCLock=false;");
+    _anarchic_vm.evaluate("sdata = fetchUrl('anarchic.jn');wakeupIPCLock.release();");  
 }; // WARNING!? XXX precedence test heeded here!!!!!!
 
 // NOW CREATE ramstore OBJECT
 _ramstore_vm = manualRamstoreObject("ramstore", _sys_vm);
 _ramstore_vm.onfinish = function () { 
     _ramstore_vm.onfinish = ffoo;
-    _ramstore_vm.evaluate("sdata = fetchUrl('ramstore.jn');wakeupIPCLock=false;"); 
+    _ramstore_vm.evaluate("sdata = fetchUrl('ramstore.jn');wakeupIPCLock.release();"); 
 }; // WARNING!? XXX precedence test heeded here!!!!!!
 
 // NOW CREATE public security model OBJECT
 _public_vm = manualRamstoreObject("public", _sys_vm);
 _public_vm.onfinish = function () { 
     _public_vm.onfinish = ffoo;
-    _public_vm.evaluate("sdata = fetchUrl('public.jn');wakeupIPCLock=false;"); 
+    _public_vm.evaluate("sdata = fetchUrl('public.jn');wakeupIPCLock.release();"); 
 }; 
 
 
@@ -183,14 +196,14 @@ _public_vm.onfinish = function () {
 _ic_vm = manualRamstoreObject("ic", _sys_vm);
 _ic_vm.onfinish = function () {
     _ic_vm.onfinish = ffoo;
-    _ic_vm.evaluate("sdata = fetchUrl('ic.jn');wakeupIPCLock=false;"); 
+    _ic_vm.evaluate("sdata = fetchUrl('ic.jn');wakeupIPCLock.release();"); 
 }; 
 
 // create totinit.jn object
 _init_vm = manualRamstoreObject("init", _sys_vm);
 _init_vm.onfinish = function () {
     _init_vm.onfinish = ffoo;
-    _init_vm.evaluate("sdata = fetchUrl('totinit.jn');wakeupIPCLock=false;"); 
+    _init_vm.evaluate("sdata = fetchUrl('totinit.jn');wakeupIPCLock.release();"); 
 }; 
 
 
@@ -215,8 +228,14 @@ _var_vm.uri = _var_vm.parent.uri + "/var";
 _var_vm.serID = -1; // can never be serialized
 _var_vm.childList = {}; 
 
-_var_vm.global.initIPCLock = true; // this will be normally unset
-_var_vm.global.wakeupIPCLock = true; // this will emulate like we're deserializing and will lock IPC until we explicitly unlock
+//_var_vm.global.initIPCLock = true; // this will be normally unset
+//_var_vm.global.wakeupIPCLock = true; // this will emulate like we're deserializing and will lock IPC until we explicitly unlock
+
+_var_vm.global.initIPCLock = new _var_vm.global.Lock(); // THIS to be flushed by security validateRequest method init
+_var_vm.global.initIPCLock.goflag = 0; // set the lock
+_var_vm.global.wakeupIPCLock = new _var_vm.global.Lock(); 
+_var_vm.global.wakeupIPCLock.goflag = 0; // set the lock
+
 
 // BINDING part
 _var_vm.bind_dom(); // XXX not ever bind DOM???
@@ -232,7 +251,7 @@ __eos_objects[_var_vm.uri] = _var_vm;
 
 _var_vm.onfinish = function () {
     _var_vm.onfinish = ffoo;
-    _var_vm.evaluate("wakeupIPCLock=false;"); 
+    _var_vm.evaluate("wakeupIPCLock.release();"); 
 }; 
 
 

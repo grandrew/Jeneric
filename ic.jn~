@@ -97,7 +97,7 @@ brDOM();
 // TODO: write Google Gears hint - if not detected
 
 pc = 0;
-
+initIPCLock = false; // ready for IPC...
 var s,c,p1, p2;
 while(true) {
     printDOM("ic# ");
