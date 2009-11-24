@@ -103,22 +103,18 @@ terminal:
 */
 
 // XXX SECURITY MODEL!!
-ok = false;
+ok = 0;
 try {
-    object.createChild("init", object.kconfig("init"), "~/sys/anarchic", xd);
-    ok = true;
+    ok = object.createChild("init", object.kconfig("init"), "~/sys/anarchic", xd);
 } catch (e) {
     try {
-        object.createChild("init", object.kconfig("init2"), "~/sys/anarchic", xd);
-        ok = true;
+        ok = object.createChild("init", object.kconfig("init2"), "~/sys/anarchic", xd);
     } catch (e) {
         // TODO: error reporting here!!! in case SMTH not available, etc! //  TODO: TEST it without sleep!
         try {
-            object.createChild("init", "~/sys/init", "~/sys/anarchic", xd); // XXX or /var/init??
-            ok = true;
+            ok = object.createChild("init", "~/sys/init", "~/sys/anarchic", xd); // XXX or /var/init??
         } catch (e) {
-            object.createChild("init", "~/sys/ic", "~/sys/anarchic", xd); // this may not fail
-            ok = true;
+            ok = object.createChild("init", "~/sys/ic", "~/sys/anarchic", xd); // this may not fail
         }
     }
 }
@@ -127,7 +123,6 @@ if(object.serializeURI) {
     ErrorConsole.log("Serialization available!");
 }
 
-// TODO: createChild to return a value??
 if(ok) {
     // XXX maybe bind terminal to init?
     object.kbind("init", ["bind_serial"], ["autorestore", "saveinterval", "autoswapout"], ["autorestore", "autoswapout"]);

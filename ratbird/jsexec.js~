@@ -1295,6 +1295,13 @@ function Jnaric() {
         }
         // no return value
     };
+
+    this.global.Lock.prototype.check = function () {
+        if(this.goflag > 0) {
+            return false;
+        }
+        return true;
+    };
         
 
 
@@ -1833,7 +1840,7 @@ function say_type(t) {
       case GROUP:
         return "GROUP";
       default:
-        return "PANIC: unknown operation " + n.type + ": " + uneval(n);
+        return "PANIC: unknown operation " + t;
     }
 
     return v;
@@ -2862,7 +2869,7 @@ Jnaric.prototype.step_execute = function (n, x, stack) {
         break;
 
       case RETURN:
-
+        if(typeof n.value == "string" ) console.log("AAAAAAARGHT");
         if(!("v2" in stack.my)) {
             stack.push(S_EXEC, {v:"v2", n: n.value, x: x, Nodes: n, Context: x, NodeNum: 0, pmy: stack.my.myObj});
             break;
@@ -3920,7 +3927,8 @@ Jnaric.prototype.step_execute = function (n, x, stack) {
         break;
 
       default:
-        throw "PANIC: unknown operation " + n.type + ": " + uneval(n);
+          throw "PANIC: unknown operation " + n.type + ": " + n;
+
     }
 
     return v;

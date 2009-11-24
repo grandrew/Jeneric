@@ -1,13 +1,41 @@
 // total init for jeneric project
-initIPCLock = true; // XXX not needed since security DOES NOT set initIPCLock to false by itself!
+// initIPCLock = true; // XXX not needed since security DOES NOT set initIPCLock to false by itself!
 
 // initialize the serializer
 // create the serializer daemon threads
+
+s_working = false;
+
+function do_serialize_all() {
+        if(s_working) return; // many race conditions
+        
+        s_working = true; // is not even atomic
+        var i = 0;
+        for(var j = 0; j<object.getSerializeLength(); j++) {
+            suri = object.getSerializeObj(i); // to not check every 5 secs...
+            while (suri) {
+                    try {
+                        ErrorConsole.log("s_agent: saving "+suri);
+                        object.serializeURI(suri, true);
+                        // if success
+                        ErrorConsole.log("s_agent: success, deleting "+suri);
+                        object.delSerializeObj(suri);
+                    } catch (e) {
+                        ErrorConsole.log("requested serialization of '"+suri+"' failed with exception: "+e);
+                    }
+                    ErrorConsole.log("s_agent: now doing for "+i);
+                    suri = object.getSerializeObj(++i);
+            }
+        }
+        s_working = false;
+}
+
+
 function s_agent() {
     ErrorConsole.log("Starting s_agent");
     var suri, i;
     while(true) {
-        i = 0;
+
         // swapout is done automatically... so we only need to periodically serialize
         
         // TODO: watch for fails
@@ -16,25 +44,16 @@ function s_agent() {
 
         // TODO: hardware semaphore AKA IRQ interrupt on serialization object availability
         //       ... just an lIPC event may be registered via STD hooking!
-        suri = object.getSerializeObj(i); // to not check every 5 secs...
-        while (suri) {
-                try {
-                    ErrorConsole.log("s_agent: saving "+suri);
-                    object.serializeURI(suri, true);
-                    // if success
-                    ErrorConsole.log("s_agent: success, deleting "+suri);
-                    object.delSerializeObj(suri);
-                } catch (e) {
-                    ErrorConsole.log("requested serialization of '"+suri+"' failed with exception: "+e);
-                }
-                ErrorConsole.log("s_agent: now doing for "+i);
-                suri = object.getSerializeObj(++i);
-        }
+
         //ErrorConsole.log("sleeping... for "+object.kconfig("saveinterval")+" and "+object.kconfig("autorestore"));
+         
+        if(!s_working) do_serialize_all();
         sleep(object.kconfig("saveinterval")); // 5-second interval?
         //sleep(100000);
     }
 }
+
+
 
 // now run init tasks from /sys/init ramdir
 objs = execURI(object.getMyTypeURI(), "listChildren", []);
@@ -69,6 +88,7 @@ function start_s_agent ( rq ) {
         object.kconfig("autorestore", true); // currently se assume that (de)serialization is always preferrable
         object.kconfig("autoswapout", true);
         start_new_thread(s_agent);
+        object.register_serializer(do_serialize_all);
     } else {
         ErrorConsole.log("not starting s_agent; no serialization available");
     }
@@ -76,4 +96,4 @@ function start_s_agent ( rq ) {
 
 object.ipc["start_s_agent"] = start_s_agent;
 
-initIPCLock = false;
+initIPCLock.release();// = false;

@@ -1840,7 +1840,7 @@ function say_type(t) {
       case GROUP:
         return "GROUP";
       default:
-        return "PANIC: unknown operation " + n.type + ": " + uneval(n);
+        return "PANIC: unknown operation " + t;
     }
 
     return v;
@@ -2869,16 +2869,21 @@ Jnaric.prototype.step_execute = function (n, x, stack) {
         break;
 
       case RETURN:
-
-        if(!("v2" in stack.my)) {
-            stack.push(S_EXEC, {v:"v2", n: n.value, x: x, Nodes: n, Context: x, NodeNum: 0, pmy: stack.my.myObj});
-            break;
+        if(typeof n.value == "string" ) {
+                x.result = undefined;
+                stack.EXCEPTION = RETURN;
+                stack.my.done = true;        
         } else {
-            x.result = stack.my.v2;
-            stack.EXCEPTION = RETURN;
-            //stack.EXCEPTION_OBJ = stack.my.v2;
+            if(!("v2" in stack.my)) {
+                stack.push(S_EXEC, {v:"v2", n: n.value, x: x, Nodes: n, Context: x, NodeNum: 0, pmy: stack.my.myObj});
+                break;
+            } else {
+                x.result = stack.my.v2;
+                stack.EXCEPTION = RETURN;
+                //stack.EXCEPTION_OBJ = stack.my.v2;
+            }
+            stack.my.done = true;
         }
-        stack.my.done = true;
         break;
         
         
@@ -3927,7 +3932,8 @@ Jnaric.prototype.step_execute = function (n, x, stack) {
         break;
 
       default:
-        throw "PANIC: unknown operation " + n.type + ": " + uneval(n);
+          throw "PANIC: unknown operation " + n.type + ": " + n;
+
     }
 
     return v;

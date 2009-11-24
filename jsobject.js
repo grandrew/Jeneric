@@ -234,7 +234,7 @@ __eos_objects = {};
 __eos_comet = {getID: function() {return 1;}}; // TODO get rid of this
 __eos_serial = []; // list of objects to be freed
 __eos_serial_weak = []; // objects that can NOT be swapped out now // XXX name misspelled
-
+__SERIALIZER = {};
 
 // XXX UNUSED -->>
 //    does not provide signRequest
@@ -1708,7 +1708,7 @@ Jnaric.prototype.serialize = function (onfinish, onerror) {
     var onGetSecError = function (exc) {
         onerror && onerror(exc);
     };
-    
+
     self.execf_thread(self.global.getSecurityState, [], onGetSec, onGetSecError); 
     //};
     
@@ -1741,13 +1741,26 @@ eos_om = {
     },
     
     serialize: function (vm) {
+        /*
         for(var i=0; i<__eos_serial_weak.length; i++) {
             if(__eos_serial_weak[i] == vm) {
                     __eos_serial_weak.splice(i,1);
                     break;
             }
         }
+        */
         __eos_serial_weak.push(vm); // the topmost object to be swapped out first...    
+        if(__SERIALIZER.vm) {
+            var dummy = function () {};
+            var onerr = function (e) {
+                __SERIALIZER.vm.ErrorConsole.log("serialized thread died with exception: "+e);
+            }
+            __SERIALIZER.vm.execf_thread(__SERIALIZER.fn, [], dummy, onerr, 5);
+        }
+    },
+    
+    register_serializer: function (vm, fn) {
+        __SERIALIZER = {vm: vm, fn: fn};
     },
     
     listObjects: function () {
@@ -2338,6 +2351,10 @@ Jnaric.prototype.bind_serial = function () {
         this.global.object.getSerializeObj = eos_om.getSerializeObj;
         this.global.object.delReleaseObj = eos_om.delReleaseObj;
         this.global.object.delSerializeObj = eos_om.delSerializeObj;
+        
+        this.global.object.register_serializer = function (fn) {
+              eos_om.register_serializer(__tihs, fn);
+        };
         ts.close();
     }
     delete ts;
