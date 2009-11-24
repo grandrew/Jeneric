@@ -55,13 +55,15 @@ function inputDOM() {
 
 
 function editDOM(text) {
-    var text = text || "";
-    var x = document.createElement("DIV");
-    x.style.display = "inline";
+    // var text = text || "";
+    if(typeof text == "undefined") text = "";
+    var x = document.createElement("PRE");
+    //x.style.display = "inline"; // only BLOCKed elements support innerText
     x.style.fontFamily = "courier";
     x.setAttr("contentEditable", true);
-    var t = document.createTextNode(text);
-    x.appendChild(t);
+    //var t = document.createTextNode(text);
+    //x.appendChild(t);
+    x.setAttr("textContent", text);
     document.body.appendChild(x);
     x.focus();
     do {
@@ -69,12 +71,15 @@ function editDOM(text) {
                                      // this should be used with caution: there is no event queue for the object and it may miss some events
     } while ( !( e.keyCode == 13 && e.ctrlKey == true) )
     x.setAttr("contentEditable", false);
+
     var s = x.getAttr("innerHTML");
     s = s.replace(/<br>/g, "\n"); // no other tags are allowed
     s = s.replace(/&gt;/g, ">"); // no other special chars allowed
     s = s.replace(/&lt;/g, "<");
     s = s.replace(/&nbsp;/g, " "); // TABs are auto converted to nbsp's at least in FF
     s = s.replace(/&amp;/g, "&");
+
+    //var s = x.getAttr("textContent");
     return s;
 }
 

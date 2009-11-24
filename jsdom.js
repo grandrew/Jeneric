@@ -111,14 +111,20 @@ __HTMLElement.prototype.focus = function ( ) {
 
 // TODO: implement a virtual getter/setter interface here to defeat browser incompatibless
 __setAttrs = {
-    contentEditable: null
+    contentEditable: null,
+    textContent: function (n, v) {
+        if("textContent" in n) {
+           n.textContent = v;
+        }
+        else n.innerText = v;
+    }    
 };
 
 __getAttrs = {
     contentEditable: null,
     innerHTML: null,
     textContent: function (n) {
-        if(n.textContent) return n.textContent;
+        if("textContent" in n) return n.textContent;
         return n.innerText;
     }
 };
@@ -127,13 +133,17 @@ __getAttrs = {
 // - or - block unauthorised ??
 __HTMLElement.prototype.setAttr = function ( attrName, value) {
     if(!(attrName in __setAttrs)) return;
-    this.___link[attrName] = value;
+    if(__setAttrs[attrName]) {
+        __setAttrs[attrName](this.___link, value);
+    } else this.___link[attrName] = value;
+
+    
 };
 
 __HTMLElement.prototype.getAttr = function ( attrName ) {
     if(!(attrName in __getAttrs)) return;
     if(__getAttrs[attrName]) {
-        return __getAttrs[attrName](___link);
+        return __getAttrs[attrName](this.___link);
     } else return this.___link[attrName];
 };
 

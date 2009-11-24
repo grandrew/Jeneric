@@ -158,6 +158,7 @@ ASSORTED TODO ITEMS
 - compiled code? like search for "type_src".o first
 - compiled code cache? like copy - not parse every time
 - object code parse cache: at least for wakeObject; for createObject too!
+- need a method to attach to child errors/system notifications: like if the child of ic dies before exec (also the IPC dedlocks!)
 kernel programming advisory: be careful with methods that stop the stack - report any possible error via try/catch and stack release w/throw
 
 ---------------

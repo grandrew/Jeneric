@@ -1,0 +1,26 @@
+// edit.jn
+
+
+function main(argv) {
+    if(argv.length != 2) {
+        printDOM("edit: not enough arguments; use edit <store object URI> ");
+        return -1;
+    }
+    try {
+        data = execURI(argv[1], "read", []);
+    } catch (e) {
+        printDOM("edit: "+e);
+        return -1;
+    }
+    printDOM("Please edit. Use CTRL-Enter to save & quit."); brDOM();
+    data = editDOM(data);
+    try {
+        execURI(argv[1], "write", [data]);
+    } catch (e) {
+        printDOM("edit: "+e);
+        return -1;
+    }
+    printDOM("document saved."); brDOM();
+}
+
+import("/lib/iclib");

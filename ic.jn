@@ -82,7 +82,7 @@ function editDOM() {
 function execChild(childPath, progPath, argv) {
     // TODO: killChild ;-)
     try {
-        object.execURI(childPath, "__ic_main", argv); // start in a thread??
+        object.execURI(childPath, "__ic_main", [argv]); // start in a thread??
     } catch (e) {
         printDOM("ic#: exception at main() in "+progPath+" (progId: "+childPath + ")"); brDOM(); // TODO HERE
         printDOM(":: "+e); brDOM();
