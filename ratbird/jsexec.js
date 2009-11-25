@@ -2670,6 +2670,7 @@ Jnaric.prototype.step_execute = function (n, x, stack) {
                         if(this.DEBUG > 3) {var vvvx = []; for(var ob in stack.my) vvvx.push(ob); this.ErrorConsole.log(vvvx);}
                         // another try block here...///////////////////////
                         if("v3" in stack.my || stack.EXCEPTION) {
+
                             DEBUG = 0;
                             if(this.DEBUG > 3)this.ErrorConsole.log("v3 there or ex");
                             if(this.DEBUG > 3){var vvvx = []; for(var ob in stack.my) vvvx.push(ob); this.ErrorConsole.log(vvvx);}
@@ -2701,9 +2702,11 @@ Jnaric.prototype.step_execute = function (n, x, stack) {
                                 x.scope = x.scope.parent;
                                 
                                 // break; // will blow away since exception // commented out to actually follow the  spec...
+                                
                                 stack.my.savedException = stack.EXCEPTION;
                                 stack.my.savedResult = x.result;
                                 delete stack.EXCEPTION;
+                            
                                 stack.my.loop = false;
                                 
                                 break;
@@ -2832,6 +2835,11 @@ Jnaric.prototype.step_execute = function (n, x, stack) {
                 stack.my.done = true;
             
             } else {
+                if ( stack.my.savedException ) {
+                    //this.ErrorConsole.log("re-introducing ex: "+stack.my.savedException+" whith v: "+stack.my.savedResult);
+                    stack.EXCEPTION = stack.my.savedException;
+                    x.result = stack.my.savedResult;
+                }
                 stack.my.done = true;
             }
         } else {

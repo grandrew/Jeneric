@@ -65,17 +65,21 @@ TESTING - DOM
 TESTING - ALPHA
 
 - cross browser code
-
 - write simplest but working security model
 - write security model for terminal (including TODOs for security in there
 - write security model for ss storage
-- run ff3.5 linux+jeos3+gears at autowifi !!!
+- create some usable tools: a better ic# (completion? commands history?), better EDIT (+highlighting??)
++ run /lib
+- run /home [virtual?? non-browser]
 
 TESTING - BETA
 
 - write 'approved' module for security and apps
 
 Basic svoyaset integration!
+  - external [svoyaset/mysql] data source access via attached SS virtual storage
+  - webpage integration
+  - GUI integration
 How to start using? What attractive apps? Tmp folder, etc.?
 How to start developing?
 How to start communicating?
@@ -103,6 +107,7 @@ DATA PIPE proposal
 - an rq like GET jeneric.net/termname/var/test?session=XXXXX will create a set of requests to read() the data from location and set the session variable to request object for security model validation.
 - the same with POST/multipart with 'data' POST field set to file contents (how does it work exactly?)
 - for the POST and GET transfers of BLOBs we will need pipe support at the terminal.
+- arbitrary data transfer: pipe support at terminal!!
 - fixed storage suport is also required
 Now, the pipe will go through Gears AJAX:
  Or via modified Orbited routine?
@@ -122,14 +127,14 @@ ASSORTED TODO ITEMS
 + import keyword (+userspace script injection)
 + semaphores (+think/document select()-like call using dynamic semaphores)
   - LTR more semaphore types?
-- IPCLocks - to semaphores!
++ IPCLocks - to semaphores!
 + faster createChild
     WHY is object creation so slow?? - probably because of lacking lock/semaphore mechanism?? or what??
         trace/profile that! -> because of the creation algorithm... see 4 full IPC calls + massive user-level code involved
 - hubAuthenticationChanged (and kconfig altering)
 - general notification API?? invent general (kernel??) notification/subscription protocol!
 + maybe add object_security? TypeURI and SecurityURI to request object!?
-- implement passwd change in ic.jn
+- implement passwd change in ic.jn (write program?)
   - rename to terminal_auth and terminal_register ??
   - move terminal_auth to terminal.jn responsibility
 - safe logout (notify the hub of sign-off)
@@ -137,7 +142,7 @@ ASSORTED TODO ITEMS
 - ic: introduce more timeouts
   typeto should be a better parse of exceptions
 + supply kernel parameters as #-string in location: 
-  http://go.jeneric.net/#init=/path/to/init,terminal_id=myterminal,passkey=TeRmPaSs
+  http://go.jeneric.net/#init=/path/to/init,terminal_id=myterminal,terminal_key=TeRmPaSs
 - ramstore object notifications hooks (what notifications???? investigate this? like object ready, object modified, child added, etc?)
   general storage notification protocol and general general event protocol
 - remove default jn instance (code cleanup)
@@ -148,9 +153,10 @@ ASSORTED TODO ITEMS
 + THE MOST general terminal init object: read some autostart values locally/remotely(?)
   - DOCument this
 - DOM ceanup upon object removal (+ DOM detach request for iclib)
-- support for remote hibernation BEFORE launch! (why?)
+- LTR support for remote hibernation BEFORE launch! (why?)
   - need fast native JSON to stringify/back for object setState
 - deal with native object prototyping: properly wrap the 'global' natives!
+  - also note the __hasInstance__ and others defined at Fp
 - get rid of TRUE in RETURN pushes -> everywhere
 - database access methods (if available)
 - BLOB file access/local webstorage access
@@ -158,6 +164,7 @@ ASSORTED TODO ITEMS
 - compiled code? like search for "type_src".o first
 - compiled code cache? like copy - not parse every time
 - object code parse cache: at least for wakeObject; for createObject too!
+- cache parsed code for all security models loaded (hmm.. not all.. some, with stack or smth
 - need a method to attach to child errors/system notifications: like if the child of ic dies before exec (also the IPC dedlocks!)
 kernel programming advisory: be careful with methods that stop the stack - report any possible error via try/catch and stack release w/throw
 
@@ -173,7 +180,7 @@ kernel programming advisory: be careful with methods that stop the stack - repor
 
 
 JIT: ASM-like (JAM inline snippets - no loops, no calls allowed. Give keywords to yield/loop)
-JIT: Ask-To-Call, Ask-To-Iterate (ACAI technique), safe-compile??? (rewrite globals???)
+JIT: Ask-To-Call, Ask-To-Iterate (ACAI technique), safe-compile??? (rename globals accessed???)
 ---------------
 things to make work:
 http://marijn.haverbeke.nl/codemirror/ http://codepress.sourceforge.net/changelog.php
