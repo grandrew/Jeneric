@@ -526,7 +526,7 @@ class Hub(StompClientFactory):
                 except KeyError:
                     # exc[
                     rq["id"] = rq["hub_oid"] # XXX redundancy issue here too
-                    rq["result"] = "object not found by path";
+                    rq["result"] = "object not found by URI";
                     rq["status"] = "EEXCP"
                     try:
                         del rq["args"]

@@ -47,6 +47,7 @@ from twisted.internet.task import LoopingCall
 from random import random,seed,choice
 from orbited import json
 import string,time,thread,copy,sqlite3
+import simplejson
 
 REGISTRAR_DB = "/var/lib/eoshub/registrar.sqlite"
 
@@ -186,7 +187,8 @@ class Hub(StompClientFactory):
                     del self.rqe[i]
                     print "EEEEE NT WAS:", nt
                     continue;
-                self.dummy_send(sss, json.encode(self.rqe[i]["r"]) )                    
+                #self.dummy_send(sss, json.encode(self.rqe[i]["r"]) )
+                self.dummy_send(sss, simplejson.dumps(self.rqe[i]["r"]) )                                        
                 
                 
                 del self.rqe[i]
@@ -194,7 +196,8 @@ class Hub(StompClientFactory):
             else:
                 # XXX: send without "hub_oid" ?? -> less traffic
                 print "Sending", self.rqe[i]["r"], "to", self.rqe[i]["d"]
-                self.dummy_send(self.rqe[i]["d"], json.encode(self.rqe[i]["r"]) )
+                #self.dummy_send(self.rqe[i]["d"], json.encode(self.rqe[i]["r"]) )
+                self.dummy_send(self.rqe[i]["d"], simplejson.dumps(self.rqe[i]["r"]) )
         # cleanup ACKs window
         # XXX how does python deal with DEL inside for .. in loop???
         for i in copy.copy(self.acks): # XXX WTF COPY!!!
@@ -215,7 +218,9 @@ class Hub(StompClientFactory):
         
         self.acks[repr(sessid)+repr(rqid)] = time.time()
         #self.dummy_send(sessid, "", {"ack": rqid})
-        self.dummy_send(sessid, json.encode({"ack": rqid}))
+        
+        #self.dummy_send(sessid, json.encode({"ack": rqid}))
+        self.dummy_send(sessid, simplejson.dumps({"ack": rqid}))
 
         return t
     
@@ -370,7 +375,8 @@ class Hub(StompClientFactory):
             # the client wants another session, give it
             print "Caught announce!"
             
-            rq = json.decode(msg["body"])
+            #rq = json.decode(msg["body"])
+            rq = simplejson.loads(msg["body"])
             
             termname = PFX+str(newId())
             
@@ -415,7 +421,8 @@ class Hub(StompClientFactory):
         else:
             # now try to parse and pass the request
 
-            rq = json.decode(msg["body"])
+            #rq = json.decode(msg["body"])
+            rq = simplejson.loads(msg["body"])
             
             if "ack" in rq:
                 self.ack_rcv(rq["ack"])
@@ -429,7 +436,8 @@ class Hub(StompClientFactory):
                 terminal = get_terminal_by_session(msg["headers"]["session"])
             except KeyError:
                 print "Issuing nosession!"
-                self.dummy_send(msg["headers"]["session"], json.encode({"error": "NOSESSION"})) # DOC document here . & ->
+                #self.dummy_send(msg["headers"]["session"], json.encode({"error": "NOSESSION"})) # DOC document here . & ->
+                self.dummy_send(msg["headers"]["session"], simplejson.dumps({"error": "NOSESSION"})) # DOC document here . & ->
                 return; # and DO NOT send ACK - so the client could re-establish a conection and resend the request!
 
 
