@@ -1,0 +1,327 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+<svg
+   xmlns:dc="http://purl.org/dc/elements/1.1/"
+   xmlns:cc="http://web.resource.org/cc/"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   width="744.09448819"
+   height="1052.3622047"
+   id="svg7659"
+   sodipodi:version="0.32"
+   inkscape:version="0.44.1"
+   sodipodi:docbase="/amdroot/home/andrew/jeneric/img"
+   sodipodi:docname="ipc_structure.svg">
+  <defs
+     id="defs7661">
+    <marker
+       inkscape:stockid="Arrow1Lend"
+       orient="auto"
+       refY="0.0"
+       refX="0.0"
+       id="Arrow1Lend"
+       style="overflow:visible;">
+      <path
+         id="path4876"
+         d="M 0.0,0.0 L 5.0,-5.0 L -12.5,0.0 L 5.0,5.0 L 0.0,0.0 z "
+         style="fill-rule:evenodd;stroke:#000000;stroke-width:1.0pt;marker-start:none;"
+         transform="scale(0.8) rotate(180) translate(12.5,0)" />
+    </marker>
+    <marker
+       inkscape:stockid="Arrow1Lstart"
+       orient="auto"
+       refY="0.0"
+       refX="0.0"
+       id="Arrow1Lstart"
+       style="overflow:visible">
+      <path
+         id="path4879"
+         d="M 0.0,0.0 L 5.0,-5.0 L -12.5,0.0 L 5.0,5.0 L 0.0,0.0 z "
+         style="fill-rule:evenodd;stroke:#000000;stroke-width:1.0pt;marker-start:none"
+         transform="scale(0.8) translate(12.5,0)" />
+    </marker>
+  </defs>
+  <sodipodi:namedview
+     id="base"
+     pagecolor="#ffffff"
+     bordercolor="#666666"
+     borderopacity="1.0"
+     gridtolerance="10000"
+     guidetolerance="10"
+     objecttolerance="10"
+     inkscape:pageopacity="0.0"
+     inkscape:pageshadow="2"
+     inkscape:zoom="0.75024142"
+     inkscape:cx="335.01287"
+     inkscape:cy="884.21159"
+     inkscape:document-units="px"
+     inkscape:current-layer="layer1"
+     inkscape:window-width="1021"
+     inkscape:window-height="759"
+     inkscape:window-x="613"
+     inkscape:window-y="138" />
+  <metadata
+     id="metadata7664">
+    <rdf:RDF>
+      <cc:Work
+         rdf:about="">
+        <dc:format>image/svg+xml</dc:format>
+        <dc:type
+           rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
+      </cc:Work>
+    </rdf:RDF>
+  </metadata>
+  <g
+     inkscape:label="Layer 1"
+     inkscape:groupmode="layer"
+     id="layer1">
+    <rect
+       y="4.6994042"
+       x="7.9974203"
+       height="366.54877"
+       width="317.2309"
+       id="rect8625"
+       style="opacity:1;fill:#f2f2f2;fill-opacity:1;stroke:black;stroke-width:0.19999993;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1" />
+    <rect
+       style="opacity:1;fill:#f2f2f2;fill-opacity:1;stroke:black;stroke-width:0.2;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+       id="rect7714"
+       width="701.10767"
+       height="413.20032"
+       x="33.322605"
+       y="588.51147" />
+    <g
+       id="g7684"
+       transform="translate(-5.331604,414.5847)">
+      <rect
+         y="356.58615"
+         x="243.92148"
+         height="81.307159"
+         width="255.91762"
+         id="rect7667"
+         style="opacity:1;fill:#e9c6af;fill-opacity:1;stroke:black;stroke-width:0.2;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1" />
+      <text
+         id="text7669"
+         y="404.77881"
+         x="340.64005"
+         style="font-size:20px;font-style:normal;font-weight:normal;fill:black;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1;font-family:a_Futurica"
+         xml:space="preserve"><tspan
+           y="404.77881"
+           x="340.64005"
+           id="tspan7671"
+           sodipodi:role="line">STOMP</tspan></text>
+    </g>
+    <g
+       id="g7679"
+       transform="translate(150.6182,405.2544)">
+      <rect
+         style="fill:#fea;fill-opacity:1;stroke:black;stroke-width:0.2;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+         id="rect7673"
+         width="255.91762"
+         height="81.307159"
+         x="87.97168"
+         y="489.87659" />
+      <text
+         xml:space="preserve"
+         style="font-size:20px;font-style:normal;font-weight:normal;fill:black;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1;font-family:a_Futurica"
+         x="196.78497"
+         y="537.90808"
+         id="text7675"><tspan
+           sodipodi:role="line"
+           id="tspan7677"
+           x="196.78497"
+           y="537.90808">HUB</tspan></text>
+    </g>
+    <rect
+       y="651.17084"
+       x="238.58987"
+       height="81.307159"
+       width="255.91762"
+       id="rect7699"
+       style="fill:#dde9af;fill-opacity:1;stroke:black;stroke-width:0.2;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1" />
+    <text
+       id="text7701"
+       y="699.36353"
+       x="328.61899"
+       style="font-size:20px;font-style:normal;font-weight:normal;fill:black;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1;font-family:a_Futurica"
+       xml:space="preserve"><tspan
+         y="699.36353"
+         x="328.61899"
+         id="tspan7703"
+         sodipodi:role="line">ORBITED</tspan></text>
+    <rect
+       style="fill:#dde9af;fill-opacity:1;stroke:black;stroke-width:0.2;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+       id="rect7708"
+       width="255.91762"
+       height="81.307159"
+       x="39.987129"
+       y="257.88687" />
+    <text
+       xml:space="preserve"
+       style="font-size:20px;font-style:normal;font-weight:normal;fill:black;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1;font-family:a_Futurica"
+       x="130.01625"
+       y="306.07953"
+       id="text7710"><tspan
+         sodipodi:role="line"
+         id="tspan7712"
+         x="130.01625"
+         y="306.07953">ORBITED</tspan></text>
+    <text
+       xml:space="preserve"
+       style="font-size:20px;font-style:normal;font-weight:normal;fill:black;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1;font-family:a_Futurica"
+       x="602.47272"
+       y="979.05243"
+       id="text7716"><tspan
+         sodipodi:role="line"
+         id="tspan7718"
+         x="602.47272"
+         y="979.05243">SERVER</tspan></text>
+    <rect
+       y="17.886871"
+       x="39.987122"
+       height="81.307159"
+       width="85.305786"
+       id="rect7720"
+       style="fill:#aef;fill-opacity:1;stroke:black;stroke-width:0.19999991;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1" />
+    <rect
+       style="fill:#aef;fill-opacity:1;stroke:black;stroke-width:0.19999991;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+       id="rect7726"
+       width="85.305786"
+       height="81.307159"
+       x="202.60144"
+       y="76.53466" />
+    <path
+       style="fill:none;fill-rule:evenodd;stroke:black;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1;marker-start:url(#Arrow1Lstart);marker-end:url(#Arrow1Lend)"
+       d="M 77.308448,98.002723 C 77.308448,98.002723 102.63363,180.64279 201.26855,136.65695"
+       id="path7730" />
+    <text
+       xml:space="preserve"
+       style="font-size:20px;font-style:normal;font-weight:normal;fill:black;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1;font-family:a_Futurica"
+       x="110.63106"
+       y="124.6608"
+       id="text8621"><tspan
+         sodipodi:role="line"
+         id="tspan8623"
+         x="110.63106"
+         y="124.6608">Local IPC</tspan></text>
+    <rect
+       style="opacity:1;fill:#f2f2f2;fill-opacity:1;stroke:black;stroke-width:0.19999993;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+       id="rect8627"
+       width="317.2309"
+       height="366.54877"
+       x="409.2016"
+       y="4.6994042" />
+    <rect
+       y="257.88687"
+       x="441.19131"
+       height="81.307159"
+       width="255.91762"
+       id="rect8629"
+       style="fill:#dde9af;fill-opacity:1;stroke:black;stroke-width:0.2;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1" />
+    <text
+       id="text8631"
+       y="306.07953"
+       x="531.22046"
+       style="font-size:20px;font-style:normal;font-weight:normal;fill:black;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1;font-family:a_Futurica"
+       xml:space="preserve"><tspan
+         y="306.07953"
+         x="531.22046"
+         id="tspan8633"
+         sodipodi:role="line">ORBITED</tspan></text>
+    <rect
+       style="fill:#aef;fill-opacity:1;stroke:black;stroke-width:0.19999991;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+       id="rect8635"
+       width="85.305786"
+       height="81.307159"
+       x="441.19131"
+       y="17.886871" />
+    <rect
+       y="76.53466"
+       x="603.8056"
+       height="81.307159"
+       width="85.305786"
+       id="rect8637"
+       style="fill:#aef;fill-opacity:1;stroke:black;stroke-width:0.19999991;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1" />
+    <path
+       id="path8639"
+       d="M 478.51263,98.002723 C 478.51263,98.002723 503.83782,180.64279 602.47274,136.65695"
+       style="fill:none;fill-rule:evenodd;stroke:black;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;marker-start:url(#Arrow1Lstart);marker-end:url(#Arrow1Lend);stroke-opacity:1" />
+    <text
+       id="text8641"
+       y="124.6608"
+       x="511.83524"
+       style="font-size:20px;font-style:normal;font-weight:normal;fill:black;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1;font-family:a_Futurica"
+       xml:space="preserve"><tspan
+         y="124.6608"
+         x="511.83524"
+         id="tspan8643"
+         sodipodi:role="line">Local IPC</tspan></text>
+    <path
+       style="fill:none;fill-rule:evenodd;stroke:black;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1;marker-start:url(#Arrow1Lstart);marker-end:url(#Arrow1Lend)"
+       d="M 53.316171,98.002723 C 53.316171,98.002723 374.5461,1896.0906 647.79148,157.98342"
+       id="path8645"
+       sodipodi:nodetypes="cc" />
+    <text
+       xml:space="preserve"
+       style="font-size:20px;font-style:normal;font-weight:normal;fill:black;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1;font-family:a_Futurica"
+       x="81.307159"
+       y="213.96539"
+       id="text9532"><tspan
+         sodipodi:role="line"
+         id="tspan9534"
+         x="81.307159"
+         y="213.96539">Global IPC</tspan></text>
+    <text
+       id="text9536"
+       y="213.96539"
+       x="541.30713"
+       style="font-size:20px;font-style:normal;font-weight:normal;fill:black;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1;font-family:a_Futurica"
+       xml:space="preserve"><tspan
+         y="213.96539"
+         x="541.30713"
+         id="tspan9538"
+         sodipodi:role="line">Global IPC</tspan></text>
+    <text
+       xml:space="preserve"
+       style="font-size:20px;font-style:normal;font-weight:normal;fill:black;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1;font-family:a_Futurica"
+       x="295.90475"
+       y="492.54242"
+       id="text9540"><tspan
+         sodipodi:role="line"
+         id="tspan9542"
+         x="295.90475"
+         y="492.54242">HTTP AJAX/Comet</tspan></text>
+    <text
+       xml:space="preserve"
+       style="font-size:20px;font-style:normal;font-weight:normal;fill:black;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1;font-family:a_Futurica"
+       x="247.93306"
+       y="25.358797"
+       id="text9548"><tspan
+         sodipodi:role="line"
+         id="tspan9550"
+         x="247.93306"
+         y="25.358797">Browser</tspan></text>
+    <text
+       id="text9552"
+       y="25.358797"
+       x="651.93176"
+       style="font-size:20px;font-style:normal;font-weight:normal;fill:black;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1;font-family:a_Futurica"
+       xml:space="preserve"><tspan
+         y="25.358797"
+         x="651.93176"
+         id="tspan9554"
+         sodipodi:role="line">Browser</tspan></text>
+    <text
+       xml:space="preserve"
+       style="font-size:20px;font-style:normal;font-weight:normal;fill:black;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1;font-family:a_Futurica"
+       x="129.29172"
+       y="399.23911"
+       id="text9556"><tspan
+         sodipodi:role="line"
+         id="tspan9558"
+         x="129.29172"
+         y="399.23911">execURI(&quot;/destination/object&quot;, &quot;method&quot;, [argumentList])</tspan></text>
+  </g>
+</svg>

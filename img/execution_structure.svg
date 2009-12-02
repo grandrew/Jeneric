@@ -1,0 +1,398 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+<svg
+   xmlns:dc="http://purl.org/dc/elements/1.1/"
+   xmlns:cc="http://web.resource.org/cc/"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   width="744.09448819"
+   height="1052.3622047"
+   id="svg2"
+   sodipodi:version="0.32"
+   inkscape:version="0.44.1"
+   sodipodi:docbase="/amdroot/home/andrew/jeneric/img"
+   sodipodi:docname="execution_structure.svg"
+   inkscape:export-filename="/amdroot/home/andrew/jeneric/img/execution_structure.png"
+   inkscape:export-xdpi="90"
+   inkscape:export-ydpi="90">
+  <defs
+     id="defs4">
+    <marker
+       inkscape:stockid="Dot_l"
+       orient="auto"
+       refY="0.0"
+       refX="0.0"
+       id="Dot_l"
+       style="overflow:visible">
+      <path
+         id="path4817"
+         d="M -2.5,-1.0 C -2.5,1.7600000 -4.7400000,4.0 -7.5,4.0 C -10.260000,4.0 -12.5,1.7600000 -12.5,-1.0 C -12.5,-3.7600000 -10.260000,-6.0 -7.5,-6.0 C -4.7400000,-6.0 -2.5,-3.7600000 -2.5,-1.0 z "
+         style="fill-rule:evenodd;stroke:#000000;stroke-width:1.0pt;marker-start:none;marker-end:none"
+         transform="scale(0.8) translate(7.4, 1)" />
+    </marker>
+    <marker
+       inkscape:stockid="Arrow1Mend"
+       orient="auto"
+       refY="0.0"
+       refX="0.0"
+       id="Arrow1Mend"
+       style="overflow:visible;">
+      <path
+         id="path4870"
+         d="M 0.0,0.0 L 5.0,-5.0 L -12.5,0.0 L 5.0,5.0 L 0.0,0.0 z "
+         style="fill-rule:evenodd;stroke:#000000;stroke-width:1.0pt;marker-start:none;"
+         transform="scale(0.4) rotate(180) translate(10,0)" />
+    </marker>
+    <marker
+       inkscape:stockid="Arrow1Lend"
+       orient="auto"
+       refY="0.0"
+       refX="0.0"
+       id="Arrow1Lend"
+       style="overflow:visible;">
+      <path
+         id="path4876"
+         d="M 0.0,0.0 L 5.0,-5.0 L -12.5,0.0 L 5.0,5.0 L 0.0,0.0 z "
+         style="fill-rule:evenodd;stroke:#000000;stroke-width:1.0pt;marker-start:none;"
+         transform="scale(0.8) rotate(180) translate(12.5,0)" />
+    </marker>
+    <marker
+       inkscape:stockid="Arrow1Mstart"
+       orient="auto"
+       refY="0.0"
+       refX="0.0"
+       id="Arrow1Mstart"
+       style="overflow:visible">
+      <path
+         id="path4873"
+         d="M 0.0,0.0 L 5.0,-5.0 L -12.5,0.0 L 5.0,5.0 L 0.0,0.0 z "
+         style="fill-rule:evenodd;stroke:#000000;stroke-width:1.0pt;marker-start:none"
+         transform="scale(0.4) translate(10,0)" />
+    </marker>
+    <marker
+       inkscape:stockid="Arrow1Lstart"
+       orient="auto"
+       refY="0.0"
+       refX="0.0"
+       id="Arrow1Lstart"
+       style="overflow:visible">
+      <path
+         id="path4879"
+         d="M 0.0,0.0 L 5.0,-5.0 L -12.5,0.0 L 5.0,5.0 L 0.0,0.0 z "
+         style="fill-rule:evenodd;stroke:#000000;stroke-width:1.0pt;marker-start:none"
+         transform="scale(0.8) translate(12.5,0)" />
+    </marker>
+  </defs>
+  <sodipodi:namedview
+     id="base"
+     pagecolor="#ffffff"
+     bordercolor="#666666"
+     borderopacity="1.0"
+     gridtolerance="10000"
+     guidetolerance="10"
+     objecttolerance="10"
+     inkscape:pageopacity="0.0"
+     inkscape:pageshadow="2"
+     inkscape:zoom="0.7"
+     inkscape:cx="-2.1428573"
+     inkscape:cy="802.86067"
+     inkscape:document-units="px"
+     inkscape:current-layer="layer1"
+     inkscape:window-width="1305"
+     inkscape:window-height="788"
+     inkscape:window-x="164"
+     inkscape:window-y="82"
+     showguides="true"
+     inkscape:guide-bbox="true" />
+  <metadata
+     id="metadata7">
+    <rdf:RDF>
+      <cc:Work
+         rdf:about="">
+        <dc:format>image/svg+xml</dc:format>
+        <dc:type
+           rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
+      </cc:Work>
+    </rdf:RDF>
+  </metadata>
+  <g
+     inkscape:label="Layer 1"
+     inkscape:groupmode="layer"
+     id="layer1">
+    <g
+       id="g3771"
+       transform="translate(17.14286,-44.2857)">
+      <rect
+         y="551.01562"
+         x="67.224922"
+         height="51.264442"
+         width="588.40729"
+         id="rect1958"
+         style="opacity:1;fill:#ffb380;fill-opacity:1;stroke:black;stroke-width:0.36412999;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1" />
+      <text
+         id="text3731"
+         y="581.69666"
+         x="248.47934"
+         style="font-size:20px;font-style:normal;font-weight:normal;fill:black;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1;font-family:a_Futurica"
+         xml:space="preserve"><tspan
+           y="581.69666"
+           x="248.47934"
+           id="tspan3733"
+           sodipodi:role="line">JavaScript engine (browser)</tspan></text>
+    </g>
+    <g
+       id="g3766"
+       transform="translate(17.14286,-44.2857)">
+      <rect
+         style="opacity:1;fill:#cdde87;fill-opacity:1;stroke:black;stroke-width:0.36412999;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+         id="rect3737"
+         width="588.40729"
+         height="51.264442"
+         x="67.224922"
+         y="471.01562" />
+      <text
+         xml:space="preserve"
+         style="font-size:20px;font-style:normal;font-weight:normal;fill:black;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1;font-family:a_Futurica"
+         x="267.75668"
+         y="502.42911"
+         id="text3739"><tspan
+           sodipodi:role="line"
+           id="tspan3741"
+           x="267.75668"
+           y="502.42911">Kernel scheduler (CFS)</tspan></text>
+    </g>
+    <rect
+       style="opacity:1;fill:#afdde9;fill-opacity:1;stroke:black;stroke-width:0.36412972;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+       id="rect3743"
+       width="181.26416"
+       height="51.264442"
+       x="85.796326"
+       y="349.58707"
+       rx="14.285714"
+       ry="14.285714" />
+    <text
+       xml:space="preserve"
+       style="font-size:20px;font-style:normal;font-weight:normal;fill:black;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1;font-family:a_Futurica"
+       x="108.3913"
+       y="368.50055"
+       id="text3745"><tspan
+         sodipodi:role="line"
+         id="tspan3747"
+         x="108.3913"
+         y="368.50055">Kernel instance </tspan><tspan
+         sodipodi:role="line"
+         x="108.3913"
+         y="393.50055"
+         id="tspan3776">(virtual machine)</tspan></text>
+    <rect
+       ry="14.285714"
+       rx="14.285714"
+       y="349.58707"
+       x="285.79633"
+       height="51.264442"
+       width="181.26416"
+       id="rect3778"
+       style="opacity:1;fill:#afdde9;fill-opacity:1;stroke:black;stroke-width:0.36412972;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1" />
+    <text
+       id="text3780"
+       y="368.50055"
+       x="308.3913"
+       style="font-size:20px;font-style:normal;font-weight:normal;fill:black;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1;font-family:a_Futurica"
+       xml:space="preserve"><tspan
+         y="368.50055"
+         x="308.3913"
+         id="tspan3782"
+         sodipodi:role="line">Kernel instance </tspan><tspan
+         id="tspan3784"
+         y="393.50055"
+         x="308.3913"
+         sodipodi:role="line">(virtual machine)</tspan></text>
+    <g
+       id="g9560"
+       transform="translate(0,120)">
+      <rect
+         ry="14.285714"
+         rx="14.285714"
+         y="229.58707"
+         x="485.79633"
+         height="51.264442"
+         width="181.26416"
+         id="rect3786"
+         style="opacity:1;fill:#afdde9;fill-opacity:1;stroke:black;stroke-width:0.36412972;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1" />
+      <text
+         id="text3788"
+         y="248.50055"
+         x="508.39127"
+         style="font-size:20px;font-style:normal;font-weight:normal;fill:black;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1;font-family:a_Futurica"
+         xml:space="preserve"><tspan
+           y="248.50055"
+           x="508.39127"
+           id="tspan3790"
+           sodipodi:role="line">Kernel instance </tspan><tspan
+           id="tspan3792"
+           y="273.50055"
+           x="508.39127"
+           sodipodi:role="line">(virtual machine)</tspan></text>
+    </g>
+    <path
+       style="fill:none;fill-rule:evenodd;stroke:black;stroke-width:3.0999999;stroke-linecap:butt;stroke-linejoin:miter;marker-start:url(#Arrow1Mstart);marker-end:url(#Arrow1Mend);stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+       d="M 163.71429,348.07647 C 163.71429,348.07647 253.71429,260.93361 370.85714,349.50504"
+       id="path3819" />
+    <text
+       xml:space="preserve"
+       style="font-size:20px;font-style:normal;font-weight:normal;fill:black;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1;font-family:a_Futurica"
+       x="248.85715"
+       y="297.21933"
+       id="text4892"><tspan
+         sodipodi:role="line"
+         id="tspan4894"
+         x="248.85715"
+         y="297.21933">IPC</tspan></text>
+    <path
+       id="path4896"
+       d="M 383.71429,348.07647 C 383.71429,348.07647 473.71429,260.93361 590.85714,349.50504"
+       style="fill:none;fill-rule:evenodd;stroke:black;stroke-width:3.0999999;stroke-linecap:butt;stroke-linejoin:miter;marker-start:url(#Arrow1Mstart);marker-end:url(#Arrow1Mend);stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1" />
+    <text
+       id="text4898"
+       y="297.21933"
+       x="468.85715"
+       style="font-size:20px;font-style:normal;font-weight:normal;fill:black;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1;font-family:a_Futurica"
+       xml:space="preserve"><tspan
+         y="297.21933"
+         x="468.85715"
+         id="tspan4900"
+         sodipodi:role="line">IPC</tspan></text>
+    <text
+       xml:space="preserve"
+       style="font-size:20px;font-style:normal;font-weight:normal;fill:black;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1;font-family:a_Futurica"
+       x="177.14287"
+       y="190.93362"
+       id="text6762"><tspan
+         sodipodi:role="line"
+         id="tspan6764"
+         x="177.14287"
+         y="190.93362">An individual program</tspan><tspan
+         sodipodi:role="line"
+         x="177.14287"
+         y="215.93362"
+         id="tspan6766">with its own scope and </tspan><tspan
+         sodipodi:role="line"
+         x="177.14287"
+         y="240.93362"
+         id="tspan6768">context</tspan></text>
+    <path
+       style="fill:none;fill-rule:evenodd;stroke:black;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;marker-end:url(#Dot_l);stroke-opacity:1"
+       d="M 165.71429,216.6479 L 101.42857,365.21933"
+       id="path6770"
+       sodipodi:nodetypes="cc" />
+    <g
+       id="g9566"
+       transform="translate(58.57143,8.5714)">
+      <rect
+         style="opacity:1;fill:#afdde9;fill-opacity:1;stroke:black;stroke-width:0.36412972;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+         id="rect9568"
+         width="181.26416"
+         height="51.264442"
+         x="485.79633"
+         y="229.58707"
+         rx="14.285714"
+         ry="14.285714" />
+      <text
+         xml:space="preserve"
+         style="font-size:20px;font-style:normal;font-weight:normal;fill:black;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1;font-family:a_Futurica"
+         x="508.39127"
+         y="248.50055"
+         id="text9570"><tspan
+           sodipodi:role="line"
+           id="tspan9572"
+           x="508.39127"
+           y="248.50055">Kernel instance </tspan><tspan
+           sodipodi:role="line"
+           x="508.39127"
+           y="273.50055"
+           id="tspan9574">(virtual machine)</tspan></text>
+    </g>
+    <g
+       transform="translate(-104.2857,-100)"
+       id="g9576">
+      <rect
+         ry="14.285714"
+         rx="14.285714"
+         y="229.58707"
+         x="485.79633"
+         height="51.264442"
+         width="181.26416"
+         id="rect9578"
+         style="opacity:1;fill:#afdde9;fill-opacity:1;stroke:black;stroke-width:0.36412972;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1" />
+      <text
+         id="text9580"
+         y="248.50055"
+         x="508.39127"
+         style="font-size:20px;font-style:normal;font-weight:normal;fill:black;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1;font-family:a_Futurica"
+         xml:space="preserve"><tspan
+           y="248.50055"
+           x="508.39127"
+           id="tspan9582"
+           sodipodi:role="line">Kernel instance </tspan><tspan
+           id="tspan9584"
+           y="273.50055"
+           x="508.39127"
+           sodipodi:role="line">(virtual machine)</tspan></text>
+    </g>
+    <path
+       style="fill:none;fill-rule:evenodd;stroke:black;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+       d="M 510.86414,181.03357 L 596.2784,237.9764"
+       id="path9586"
+       inkscape:connector-type="polyline"
+       inkscape:connection-start="#g9576"
+       inkscape:connection-end="#g9566" />
+    <path
+       style="fill:none;fill-rule:evenodd;stroke:black;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+       d="M 621.43079,289.60497 L 589.99745,349.405"
+       id="path9588"
+       inkscape:connector-type="polyline"
+       inkscape:connection-start="#g9566"
+       inkscape:connection-end="#g9560" />
+    <text
+       xml:space="preserve"
+       style="font-size:20px;font-style:normal;font-weight:normal;fill:black;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1;font-family:a_Futurica"
+       x="627.14282"
+       y="223.79076"
+       id="text9590"><tspan
+         sodipodi:role="line"
+         id="tspan9592"
+         x="627.14282"
+         y="223.79076">Child object</tspan></text>
+    <text
+       xml:space="preserve"
+       style="font-size:20px;font-style:normal;font-weight:normal;fill:black;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1;font-family:a_Futurica"
+       x="581.42853"
+       y="163.79076"
+       id="text9594"><tspan
+         sodipodi:role="line"
+         x="581.42853"
+         y="163.79076"
+         id="tspan9598">Sub-child object</tspan></text>
+    <text
+       xml:space="preserve"
+       style="font-size:20px;font-style:normal;font-weight:normal;fill:black;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1;font-family:a_Futurica"
+       x="210"
+       y="43.790752"
+       id="text9668"><tspan
+         sodipodi:role="line"
+         id="tspan9670"
+         x="210"
+         y="43.790752">Object URI path:</tspan><tspan
+         sodipodi:role="line"
+         x="210"
+         y="68.790752"
+         id="tspan9672">/object1/object2/object3</tspan></text>
+    <path
+       style="fill:none;fill-rule:evenodd;stroke:black;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1;marker-end:url(#Dot_l)"
+       d="M 431.42857,60.933611 L 550,146.6479"
+       id="path9674" />
+  </g>
+</svg>

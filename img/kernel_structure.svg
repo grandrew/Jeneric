@@ -1,0 +1,181 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+<svg
+   xmlns:dc="http://purl.org/dc/elements/1.1/"
+   xmlns:cc="http://web.resource.org/cc/"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   width="744.09448819"
+   height="1052.3622047"
+   id="svg6712"
+   sodipodi:version="0.32"
+   inkscape:version="0.44.1"
+   sodipodi:docbase="/amdroot/home/andrew/jeneric/img"
+   sodipodi:docname="kernel_structure.svg">
+  <defs
+     id="defs6714" />
+  <sodipodi:namedview
+     id="base"
+     pagecolor="#ffffff"
+     bordercolor="#666666"
+     borderopacity="1.0"
+     gridtolerance="10000"
+     guidetolerance="10"
+     objecttolerance="10"
+     inkscape:pageopacity="0.0"
+     inkscape:pageshadow="2"
+     inkscape:zoom="0.35"
+     inkscape:cx="375"
+     inkscape:cy="520"
+     inkscape:document-units="px"
+     inkscape:current-layer="layer1"
+     inkscape:window-width="853"
+     inkscape:window-height="588"
+     inkscape:window-x="0"
+     inkscape:window-y="0" />
+  <metadata
+     id="metadata6717">
+    <rdf:RDF>
+      <cc:Work
+         rdf:about="">
+        <dc:format>image/svg+xml</dc:format>
+        <dc:type
+           rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
+      </cc:Work>
+    </rdf:RDF>
+  </metadata>
+  <g
+     inkscape:label="Layer 1"
+     inkscape:groupmode="layer"
+     id="layer1">
+    <g
+       id="g3759"
+       transform="translate(414.0508,-102.8572)">
+      <g
+         id="g4908"
+         transform="translate(-12.85714,18.57143)">
+        <rect
+           style="opacity:1;fill:#afdde9;fill-opacity:1;stroke:black;stroke-width:0.2;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+           id="rect3749"
+           width="145.71428"
+           height="130"
+           x="-98.336578"
+           y="392.36218" />
+        <text
+           xml:space="preserve"
+           style="font-size:20px;font-style:normal;font-weight:normal;text-align:center;text-anchor:middle;fill:black;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1;font-family:a_Futurica"
+           x="-25.972603"
+           y="425.06238"
+           id="text3751"><tspan
+             sodipodi:role="line"
+             x="-25.972603"
+             y="425.06238"
+             id="tspan3755">Kernel class</tspan><tspan
+             sodipodi:role="line"
+             x="-25.972603"
+             y="450.06238"
+             id="tspan3757">(prototype)</tspan><tspan
+             id="tspan4904"
+             sodipodi:role="line"
+             x="-25.972603"
+             y="475.06238">js interpreter-</tspan><tspan
+             id="tspan4906"
+             sodipodi:role="line"
+             x="-25.972603"
+             y="500.06238">-on-interpreter</tspan></text>
+      </g>
+    </g>
+    <rect
+       y="32.362297"
+       x="21.428574"
+       height="229.99997"
+       width="700"
+       id="rect3796"
+       style="fill:#afdde9;fill-opacity:1;stroke:black;stroke-width:0.19999991;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1" />
+    <text
+       id="text3798"
+       y="249.56224"
+       x="74.866936"
+       style="font-size:20px;font-style:normal;font-weight:normal;text-align:center;text-anchor:middle;fill:black;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1;font-family:a_Futurica"
+       xml:space="preserve"><tspan
+         y="249.56224"
+         x="74.866936"
+         sodipodi:role="line"
+         id="tspan3815">Extensions</tspan></text>
+    <path
+       style="fill:none;fill-rule:evenodd;stroke:black;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+       d="M 373.61398,262.46227 L 374.47816,307.97641"
+       id="path4916"
+       inkscape:connector-type="polyline"
+       inkscape:connection-start="#rect3796"
+       inkscape:connection-end="#g3759" />
+    <rect
+       style="opacity:1;fill:#5bbad2;fill-opacity:1;stroke:black;stroke-width:0.2;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+       id="rect4918"
+       width="134.28572"
+       height="170"
+       x="45.479473"
+       y="53.790642" />
+    <text
+       xml:space="preserve"
+       style="font-size:20px;font-style:normal;font-weight:normal;text-align:center;text-anchor:middle;fill:black;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1;font-family:a_Futurica"
+       x="112.35378"
+       y="146.3297"
+       id="text6690"><tspan
+         sodipodi:role="line"
+         id="tspan6692"
+         x="112.35378"
+         y="146.3297">IPC</tspan></text>
+    <rect
+       y="53.790642"
+       x="205.47948"
+       height="170"
+       width="134.28572"
+       id="rect6694"
+       style="opacity:1;fill:#5bbad2;fill-opacity:1;stroke:black;stroke-width:0.2;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1" />
+    <text
+       id="text6696"
+       y="146.3297"
+       x="272.35376"
+       style="font-size:20px;font-style:normal;font-weight:normal;text-align:center;text-anchor:middle;fill:black;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1;font-family:a_Futurica"
+       xml:space="preserve"><tspan
+         y="146.3297"
+         x="272.35376"
+         id="tspan6698"
+         sodipodi:role="line">DOM</tspan></text>
+    <rect
+       style="opacity:1;fill:#5bbad2;fill-opacity:1;stroke:black;stroke-width:0.2;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+       id="rect6700"
+       width="134.28572"
+       height="170"
+       x="365.47949"
+       y="53.790642" />
+    <text
+       xml:space="preserve"
+       style="font-size:20px;font-style:normal;font-weight:normal;text-align:center;text-anchor:middle;fill:black;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1;font-family:a_Futurica"
+       x="432.63211"
+       y="134.81114"
+       id="text6702"><tspan
+         sodipodi:role="line"
+         id="tspan6704"
+         x="432.63211"
+         y="134.81114">Terminal/</tspan><tspan
+         sodipodi:role="line"
+         x="432.63211"
+         y="159.81114"
+         id="tspan6706">serializer</tspan></text>
+    <text
+       xml:space="preserve"
+       style="font-size:20px;font-style:normal;font-weight:normal;fill:black;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1;font-family:a_Futurica"
+       x="603.19373"
+       y="146.07634"
+       id="text6708"><tspan
+         sodipodi:role="line"
+         id="tspan6710"
+         x="603.19373"
+         y="146.07634">...</tspan></text>
+  </g>
+</svg>

@@ -1,0 +1,290 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+<svg
+   xmlns:dc="http://purl.org/dc/elements/1.1/"
+   xmlns:cc="http://web.resource.org/cc/"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   width="744.09448819"
+   height="1052.3622047"
+   id="svg9602"
+   sodipodi:version="0.32"
+   inkscape:version="0.44.1"
+   sodipodi:docbase="/amdroot/home/andrew/jeneric/img"
+   sodipodi:docname="security_structure.svg">
+  <defs
+     id="defs9604">
+    <marker
+       inkscape:stockid="Arrow1Lend"
+       orient="auto"
+       refY="0.0"
+       refX="0.0"
+       id="Arrow1Lend"
+       style="overflow:visible;">
+      <path
+         id="path4876"
+         d="M 0.0,0.0 L 5.0,-5.0 L -12.5,0.0 L 5.0,5.0 L 0.0,0.0 z "
+         style="fill-rule:evenodd;stroke:#000000;stroke-width:1.0pt;marker-start:none;"
+         transform="scale(0.8) rotate(180) translate(12.5,0)" />
+    </marker>
+  </defs>
+  <sodipodi:namedview
+     id="base"
+     pagecolor="#ffffff"
+     bordercolor="#666666"
+     borderopacity="1.0"
+     gridtolerance="10000"
+     guidetolerance="10"
+     objecttolerance="10"
+     inkscape:pageopacity="0.0"
+     inkscape:pageshadow="2"
+     inkscape:zoom="0.80408885"
+     inkscape:cx="375"
+     inkscape:cy="800.97918"
+     inkscape:document-units="px"
+     inkscape:current-layer="layer1"
+     inkscape:window-width="853"
+     inkscape:window-height="588"
+     inkscape:window-x="841"
+     inkscape:window-y="213" />
+  <metadata
+     id="metadata9607">
+    <rdf:RDF>
+      <cc:Work
+         rdf:about="">
+        <dc:format>image/svg+xml</dc:format>
+        <dc:type
+           rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
+      </cc:Work>
+    </rdf:RDF>
+  </metadata>
+  <g
+     inkscape:label="Layer 1"
+     inkscape:groupmode="layer"
+     id="layer1">
+    <rect
+       style="opacity:1;fill:#e6e6e6;fill-opacity:1;stroke:black;stroke-width:0.2;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+       id="rect9616"
+       width="700.17139"
+       height="394.23505"
+       x="27.360161"
+       y="51.229034"
+       rx="57.207607"
+       ry="57.207607" />
+    <rect
+       style="opacity:1;fill:#ffd5d5;fill-opacity:1;stroke:black;stroke-width:0.2;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+       id="rect9622"
+       width="281.06348"
+       height="318.37277"
+       x="63.425827"
+       y="102.21842"
+       rx="31.091091"
+       ry="31.091091" />
+    <rect
+       style="opacity:1;fill:#aef;fill-opacity:1;stroke:black;stroke-width:0.19999997;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+       id="rect9610"
+       width="156.6991"
+       height="46.014805"
+       x="120.63343"
+       y="150.72052"
+       rx="0"
+       ry="0" />
+    <rect
+       ry="31.091091"
+       rx="31.091091"
+       y="102.21842"
+       x="364.38763"
+       height="318.37277"
+       width="332.05289"
+       id="rect9628"
+       style="opacity:1;fill:#d7f4d7;fill-opacity:1;stroke:black;stroke-width:0.2;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1" />
+    <text
+       xml:space="preserve"
+       style="font-size:20px;font-style:normal;font-weight:normal;fill:black;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1;font-family:a_Futurica"
+       x="135.55717"
+       y="180.56799"
+       id="text9612"><tspan
+         sodipodi:role="line"
+         id="tspan9614"
+         x="135.55717"
+         y="180.56799">validateRequest</tspan></text>
+    <text
+       xml:space="preserve"
+       style="font-size:20px;font-style:normal;font-weight:normal;fill:black;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1;font-family:a_Futurica"
+       x="291.01263"
+       y="78.589188"
+       id="text9618"><tspan
+         sodipodi:role="line"
+         id="tspan9620"
+         x="291.01263"
+         y="78.589188">vm instance (object)</tspan></text>
+    <text
+       xml:space="preserve"
+       style="font-size:20px;font-style:normal;font-weight:normal;fill:black;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1;font-family:a_Futurica"
+       x="149.23723"
+       y="127.09129"
+       id="text9624"><tspan
+         sodipodi:role="line"
+         id="tspan9626"
+         x="149.23723"
+         y="127.09129">Security code</tspan></text>
+    <text
+       xml:space="preserve"
+       style="font-size:20px;font-style:normal;font-weight:normal;fill:black;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1;font-family:a_Futurica"
+       x="458.90451"
+       y="128.604"
+       id="text9630"><tspan
+         sodipodi:role="line"
+         id="tspan9632"
+         x="458.90451"
+         y="128.604">Application code</tspan></text>
+    <rect
+       ry="0"
+       rx="0"
+       y="178.08067"
+       x="454.41519"
+       height="46.014805"
+       width="156.6991"
+       id="rect9634"
+       style="opacity:1;fill:#aef;fill-opacity:1;stroke:black;stroke-width:0.19999997;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1" />
+    <text
+       id="text9636"
+       y="207.92815"
+       x="487.33896"
+       style="font-size:20px;font-style:normal;font-weight:normal;fill:black;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1;font-family:a_Futurica"
+       xml:space="preserve"><tspan
+         y="207.92815"
+         x="487.33896"
+         sodipodi:role="line"
+         id="tspan9640">IPC method</tspan></text>
+    <rect
+       ry="0"
+       rx="0"
+       y="210.72052"
+       x="120.63343"
+       height="46.014805"
+       width="156.6991"
+       id="rect9644"
+       style="opacity:1;fill:#aef;fill-opacity:1;stroke:black;stroke-width:0.19999997;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1" />
+    <text
+       id="text9646"
+       y="240.56799"
+       x="135.55717"
+       style="font-size:20px;font-style:normal;font-weight:normal;fill:black;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1;font-family:a_Futurica"
+       xml:space="preserve"><tspan
+         y="240.56799"
+         x="135.55717"
+         id="tspan9648"
+         sodipodi:role="line">signResponse</tspan></text>
+    <rect
+       style="opacity:1;fill:#fff6d5;fill-opacity:1;stroke:black;stroke-width:0.19999997;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+       id="rect9650"
+       width="156.6991"
+       height="46.014805"
+       x="120.63343"
+       y="270.72052"
+       rx="0"
+       ry="0" />
+    <text
+       xml:space="preserve"
+       style="font-size:20px;font-style:normal;font-weight:normal;fill:black;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1;font-family:a_Futurica"
+       x="135.55717"
+       y="300.56799"
+       id="text9652"><tspan
+         sodipodi:role="line"
+         id="tspan9654"
+         x="135.55717"
+         y="300.56799">signRequest</tspan></text>
+    <rect
+       ry="0"
+       rx="0"
+       y="330.72052"
+       x="120.63343"
+       height="46.014805"
+       width="156.6991"
+       id="rect9656"
+       style="opacity:1;fill:#fff6d5;fill-opacity:1;stroke:black;stroke-width:0.19999997;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1" />
+    <text
+       id="text9658"
+       y="360.56799"
+       x="129.55716"
+       style="font-size:20px;font-style:normal;font-weight:normal;fill:black;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1;font-family:a_Futurica"
+       xml:space="preserve"><tspan
+         y="360.56799"
+         x="129.55716"
+         id="tspan9660"
+         sodipodi:role="line">validateResponse</tspan></text>
+    <rect
+       style="opacity:1;fill:#fff6d5;fill-opacity:1;stroke:black;stroke-width:0.19999997;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+       id="rect9662"
+       width="156.6991"
+       height="46.014805"
+       x="454.41519"
+       y="298.08069"
+       rx="0"
+       ry="0" />
+    <text
+       xml:space="preserve"
+       style="font-size:20px;font-style:normal;font-weight:normal;fill:black;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1;font-family:a_Futurica"
+       x="487.33896"
+       y="327.92816"
+       id="text9664"><tspan
+         id="tspan9666"
+         sodipodi:role="line"
+         x="487.33896"
+         y="327.92816">IPC request</tspan></text>
+    <path
+       style="fill:none;fill-rule:evenodd;stroke:black;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1;marker-end:url(#Arrow1Lend)"
+       d="M 277.43253,180.15845 L 454.31519,194.65755"
+       id="path10561"
+       inkscape:connector-type="polyline"
+       inkscape:connection-start="#rect9610"
+       inkscape:connection-end="#rect9634" />
+    <path
+       style="fill:none;fill-rule:evenodd;stroke:black;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1;marker-end:url(#Arrow1Lend)"
+       d="M 454.31519,208.7595 L 277.43253,226.0565"
+       id="path11450"
+       inkscape:connector-type="polyline"
+       inkscape:connection-start="#rect9634"
+       inkscape:connection-end="#rect9644" />
+    <path
+       style="fill:none;fill-rule:evenodd;stroke:black;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1;marker-end:url(#Arrow1Lend)"
+       d="M 454.31519,314.65756 L 277.43253,300.15845"
+       id="path12337"
+       inkscape:connector-type="polyline"
+       inkscape:connection-start="#rect9662"
+       inkscape:connection-end="#rect9650" />
+    <path
+       style="fill:none;fill-rule:evenodd;stroke:black;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1;marker-end:url(#Arrow1Lend)"
+       d="M 277.43253,346.0565 L 454.31519,328.75951"
+       id="path13224"
+       inkscape:connector-type="polyline"
+       inkscape:connection-start="#rect9656"
+       inkscape:connection-end="#rect9662" />
+    <path
+       style="opacity:1;fill:#fff6d5;fill-opacity:1;stroke:black;stroke-width:0.2;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+       d="M 33.571491,143.73516 L 33.571491,163.17266 L -34.834759,163.17266 L -34.834759,241.51641 L 33.571491,241.51641 L 33.571491,260.95391 L 92.165241,202.36016 L 33.571491,143.73516 z "
+       id="rect14111" />
+    <text
+       xml:space="preserve"
+       style="font-size:20px;font-style:normal;font-weight:normal;text-align:start;text-anchor:start;fill:black;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1;font-family:a_Futurica"
+       x="-24.436436"
+       y="197.17178"
+       id="text14119"><tspan
+         sodipodi:role="line"
+         id="tspan14121"
+         x="-24.436436"
+         y="197.17178">IPC</tspan><tspan
+         sodipodi:role="line"
+         x="-24.436436"
+         y="222.17178"
+         id="tspan14123">request</tspan></text>
+    <path
+       id="path14125"
+       d="M 23.758991,263.73516 L 23.758991,283.17266 L 92.165241,283.17266 L 92.165241,361.51641 L 23.758991,361.51641 L 23.758991,380.95391 L -34.834759,322.36016 L 23.758991,263.73516 z "
+       style="opacity:1;fill:#aef;fill-opacity:1;stroke:black;stroke-width:0.2;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1" />
+  </g>
+</svg>

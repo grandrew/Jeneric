@@ -1,0 +1,272 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+<svg
+   xmlns:dc="http://purl.org/dc/elements/1.1/"
+   xmlns:cc="http://web.resource.org/cc/"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   width="744.09448819"
+   height="1052.3622047"
+   id="svg14135"
+   sodipodi:version="0.32"
+   inkscape:version="0.44.1"
+   sodipodi:docbase="/amdroot/home/andrew/jeneric/img"
+   sodipodi:docname="object_tree.svg">
+  <defs
+     id="defs14137" />
+  <sodipodi:namedview
+     id="base"
+     pagecolor="#ffffff"
+     bordercolor="#666666"
+     borderopacity="1.0"
+     gridtolerance="10000"
+     guidetolerance="10"
+     objecttolerance="10"
+     inkscape:pageopacity="0.0"
+     inkscape:pageshadow="2"
+     inkscape:zoom="0.92365554"
+     inkscape:cx="375"
+     inkscape:cy="593.50916"
+     inkscape:document-units="px"
+     inkscape:current-layer="layer1"
+     inkscape:window-width="853"
+     inkscape:window-height="588"
+     inkscape:window-x="646"
+     inkscape:window-y="222" />
+  <metadata
+     id="metadata14140">
+    <rdf:RDF>
+      <cc:Work
+         rdf:about="">
+        <dc:format>image/svg+xml</dc:format>
+        <dc:type
+           rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
+      </cc:Work>
+    </rdf:RDF>
+  </metadata>
+  <g
+     inkscape:label="Layer 1"
+     inkscape:groupmode="layer"
+     id="layer1">
+    <rect
+       style="opacity:1;fill:#aef;fill-opacity:1;stroke:black;stroke-width:0.2;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+       id="rect14143"
+       width="175.39006"
+       height="92.02565"
+       x="103.93485"
+       y="9.7657166"
+       rx="25.983713"
+       ry="25.983713" />
+    <rect
+       ry="25.983713"
+       rx="25.983713"
+       y="134.27101"
+       x="226.27484"
+       height="92.02565"
+       width="175.39006"
+       id="rect14145"
+       style="opacity:1;fill:#aef;fill-opacity:1;stroke:black;stroke-width:0.2;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1" />
+    <rect
+       style="opacity:1;fill:#aef;fill-opacity:1;stroke:black;stroke-width:0.2;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+       id="rect14147"
+       width="175.39006"
+       height="92.02565"
+       x="346.44952"
+       y="270.68552"
+       rx="25.983713"
+       ry="25.983713" />
+    <rect
+       ry="25.983713"
+       rx="25.983713"
+       y="134.27101"
+       x="460.12827"
+       height="92.02565"
+       width="175.39006"
+       id="rect14149"
+       style="opacity:1;fill:#aef;fill-opacity:1;stroke:black;stroke-width:0.2;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1" />
+    <rect
+       ry="25.983713"
+       rx="25.983713"
+       y="8.6830616"
+       x="310.72189"
+       height="92.02565"
+       width="175.39006"
+       id="rect14151"
+       style="opacity:1;fill:#aef;fill-opacity:1;stroke:black;stroke-width:0.2;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1" />
+    <path
+       style="fill:none;fill-rule:evenodd;stroke:black;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+       d="M 268.65901,134.17101 L 236.94075,101.89137"
+       id="path14153"
+       inkscape:connector-type="polyline"
+       inkscape:connection-start="#rect14145"
+       inkscape:connection-end="#rect14143" />
+    <path
+       style="fill:none;fill-rule:evenodd;stroke:black;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+       d="M 344.97676,134.17101 L 367.41003,100.80871"
+       id="path14155"
+       inkscape:connector-type="polyline"
+       inkscape:connection-start="#rect14145"
+       inkscape:connection-end="#rect14151" />
+    <path
+       style="fill:none;fill-rule:evenodd;stroke:black;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+       d="M 393.52135,270.58552 L 354.59307,226.39666"
+       id="path14157"
+       inkscape:connector-type="polyline"
+       inkscape:connection-start="#rect14147"
+       inkscape:connection-end="#rect14145" />
+    <path
+       style="fill:none;fill-rule:evenodd;stroke:black;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+       d="M 472.5719,270.58552 L 509.39595,226.39666"
+       id="path14159"
+       inkscape:connector-type="polyline"
+       inkscape:connection-start="#rect14147"
+       inkscape:connection-end="#rect14149" />
+    <text
+       xml:space="preserve"
+       style="font-size:20px;font-style:normal;font-weight:normal;fill:black;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1;font-family:a_Futurica"
+       x="147.24104"
+       y="286.92529"
+       id="text14161"><tspan
+         sodipodi:role="line"
+         id="tspan14163"
+         x="147.24104"
+         y="286.92529">Object tree</tspan></text>
+    <text
+       xml:space="preserve"
+       style="font-size:20px;font-style:normal;font-weight:normal;text-align:center;text-anchor:middle;fill:black;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1;font-family:a_Futurica"
+       x="433.06186"
+       y="299.91718"
+       id="text14165"><tspan
+         sodipodi:role="line"
+         id="tspan14167"
+         x="433.06186"
+         y="299.91718">Terminal</tspan><tspan
+         sodipodi:role="line"
+         x="433.06186"
+         y="324.91718"
+         id="tspan14169">object</tspan><tspan
+         sodipodi:role="line"
+         x="433.06186"
+         y="349.91718"
+         id="tspan14175">~</tspan></text>
+    <text
+       xml:space="preserve"
+       style="font-size:20px;font-style:normal;font-weight:normal;fill:black;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1;font-family:a_Futurica"
+       x="252.49835"
+       y="172.16393"
+       id="text14171"><tspan
+         sodipodi:role="line"
+         id="tspan14173"
+         x="252.49835"
+         y="172.16393">any object</tspan><tspan
+         sodipodi:role="line"
+         x="252.49835"
+         y="197.16393"
+         id="tspan14177">~/any_object1</tspan></text>
+    <text
+       xml:space="preserve"
+       style="font-size:20px;font-style:normal;font-weight:normal;fill:black;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1;font-family:a_Futurica"
+       x="492.18646"
+       y="187.57719"
+       id="text14179"><tspan
+         sodipodi:role="line"
+         id="tspan14181"
+         x="492.18646"
+         y="187.57719">~/any_object2</tspan></text>
+    <text
+       xml:space="preserve"
+       style="font-size:12.98596478px;font-style:normal;font-weight:normal;fill:black;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1;font-family:a_Futurica"
+       x="114.57972"
+       y="60.379101"
+       id="text14183"><tspan
+         sodipodi:role="line"
+         id="tspan14185"
+         x="114.57972"
+         y="60.379101">~/any_object1/any_object3</tspan></text>
+    <text
+       id="text14187"
+       y="58.379101"
+       x="324.57971"
+       style="font-size:12.98596478px;font-style:normal;font-weight:normal;fill:black;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1;font-family:a_Futurica"
+       xml:space="preserve"><tspan
+         y="58.379101"
+         x="324.57971"
+         id="tspan14189"
+         sodipodi:role="line">~/any_object1/any_object4</tspan></text>
+    <path
+       style="fill:none;fill-rule:evenodd;stroke:black;stroke-width:1;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1;stroke-miterlimit:4;stroke-dasharray:8,8;stroke-dashoffset:0"
+       d="M 88.777685,387.6122 L 714.5521,387.6122"
+       id="path14191" />
+    <rect
+       style="opacity:1;fill:#ccc;fill-opacity:1;stroke:black;stroke-width:0.2;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+       id="rect14193"
+       width="185.13396"
+       height="86.612373"
+       x="299.89536"
+       y="426.58777"
+       rx="0"
+       ry="0" />
+    <text
+       xml:space="preserve"
+       style="font-size:20px;font-style:normal;font-weight:normal;fill:black;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1;font-family:a_Futurica"
+       x="346.04437"
+       y="464.05927"
+       id="text14195"><tspan
+         sodipodi:role="line"
+         x="346.04437"
+         y="464.05927"
+         id="tspan15102">associated</tspan><tspan
+         sodipodi:role="line"
+         x="346.04437"
+         y="489.05927"
+         id="tspan15106">terminal_id</tspan></text>
+    <text
+       xml:space="preserve"
+       style="font-size:20px;font-style:normal;font-weight:normal;fill:black;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1;font-family:a_Futurica"
+       x="114.9267"
+       y="413.92654"
+       id="text14199"><tspan
+         sodipodi:role="line"
+         id="tspan14201"
+         x="114.9267"
+         y="413.92654">HUB</tspan></text>
+    <path
+       style="fill:none;fill-rule:evenodd;stroke:black;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+       d="M 404.2725,426.48777 L 421.59795,362.81117"
+       id="path14203"
+       inkscape:connector-type="polyline"
+       inkscape:connection-start="#rect14193"
+       inkscape:connection-end="#rect14147" />
+    <text
+       xml:space="preserve"
+       style="font-size:20px;font-style:normal;font-weight:normal;fill:black;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1;font-family:a_Futurica"
+       x="113.67874"
+       y="375.703"
+       id="text15090"><tspan
+         sodipodi:role="line"
+         id="tspan15092"
+         x="113.67874"
+         y="375.703">Terminal (browser)</tspan></text>
+    <text
+       xml:space="preserve"
+       style="font-size:20px;font-style:normal;font-weight:normal;fill:black;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1;font-family:a_Futurica"
+       x="425.48328"
+       y="556.50635"
+       id="text15094"><tspan
+         sodipodi:role="line"
+         id="tspan15096"
+         x="425.48328"
+         y="556.50635">Absolute path for inter-terminal</tspan><tspan
+         sodipodi:role="line"
+         x="425.48328"
+         y="581.50635"
+         id="tspan15098">IPC requests:</tspan><tspan
+         sodipodi:role="line"
+         x="425.48328"
+         y="606.50635"
+         id="tspan15100">/terminal_id/any_object1/...</tspan></text>
+  </g>
+</svg>

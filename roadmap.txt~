@@ -123,14 +123,16 @@ ASSORTED TODO ITEMS
 - LTR a more unix-like shell: cwd, etc..
 - terminal connection init SLOW
    - introduce connection API (in case we will want to disconnect manually?)
-- BUG in try/catch (see below)
++ BUG in try/catch (see below)
 + import keyword (+userspace script injection)
 + semaphores (+think/document select()-like call using dynamic semaphores)
   - LTR more semaphore types?
 + IPCLocks - to semaphores!
 + faster createChild
     WHY is object creation so slow?? - probably because of lacking lock/semaphore mechanism?? or what??
-        trace/profile that! -> because of the creation algorithm... see 4 full IPC calls + massive user-level code involved
+        trace/profile that! 
+        -> + because of the creation algorithm... see 4 full IPC calls + massive user-level code involved
+        -> - parsing is slow! -> compile to binary!
 - hubAuthenticationChanged (and kconfig altering)
 - general notification API?? invent general (kernel??) notification/subscription protocol!
 + maybe add object_security? TypeURI and SecurityURI to request object!?
@@ -166,6 +168,12 @@ ASSORTED TODO ITEMS
 - object code parse cache: at least for wakeObject; for createObject too!
 - cache parsed code for all security models loaded (hmm.. not all.. some, with stack or smth
 - need a method to attach to child errors/system notifications: like if the child of ic dies before exec (also the IPC dedlocks!)
+- implement atob/btoa using Orbited's converter wrapper
+- check for getChild() ipc(?)object. method to get child ref redirect instead of kernel URI resolution procedure
+- check if the values of function parameters not supplied are defined but set to 'undefined' so that || or && notation could be used safely
+- wrapped string operations for base64 using formulas (see g:stackoverflow base64 size)
+- rename URI to JRI
+- transfer chunked data instead of just bare body; pack the blobs into FormFileTransfer-alike HTTP pieces; parse them chunked in Twisted and send to callee/caller this way
 kernel programming advisory: be careful with methods that stop the stack - report any possible error via try/catch and stack release w/throw
 
 ---------------
@@ -228,40 +236,6 @@ BUGS:
   this is a core problem and cannot be addressed; also the SUBJIT will definitely fail here...
   no it wont fail.
   
-ic.jn:
-      case "register":
-        p1 = s.split(" ")[1];
-        p2 = s.split(" ")[2];
-        var p3 = s.split(" ")[3]; // TODO: need multi-word support. like braces or smth?
-        if(!p3) p3 = "";
-        if(!p1 || !p2 || !p3) {
-            printDOM("register: not enough parameters"); brDOM();
-            break;
-        }
-        
-        
-        try {
-            execURI("/", "register", [ p1, p2, p3 ], 20000);
-        } catch (e) {
-            printDOM("register: failed with: "+e); brDOM();
-            break; // does not break out... <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-            // ALSO does not throw out an error if it is here!!! <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-        }
-        printDOM("register OK"); brDOM();
-        break;
-        
-regress:
-switch("1") {
-    case "1":
-      try {
-          c=a.b;      
-      } catch (e) {
-      
-          break;
-      }
-      alert("no!") // should not...
-      break;
-}
 
 
 ----------------------------------------

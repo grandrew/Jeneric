@@ -236,8 +236,99 @@ __eos_serial = []; // list of objects to be freed
 __eos_serial_weak = []; // objects that can NOT be swapped out now // XXX name misspelled
 __SERIALIZER = {};
 
+
+
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////
+// BLOB Wrapper methods
+
+
+function BlobBuilder () {
+    if(window.google && google.gears) {
+        this.___builder = google.gears.factory.create("beta.blobbuilder");
+    } else {
+        this.___bloblist = [];
+    }
+}
+// protos...
+BlobBuilder.prototype.getAsBlob = function () {
+    if(this.___builder) {
+        var bo = new BlobObject();
+        bo.___blob = this.___builder.getAsBlob();
+        return bo;
+    }
+    var bo = new BlobObject();
+    bo.wrappedString = this.___bloblist.join("");
+    return bo;
+};
+
+BlobBuilder.prototype.append = function (obj) {
+    if(this.___builder) return this.___builder.append(obj);
+    // else
+    if(obj.wrappedString) this.___bloblist.push(obj.wrappedString);
+    else {
+        var s = obj.toString(); // convert to string
+        
+        var lh = [];
+        var r, ch;
+        for(var i=0;i<s.length;i++) {
+            // convert UTF-8 to hex
+            ch = s.charAt(i);
+            r = encodeURI(ch);
+            if(r.length > 1) r = r.split("%"); // %D0%AB -> "", "D0" "AB"
+            else r = [ r.charCodeAt(0).toString(16).toUpperCase() ]; // -> HEX.
+            lh.concat(r);
+        }
+        this.___bloblist.push(lh.join(""));
+    }
+};
+
+
+function BlobObject() {
+    // TODO: copy prototypes to local Blob object at bind_om()
+    // this.___blob is the actual blob; if supported!
+    
+    // no way of creating a spare blob directly...
+    //_BlobObject.apply(this);
+}
+
+BlobObject.prototype.toString = function () {
+    return "[object GearsBlob]";
+};
+
+BlobObject.prototype.getLength = function () {
+    if(this.___blob) return this.___blob.length;
+    // XXX WARNING TODO!! THIS IS NOT TRUE!!
+    //  ---    use shit-decode modified base64 decode/encode methods for integer lists as a dirty solution
+    return this.wrappedString.length / 2; // should be integer
+};
+
+BlobObject.prototype.getBytes = function (offset, len) {
+    if(this.___blob) return this.___blob.getBytes(offset, len);
+    // TODO for wrapped base64 string!!!
+
+};
+
+BlobObject.prototype.slice = function (offset, len) {
+    if(this.___blob) return this.___blob.slice(offset, len);
+    else {
+        var newBlob = new this.constructor();
+        len = len || this.wrappedString.length;
+        // XXX WARNING TODO!! THIS IS NOT TRUE!! ->
+        newBlob.wrappedString = this.wrappedString.slice(offset*2, len*2);
+        return newBlob;
+    }
+};
+
+
+
+
+
 // XXX UNUSED -->>
 //    does not provide signRequest
+
+/*
+
 function eos_execURI_old(vm, sUri, sMethod, lArgs, timeout) {
     // this is a blocking call, so block the VM thread first
     var cs = vm.cur_stack;
@@ -436,7 +527,7 @@ function eos_execURI_old(vm, sUri, sMethod, lArgs, timeout) {
 }
 
 
-
+*/
 
 function eos_execURI(vm, sUri, sMethod, lArgs, timeout) {
     // this is a blocking call, so block the VM thread first
@@ -697,7 +788,7 @@ function eos_rcvEvent(rq) {
         }
         
         // XXX UNUSED from here ->>>
-        
+        /*
         var x2 = __eos_requests[rq.id]["context"];
         var cs = __eos_requests[rq.id]["stack"];
         var vm = __eos_requests[rq.id]["vm"];
@@ -843,7 +934,12 @@ function eos_rcvEvent(rq) {
             
             dest.execIPC(rq, cbo, cbo); 
         }
+    */
     }
+    
+    
+    
+    
 }
 
 
@@ -1127,7 +1223,7 @@ function kIPC(vm, uri, method, args, onok, onerr) {
 
             // DOC if no onerror and only onok: call onok always -> as a standard kernel programming practice
             __eos_requests[rq.id] = {request: rq, onok: myonok, onerror: onerr}; 
-            hubConnection.send(rq); // TODO: remote kIPC request still untested
+            hubConnection.send(rq); 
         } else {         // TODO: URI caching
             try { // TODO get rid of this.. later
                 var dest = vm.getChild(lURI); // should never fail...
@@ -2248,8 +2344,10 @@ Jnaric.prototype.bind_om = function () {
     
     // getMethodList ?? describeObject ?? or is it security code??
     
-    // TODO: set this.parent on init
-
+    this.global.BlobBuilder = BlobBuilder; // XXX check for prototype-safety!!!
+    // protos...
+    this.global.BlobBuilder.prototype.getAsBlob = BlobBuilder.prototype.getAsBlob;    
+    this.global.BlobBuilder.prototype.append = BlobBuilder.prototype.append;
     
 };
 

@@ -50,6 +50,7 @@ import string,time,thread,copy,sqlite3
 import simplejson
 
 REGISTRAR_DB = "/var/lib/eoshub/registrar.sqlite"
+TMP_DB = "/tmp/blob_tmp_db.sqlite"
 
 PFX = "t" # terminal ID prefix
 # SFX = "" # hub domain suffix
@@ -85,6 +86,14 @@ c.execute('''create table if not exists reg
 dbconn.commit()
 c.close()
 
+blobtmp = sqlite3.connect(TMP_DB);
+c = blobtmp.cursor()
+c.execute('''create table if not exists tmp
+(sessid text UNIQUE, key text, data blob)''')
+blobtmp.commit()
+c.close()
+
+
 # XXX the HUB SHOULD guarantee uniquity of terminalID and sessions in its DB
 #     rather the terminal may supply its SESSIONKEY each time it reconnects (and possibly receives a new terminalID)
 def add_session(t, s):
@@ -99,14 +108,21 @@ def touch_session(s):
         
     
 def clean_timeout():
-    time.sleep(TIMEOUT_SESSION/2);
+    #time.sleep(TIMEOUT_SESSION/2);
     ct = time.time();
-    for t in sessions:
-        if ct - sessions[t]["tm"] > TIMEOUT_SESSION:
-            # delete session silenlty
-            del terminals[sessions[t]["s"]]
-            del sessions[t]            
-thread.start_new_thread(clean_timeout, ())
+    # TODO XXX WE MUST BE SURE NOBODY IS MODIFYING THE LISTS
+    #         WHILST WE ARE ITERATING
+    # USE TWISTED DELAYED EXECUTION!!!
+    # -- ok done. Just check taht it works.
+    try:
+        for t in sessions:
+            if ct - sessions[t]["tm"] > TIMEOUT_SESSION:
+                # delete session silenlty
+                del terminals[sessions[t]["s"]]
+                del sessions[t]
+    except RuntimeError:
+        pass;            
+# thread.start_new_thread(clean_timeout, ())
 
 def get_session_by_terminal( t ):
     return sessions[t]["s"];
@@ -234,6 +250,8 @@ class Hub(StompClientFactory):
         # create new terminal name
         self.timer = LoopingCall(self.send_real)
         self.timer.start(RQ_RESEND_INTERVAL)
+        self.cleantimeout = LoopingCall(clean_timeout)
+        self.cleantimeout.start(TIMEOUT_SESSION/2)
 
     def clientConnectionLost(self, connector, reason):
         print 'Connection Lost. Reason:', reason
@@ -556,8 +574,113 @@ class Hub(StompClientFactory):
 
 h = Hub()
 
+
+
+# from twisted.internet import reactor # imported earlier
+from twisted.web import static, server
+from twisted.web.resource import Resource
+import base64
+
+# there are two options: - render GET /blob, render POST /blob;
+# render GET /base64, POST /base64
+# blobsend/blobget, base64send/base64get
+
+class BlobPipe(Resource):
+
+    requests = {} # TODO: a zodb serializeable storage not RAM?
+
+    def add_blob(self, sess, key, data):
+        if not self.requests.has_key(key):
+            # there is no request, just append to database
+            c = blobtmp.cursor()
+            c.execute("insert into tmp (sessid, key, data) values (?,?,?)", (sess, key, data));
+            blobtmp.commit();
+            c.close();            
+        else:
+            # the request is waiting already, send the data
+            if self.requests[key][1][0]: # means request for encoded data
+                self.requests[key][1].write(data.encode("hex"));
+            else:
+                self.requests[key][1].write(data);
+            self.requests[key][1].finish();
+            del self.requests[key];
+
+    def get_blob(self, sess, key):
+        c= blobtmp.cursor();
+        # now check if a record exists
+        c.execute('select data from tmp where sessid=? and key=?', (sess, key));
+        d = c.fetchone()
+        c.close()
+        if d is None:
+            return d
+        return d[0]
+
+            
+    def getChild(self, name, request):
+        return self
+
+    def render_GET(self, request):
+        if "base64send" in request.prepath:
+            pass # do receive the blob in base64
+            b64blob = request.args['data'][0]
+            blobid = request.args['blobid'][0]
+            sess = request.args['blob_session'][0]
+            # now store the blob in the availability list
+            # and mark any waiting queues to start sending data [in fact, send data entirely]
+            self.add_blob(sess, blobid, b64blob.decode("hex")); # TODO: utf8-rawstore here
+            return "OK"
+        elif "base64get" in request.prepath:
+            pass # do send the available blob [or suspend until blob received]
+            blobid = request.args['blobid'][0]
+            sess = request.args['blob_session'][0]
+            d = self.get_blob(sess, blobid) 
+            if d is None:
+                # defer request
+                self.requests[blobid] = [1, request];
+            else:
+                request.write(d.encode("hex"));
+                request.finish();
+            return server.NOT_DONE_YET
+            
+        return "OK"
+    
+
+    def render_POST(self, request):
+        #[]
+        if "blobsend" in request.prepath:
+            pass # do receive the blob in base64
+            blob = request.content.read(); # the body of request
+            
+            print "GOT POST BODY: ", blob #############################################
+
+
+            blobid = request.requestHeaders.getRawHeaders("blobid")[0]
+            sess = request.requestHeaders.getRawHeaders("blob_session")[0]
+            # now store the blob in the availability list
+            # and mark any waiting queues to start sending data [in fact, send data entirely]
+            self.add_blob(sess, blobid, blob);
+            return "OK"
+        elif "blobget" in request.prepath:
+            pass # do send the available blob [or suspend until blob received]
+            blobid = request.args['blobid'][0]
+            sess = request.args['blob_session'][0]
+            d = self.get_blob(sess, blobid) 
+            if d is None:
+                # defer request
+                self.requests[blobid] = [0, request];
+            else:
+                request.write(d);
+                request.finish();
+            
+            return server.NOT_DONE_YET
+            
+        return "OK"
+
+site = server.Site(BlobPipe())
+
+
+
 reactor.connectTCP('localhost', 61613, h)
+reactor.listenTCP(8100, site)
 reactor.run()
-
-
 
