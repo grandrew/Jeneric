@@ -67,7 +67,7 @@ _terminal_vm.bind_terminal();
 
 // TWEAKINIT part
 
-_terminal_vm.load("anarchic.jn");
+_terminal_vm.load("os/anarchic.jn");
 
 
 
@@ -103,8 +103,8 @@ _sys_vm.bind_om(); // bind the protected EOS object model
 
 // TWEAKINIT part
 
-_sys_vm.load("anarchic.jn");
-_sys_vm.load("tmpstore.jn"); // XXX CHEATING!
+_sys_vm.load("os/anarchic.jn");
+_sys_vm.load("os/tmpstore.jn"); // XXX CHEATING!
 
 
 // register it
@@ -118,7 +118,7 @@ _cn = 0;
 ffoo = function () { 
     _cn++; 
     if(_cn == 6) { // XXX run terminal when 5 objects initialized!
-        _terminal_vm.load("terminal.jn"); 
+        _terminal_vm.load("os/terminal.jn"); 
         hubConnection.connect();
     }
 }; 
@@ -156,8 +156,8 @@ function manualRamstoreObject(oname, oparent) {
 
     // TWEAKINIT part
 
-    _vm.load("anarchic.jn");
-    _vm.load("tmpstore.jn"); // XXX THIS IS CHEATING!!!
+    _vm.load("os/anarchic.jn");
+    _vm.load("os/tmpstore.jn"); // XXX THIS IS CHEATING!!!
         
     oparent.childList[oname] = _vm;
     __eos_objects[_vm.uri] = _vm;
@@ -174,21 +174,21 @@ _anarchic_vm = manualRamstoreObject("anarchic", _sys_vm);
 _anarchic_vm.onfinish = function () {
     _anarchic_vm.onfinish = ffoo;
 //    _anarchic_vm.evaluate("sdata = fetchUrl('anarchic.jn');wakeupIPCLock=false;");
-    _anarchic_vm.evaluate("sdata = fetchUrl('anarchic.jn');wakeupIPCLock.release();");  
+    _anarchic_vm.evaluate("sdata = fetchUrl('os/anarchic.jn');wakeupIPCLock.release();");  
 }; // WARNING!? XXX precedence test heeded here!!!!!!
 
 // NOW CREATE ramstore OBJECT
 _ramstore_vm = manualRamstoreObject("ramstore", _sys_vm);
 _ramstore_vm.onfinish = function () { 
     _ramstore_vm.onfinish = ffoo;
-    _ramstore_vm.evaluate("sdata = fetchUrl('ramstore.jn');wakeupIPCLock.release();"); 
+    _ramstore_vm.evaluate("sdata = fetchUrl('os/ramstore.jn');wakeupIPCLock.release();"); 
 }; // WARNING!? XXX precedence test heeded here!!!!!!
 
 // NOW CREATE public security model OBJECT
 _public_vm = manualRamstoreObject("public", _sys_vm);
 _public_vm.onfinish = function () { 
     _public_vm.onfinish = ffoo;
-    _public_vm.evaluate("sdata = fetchUrl('public.jn');wakeupIPCLock.release();"); 
+    _public_vm.evaluate("sdata = fetchUrl('os/public.jn');wakeupIPCLock.release();"); 
 }; 
 
 
@@ -196,14 +196,14 @@ _public_vm.onfinish = function () {
 _ic_vm = manualRamstoreObject("ic", _sys_vm);
 _ic_vm.onfinish = function () {
     _ic_vm.onfinish = ffoo;
-    _ic_vm.evaluate("sdata = fetchUrl('ic.jn');wakeupIPCLock.release();"); 
+    _ic_vm.evaluate("sdata = fetchUrl('os/ic.jn');wakeupIPCLock.release();"); 
 }; 
 
 // create totinit.jn object
 _init_vm = manualRamstoreObject("init", _sys_vm);
 _init_vm.onfinish = function () {
     _init_vm.onfinish = ffoo;
-    _init_vm.evaluate("sdata = fetchUrl('totinit.jn');wakeupIPCLock.release();"); 
+    _init_vm.evaluate("sdata = fetchUrl('os/totinit.jn');wakeupIPCLock.release();"); 
 }; 
 
 
@@ -243,8 +243,8 @@ _var_vm.bind_om(); // bind the protected EOS object model
 
 // TWEAKINIT part
 
-_var_vm.load("anarchic.jn");
-_var_vm.load("ramstore.jn");
+_var_vm.load("os/anarchic.jn");
+_var_vm.load("os/ramstore.jn");
     
 _terminal_vm.childList["var"] = _var_vm;
 __eos_objects[_var_vm.uri] = _var_vm;
