@@ -267,7 +267,11 @@ if(_stor) {
     d = _stor.getByURI("~");
     if(d) {
       _terminal_vm.ErrorConsole.log("restoring ~ childList...");
-      _terminal_vm.childList = JSON.parse(d.ChildList);
+      // MERGE instead of RESTORE
+      var termcl = JSON.parse(d.ChildList);
+      for(var obc in termcl) {
+          _terminal_vm.childList[obc] = termcl[obc];
+      }
       _terminal_vm.serID = parseInt(d.rowid); // ok.
 
     } else {
@@ -397,14 +401,16 @@ hubConnection = {
                         
             // now decode body
             var blobCount = {n:0};
+            var rqh = {};
+
             var reviver = function (key, value) {
-                return blob_parse(key, value, blobCount, rq);
+                return blob_parse(key, value, blobCount, rqh);
             };
             
             //console.log("Input!: frame.body");
             
             //var rq = JSON.parse(frame.body, reviver);
-            
+
             try {
                 var rq = JSON.parse(frame.body, reviver);
                 //var rq = JSON.parse(frame.body);
@@ -413,6 +419,8 @@ hubConnection = {
                 if(window.console) console.log("Invalid JSON data received: "+frame.body+ "; producing error: "+e+":"+e.message+"  "+e.lineNumber);
                 return;
             }
+            
+            rqh.rq = rq;
             
             if(rq.ack) {
                 self.ack_rcv(rq.ack);
@@ -533,13 +541,25 @@ hubConnection.receive = eos_rcvEvent; // XXX this interconnects with jsobject.js
 
 ////////////////////////////////////////////////////////////////////////////////////
 // Blob transfer methods
+
+
 /*
-function _BlobObject() {
-    if(window.google && google.gears) this.___blob = google.gears.factory.create("beta.blobbuilder");
-}
+// TODO TODO TODO HERE:
+- handle different blob transfer failure scenarios:
+    + hub sent back exception for json (Blob likely to be transferred, delete it from server. Mb. timeout?)
+    + timeout waiting for Blob to arrive to hub (may be a huge transfer?)
+    + all the send/rcv errors - check readyState, fail statuses, etc.
+    - ack/send retries? LATER
+    + hub: drop open blob/get connections via some timeout
+    
+    -------------------------
+    + HUB: introudece timeouts: for BLOBs; for wait-connections
+    
++ add blobBuilder interface to bind_om
+- add localServer Blob storage interface (and serialize the list of stored data?? -> or leave it to developer?)
+    no! we need it at least to delete an object preperly
+
 */
-
-
 
 
 // very tightly connected with jsobject.js for Gears Blobs
@@ -561,17 +581,23 @@ function blob_replacer(key, value, req) {
 function sendBlob(bid, blob, req) {
     // again,assume gears is there
     var request = google.gears.factory.create("beta.httprequest");
-    request.open("POST", "/blobsend");
+    request.open("POST", "/blobsend?blobid="+bid+"&blob_session="+hubConnection.___SESSIONKEY);
     request.setRequestHeader("blob_session", hubConnection.___SESSIONKEY); // XXX ugly sessionkey get...
     request.setRequestHeader("blobid", bid); 
     request.onreadystatechange = function () {
         if(request.readyState == 4) {
             // ok?
+            if(request.status != 200) {
+                // TODO: notify of error; 
+                //      race conditions possible here: the request may have already been sent and ack'ed
+                //      TODO: remove req_parameter/closure from here if unused!
+                req["status"] = "ECONN"; // DOC document this too
+                req["result"] = "blob send failed with status "+request.status; // DOC document this too
+                hubConnection.receive(req);
+                if(window.console) console.log("blob send failure for request "+req.id);
+            }
         } else {
-            // TODO: notify of error; 
-            //      race conditions possible here: the request may have already been sent and ack'ed
-            //      TODO: remove req_parameter/closure from here if unused!
-            if(window.console) console.log("blob send failure for request "+req.id);
+            
         } 
     }
     request.send(blob.___blob);
@@ -583,6 +609,10 @@ function sendWrappedBlob(bid, blob, req) {
     // TODO: notifications of send error
     // dr.onload = ...;
     dr.onfail = function (status, txt) {
+        req["status"] = "ECONN"; // DOC document this too
+        req["result"] = "blob send failed with status "+status; // DOC document this too
+        hubConnection.receive(req);
+    
         if(window.console) console.log("wrappedBlob send failure for request "+req.id+" with status "+status);
     };
     dr.addArg(_POST, "data", blob.wrappedString);
@@ -596,22 +626,30 @@ function sendWrappedBlob(bid, blob, req) {
 function getBlob(bid, blobCount, blobObject, req) {
     // again,assume gears is there
     var request = google.gears.factory.create("beta.httprequest");
-    request.open("GET", "/blobget");
+    request.open("GET", "/blobget?blobid="+bid+"&blob_session="+hubConnection.___SESSIONKEY);
     request.setRequestHeader("blob_session", hubConnection.___SESSIONKEY); // XXX ugly sessionkey get...
     request.setRequestHeader("blobid", bid);
     request.onreadystatechange = function () {
         if(request.readyState == 4) {
-            blobObject.___blob = request.responseBlob;
-            blobCount.n -= 1;
-            if(blobCount.n == 0) {
-                // we got all blobs needed; proceed to rcv
-                hubConnection.receive(req);
+            if(request.status == 200) {
+                blobObject.___blob = request.responseBlob;
+                blobCount.n -= 1;
+                if(blobCount.n == 0) {
+                    // we got all blobs needed; proceed to rcv
+                    hubConnection.receive(req.rq);
+                }
+            } else {
+                req.rq["status"] = "ECONN"; // DOC document this too
+                req.rq["result"] = "blob send failed with status "+request.status; // DOC document this too
+                delete req.rq["args"];
+                hubConnection.send(req.rq);
+                if(window.console) console.log("blob receive failure for request "+req.rq.id);            
             }
         } else {
             // TODO: notify of error; 
             //      race conditions possible here: the request may have already been sent and ack'ed
             //      TODO: remove req_parameter/closure from here if unused!
-            if(window.console) console.log("blob get failure for request "+req.id);
+            //if(window.console) console.log("blob get failure for request "+req.id);
         } 
     }
     request.send();
@@ -627,12 +665,17 @@ function getWrappedBlob(bid, blobCount, blobObject, req) {
             blobCount.n -= 1;
             if(blobCount.n == 0) {
                 // we got all blobs needed; proceed to rcv
-                hubConnection.receive(req);
+                hubConnection.receive(req.rq);
             }        
     };
     
     dr.onfail = function (status, txt) {
-        if(window.console) console.log("wrappedBlob get failure for request "+req.id+" with status "+status);
+        req.rq["status"] = "ECONN"; // DOC document this too
+        req.rq["result"] = "blob send failed with status "+status; // DOC document this too
+        delete req.rq["args"];
+        hubConnection.send(req.rq);
+
+        if(window.console) console.log("wrappedBlob get failure for request "+req.rq.id+" with status "+status);
     };
     dr.addArg(_POST, "blob_session", hubConnection.___SESSIONKEY);
     dr.addArg(_POST, "blobid", bid);
@@ -641,7 +684,7 @@ function getWrappedBlob(bid, blobCount, blobObject, req) {
 }
 
 
-function blob_parse (key, value, blobCount, rq) {
+function blob_parse (key, value, blobCount, rqh) {
     var d;
     if (typeof value == 'string' &&
             value.slice(0, 5) == 'Blob(' &&
@@ -658,8 +701,8 @@ function blob_parse (key, value, blobCount, rq) {
             
             var blobObject = new BlobObject(); // TODO
             
-            if(window.google && google.gears) getBlob(value, blobCount, blobObject, rq); // TODO
-            else getWrappedBlob(value, blobCount, blobObject, rq); // TODO
+            if(window.google && google.gears) getBlob(value, blobCount, blobObject, rqh); // TODO
+            else getWrappedBlob(value, blobCount, blobObject, rqh); // TODO
             return blobObject; // will replace it afterwards
                               // XXX DOC the blobObject will not nessessarily be instanceof global Blob!! this will
                               // eventually show that the Blob was received but not locally-generated
@@ -669,12 +712,4 @@ function blob_parse (key, value, blobCount, rq) {
     return value;
 }
 
-/*
-// TODO:
-- handle different blob transfer failure scenarios:
-    (list here)
-- add blob interface to bind_om
-- add localServer Blob storage interface (and serialize the list of stored data?? -> or leave it to developer?)
-    no! we need it at least to delete an object preperly
 
-*/

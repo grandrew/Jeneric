@@ -267,22 +267,35 @@ BlobBuilder.prototype.append = function (obj) {
     // else
     if(obj.wrappedString) this.___bloblist.push(obj.wrappedString);
     else {
-        var s = obj.toString(); // convert to string
         
-        var lh = [];
-        var r, ch;
-        for(var i=0;i<s.length;i++) {
-            // convert UTF-8 to hex
-            ch = s.charAt(i);
-            r = encodeURI(ch);
-            if(r.length > 1) r = r.split("%"); // %D0%AB -> "", "D0" "AB"
-            else r = [ r.charCodeAt(0).toString(16).toUpperCase() ]; // -> HEX.
-            lh.concat(r);
+        if(typeof obj == "string" || obj instanceof String) {
+            var s = obj;
+            var lh = [];
+            var r, ch;
+            for(var i=0;i<s.length;i++) {
+                // convert UTF-8 to hex
+                ch = s.charAt(i);
+                r = encodeURI(ch);
+                if(r.length > 1) r = r.split("%"); // %D0%AB -> "", "D0" "AB"
+                else r = [ r.charCodeAt(0).toString(16).toUpperCase() ]; // -> HEX.
+                lh.concat(r);
+            }
+            this.___bloblist.push(lh.join(""));
+        } else if (obj instanceof Array) {
+            var lh = "";
+            var r, ch;
+            for(var i=0;i<obj.length;i++) {
+                // convert int to hex
+                if(typeof obj[i] == "number") ch = obj[i].toString(16).toUpperCase(); // assume it is integer??
+                else throw (new TypeError("array does not consist of numbers"));
+                lh = lh + ch;
+            }
+            this.___bloblist.push(lh);
         }
-        this.___bloblist.push(lh.join(""));
     }
 };
 
+////////////////////////////////////
 
 function BlobObject() {
     // TODO: copy prototypes to local Blob object at bind_om()
@@ -298,24 +311,28 @@ BlobObject.prototype.toString = function () {
 
 BlobObject.prototype.getLength = function () {
     if(this.___blob) return this.___blob.length;
-    // XXX WARNING TODO!! THIS IS NOT TRUE!!
-    //  ---    use shit-decode modified base64 decode/encode methods for integer lists as a dirty solution
     return this.wrappedString.length / 2; // should be integer
 };
 
 BlobObject.prototype.getBytes = function (offset, len) {
+    len = len || this.getLength();
+    offset = offset || 0;
+    
     if(this.___blob) return this.___blob.getBytes(offset, len);
-    // TODO for wrapped base64 string!!!
-
+    var r=[];
+    for(var i=offset;i<len; i++) {
+        r.push(parseInt(this.wrappedString.charAt(i*2)+this.wrappedString.charAt(i*2+1), 16)); // value
+    }
+    return r;
 };
 
 BlobObject.prototype.slice = function (offset, len) {
-    if(this.___blob) return this.___blob.slice(offset, len);
+    if(this.___blob) if(len) return this.___blob.slice(offset, len); else this.___blob.slice(offset);
     else {
         var newBlob = new this.constructor();
         len = len || this.wrappedString.length;
-        // XXX WARNING TODO!! THIS IS NOT TRUE!! ->
-        newBlob.wrappedString = this.wrappedString.slice(offset*2, len*2);
+        if(len) newBlob.wrappedString = this.wrappedString.slice(offset*2, len*2);
+        else newBlob.wrappedString = this.wrappedString.slice(offset*2);
         return newBlob;
     }
 };
@@ -787,15 +804,16 @@ function eos_rcvEvent(rq) {
             return;
         }
         
-        // XXX UNUSED from here ->>>
-        /*
+
         var x2 = __eos_requests[rq.id]["context"];
         var cs = __eos_requests[rq.id]["stack"];
         var vm = __eos_requests[rq.id]["vm"];
         
                 
         delete __eos_requests[rq.id];
-
+        
+        // TODO: check what is unused here!!!
+        
         if(rq.status == "OK") {
             
             // now there are two options: we have validateResponse defined - and we  have not.
@@ -880,7 +898,7 @@ function eos_rcvEvent(rq) {
 
 
         // return goes here (nothing below);
-        
+    // this part is still used! we received a request!
     } else {
     
         if(rq.status && rq.status == "EDROP") {
@@ -898,6 +916,7 @@ function eos_rcvEvent(rq) {
             // child not found...
             rq.result = "object not found by URI "+rq.uri;
             rq.status = "EEXCP";
+            delete rq["args"];
             hubConnection.send(rq);
             return;
         }
@@ -910,7 +929,8 @@ function eos_rcvEvent(rq) {
             if(dest.charAt(0) == "/") {
                 rq.uri = dest;
                 rq.status = "REDIR"; // instruction for HUB
-                //rq.result = ""; // to indicate we're NOT;) result
+                delete rq["args"];
+                //rq.result = ""; // to indicate we're NOT;) result ?? (omit result param; see how hub works
                 hubConnection.send(rq);
             } else if (dest.charAt(0) == "~") {
                 rq.uri = dest;
@@ -934,7 +954,7 @@ function eos_rcvEvent(rq) {
             
             dest.execIPC(rq, cbo, cbo); 
         }
-    */
+    
     }
     
     
@@ -2220,6 +2240,11 @@ function eos_deleteChild(vm, name) {
         stor.remove(ch.serID);
     }
     stor.close();
+    if(window.google) {
+        var ls = google.gears.factory.create("beta.localserver");
+        ls.removeStore(ch.uri.split("/").join("."));
+    }
+    
 
     return 0;
 }
@@ -2344,11 +2369,98 @@ Jnaric.prototype.bind_om = function () {
     
     // getMethodList ?? describeObject ?? or is it security code??
     
-    this.global.BlobBuilder = BlobBuilder; // XXX check for prototype-safety!!!
+    this.global.BlobBuilder = function () {
+        if(window.google && google.gears) {
+            this.___builder = google.gears.factory.create("beta.blobbuilder");
+        } else {
+            this.___bloblist = [];
+        }
+    };
+    inject_proto(this.global.BlobBuilder, BlobBuilder); // XXX check for prototype-safety!!!
     // protos...
     this.global.BlobBuilder.prototype.getAsBlob = BlobBuilder.prototype.getAsBlob;    
     this.global.BlobBuilder.prototype.append = BlobBuilder.prototype.append;
     
+};
+
+// TODO: move this utility function out of here!
+function inject_proto (fn, donor) {
+    for(var ob in donor.prototype) {
+        fn.prototype[ob] = donor.prototype[ob];
+    }
+}
+
+// TODO: prettify this
+function FixedStorage() {}
+
+FixedStorage.prototype.___init = function () {
+    this.___ls = google.gears.factory.create("beta.localserver");
+    var storname = this.___vm.uri.split("/").join(".");
+    this.___r = ls.openStore(storname);
+    if(!this.___r) this.___r = ls.createStore(storname);
+};
+
+FixedStorage.prototype.remove = function (fname) {
+    this.___r.remove(this.___vm.uri+"/~blobs/"+fname);
+};
+
+FixedStorage.prototype.rename = function (fname1, fname2) {
+    this.___r.rename(this.___vm.uri+"/~blobs/"+fname1, this.___vm.uri+"/~blobs/"+fname2);
+};
+
+FixedStorage.prototype.copy = function (fname1, fname2) {
+    this.___r.copy(this.___vm.uri+"/~blobs/"+fname1, this.___vm.uri+"/~blobs/"+fname2);
+};
+
+FixedStorage.prototype.isStored = function (fname) {
+    this.___r.isCaptured(this.___vm.uri+"/~blobs/"+fname);
+};
+
+FixedStorage.prototype.storeBlob = function (blob, fname, contenttype) {
+    var b = blob.___blob;
+    if(contenttype) this.___r.captureBlob(b, this.___vm.uri+"/~blobs/"+fname, contenttype);
+    else this.___r.captureBlob(b, this.___vm.uri+"/~blobs/"+fname);
+};
+
+FixedStorage.prototype.getAsBlob = function (fname) {
+    if(this.isStored(fname)) return this.___r.getAsBlob(this.___vm.uri+"/~blobs/"+fname);
+    else return null;
+};
+
+FixedStorage.prototype.getObjectUrl = function (fname) {
+    return this.___vm.uri+"/~blobs/"+fname;
+};
+
+FixedStorage.prototype.getAllHeaders = function (fname) {
+    if(this.isStored(fname)) return this.___r.getAllHeaders(this.___vm.uri+"/~blobs/"+fname);
+    else return null;
+};
+
+Jnaric.prototype.bind_storage = function () {
+
+/*
+FixedStorage class
+   void          remove(string fname) : remove [object_url]/fname
+   void          rename(string fname1, string fname2) : fname1 -> fname2
+   void          copy(string fname1, string fname2) 
+   boolean       isStored(string desc)
+   void          storeBlob(Blob blob, string fname, string optContentType) : with Content-Type header
+   string        getHeader(string fname, string hname) : reserved. see Gears
+   string        getAllHeaders(string fname) : -..-
+   Blob          getAsBlob(string fname) : only if stored, otherwise fail
+   string        getObjectUrl(string fname) : return the URL of stored object, otherwise fail.
+*/
+
+    if(!window.google || !google.gears) return;
+    
+    var self = this;
+    
+    this.global.object.FixedStorage = function () {
+        this.___init(self); 
+    };
+    inject_proto(this.global.object.FixedStorage, FixedStorage);
+    
+
 };
 
 Jnaric.prototype.bind_terminal = function () {
