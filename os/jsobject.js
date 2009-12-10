@@ -2200,6 +2200,7 @@ function eos_deleteChild(vm, name) {
     // now, ch has been found, we may continue to recursively deleting
     // XXX this is a heavy RECURSIVE algorithm: may OOM if a large subtree is deleted!!! need a more accurate deletion
     for(var cch in ch.childList) {
+        if(cch == "__defineProperty__") continue; // FUCK XXX FUCK FUCK
         eos_deleteChild(ch, cch); 
     }
 
@@ -2227,6 +2228,7 @@ function eos_deleteChild(vm, name) {
     delete vm.childList[name];
 
     // delete last reference in __eos_objects
+    
     delete __eos_objects[ch.uri]; // may silently fail
 
     var stor = getFixedStorage();
@@ -2328,6 +2330,9 @@ Jnaric.prototype.bind_om = function () {
     this.global.object.getMyURI = function() {
         return __tihs.uri;        
     };
+    this.global.object.getMyAbsoluteURI = function() {
+        return KCONFIG["terminal_id"] + __tihs.uri;        
+    };    
     this.global.object.getMyTypeURI = function() {
         return __tihs.TypeURI;        
     };

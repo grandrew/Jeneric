@@ -29,10 +29,13 @@
 #       + and ping from hubConnection
 #   + announce with credentials tname/tkey -> from init ## parameters
 #   + ic# write() ipc!
-# - remove object_name from here and jsobject!
+# + remove object_name from here and jsobject!
+# - support for persistent hub connection sessions - for seamless restarting (terminals do not like if the 
+#   session is dropped) - or TODO for terminals: support reauth when session drops
 # - IHCP support (controller, peer)
 # - dynamic transport window on both sides
 # - clean up the request objects on response internally! (in case we're reporting errors)
+# - reserved names: http_request, blob64send/get/blob..
 
 # first, have a memory storage
 
@@ -96,13 +99,16 @@ c.close()
 
 # XXX the HUB SHOULD guarantee uniquity of terminalID and sessions in its DB
 #     rather the terminal may supply its SESSIONKEY each time it reconnects (and possibly receives a new terminalID)
-def add_session(t, s):
-    sessions[t] = {"s": s, "tm":time.time()}
+def add_session(t, s, tm=0):
+    if tm ==0: tm = time.time() 
+    sessions[t] = {"s": s, "tm":tm}
     terminals[s] = t
 
 def touch_session(s):
+    tm = time.time()
     try:
-        sessions[terminals[s]]["tm"] = time.time()
+        if sessions[terminals[s]]["tm"] < tm: # touch only outdated
+            sessions[terminals[s]]["tm"] = tm
     except KeyError:
         print "No session to touch"
         
@@ -164,9 +170,13 @@ class Hub(StompClientFactory):
     rqe = {}
     acks = {}
     
-    def deliver(self, dest, rq): # will become self.send after init!!! XXX ABI glitch
+    static_servers = {}
+    
+    def deliver(self, dest, rq): # will become self.send after init, and send->dummy_send!!! XXX ABI glitch
         # XXX this is extremely high-level mess that overbloats the transport layer because of STOMP simplification
         print "Will deliver", rq, "to", dest
+        if dest in self.static_servers:
+            dest = self.static_servers[dest];
         self.rqe[str(rq["id"])] = {"d": dest, "r": rq, "tm": time.time() };
         #self.timer(); # just does not fucking work...
         self.timer.stop()
@@ -175,7 +185,7 @@ class Hub(StompClientFactory):
 
     def send_real(self):
         ct = time.time()
-        for i in copy.copy(self.rqe): # XXX WTF COPY!!!
+        for i in copy.copy(self.rqe): # XXX WTF COPY!!! (SEE STUPID I AM)
             if ct - self.rqe[i]["tm"] > ACK_TIMEOUT:
                 # notify the caller that we could not deliver the message
                 # that means that the client has restarted or somethig (session reset?)
@@ -210,20 +220,28 @@ class Hub(StompClientFactory):
                     continue;
                 #self.dummy_send(sss, json.encode(self.rqe[i]["r"]) )
                 self.dummy_send(sss, simplejson.dumps(self.rqe[i]["r"]) )                                        
-                
-                
-                del self.rqe[i]
+                del self.rqe[i] # 
+                #self.send_real()
+                #break
                 
             else:
                 # XXX: send without "hub_oid" ?? -> less traffic
-                print "Sending", self.rqe[i]["r"], "to", self.rqe[i]["d"]
+                deref = self.rqe[i]["d"];
+                print "Sending", self.rqe[i]["r"], "to", deref
                 #self.dummy_send(self.rqe[i]["d"], json.encode(self.rqe[i]["r"]) )
-                self.dummy_send(self.rqe[i]["d"], simplejson.dumps(self.rqe[i]["r"]) )
+                if type(deref) == type(""): self.dummy_send(deref, simplejson.dumps(self.rqe[i]["r"]) )
+                else: 
+                    x = self.rqe[i]["r"]
+                    del self.rqe[i] # we dunna want to wait for acks or retry sending either
+                    deref(x) # bang!
+                    #self.send_real() # XXX AM I TOO STUPID AM I??
+                    #break
         # cleanup ACKs window
         # XXX how does python deal with DEL inside for .. in loop???
         for i in copy.copy(self.acks): # XXX WTF COPY!!!
             if ct - self.acks[i] > MAX_WINDOW_SIZE:
                 del self.acks[i]
+                break
     
     def ack_rcv(self, data):
         try:
@@ -345,8 +363,9 @@ class Hub(StompClientFactory):
                            "terminal_id": "hub",
                            #// optional but mandatory for local calls
                            # "object_name": "",
-                           "object_type": "",
-                           "object_uri": "/",
+                           "caller_type": "",
+                           "caller_uri": "/",
+                           "caller_security": "",
                            #// now the actual params
                            "uri": "~",
                            "method": "hubConnectionChanged",
@@ -391,7 +410,7 @@ class Hub(StompClientFactory):
             #      pluggable modules needed!! ;-)
             # TODO: linked terminal session -> register some terminal app as a link to provide direct controlled access (money!)
             for ob in sessions:
-                ll.append(ob)
+                if ob != GETPIPE_TERMNAME: ll.append(ob)
                 ii += 1
                 if ii > 50: break
             r = ll;
@@ -407,7 +426,21 @@ class Hub(StompClientFactory):
         rq["result"] = r
         rq["status"] = s
         return rq
-
+    
+    def register_session(self, terminal_id, dest_callback):
+        "register a local callback"
+        pass
+        # invent session automatically
+        sess = genhash(20)
+        add_session(terminal_id, sess, time.time()+1e6); # and to never timeout
+        self.static_servers[sess] = dest_callback;
+    
+    def self_receive(self, termname, rq):
+        sessid = get_session_by_terminal(termname)
+        rq["session"] = sessid
+        msg = {"headers": {"destination": ""}, "session":sessid, "body": rq}
+        self.recv_message(msg)
+    
     def recv_message(self,msg):
         print "Received", repr(msg)
         if msg["headers"]["destination"] == ANNOUNCE_PATH:
@@ -442,9 +475,10 @@ class Hub(StompClientFactory):
                    # "user_name": "none", # XXX get rid of this!!
                    "terminal_id": "hub",
                    #// optional but mandatory for local calls
-                   "object_name": "",
-                   "object_type": "",
-                   "object_uri": "/",
+                   # "object_name": "",
+                   "caller_type": "",
+                   "caller_uri": "/",
+                   "caller_security": "",
                    #// now the actual params
                    "uri": "~",
                    "method": "hubConnectionChanged",
@@ -460,8 +494,11 @@ class Hub(StompClientFactory):
         else:
             # now try to parse and pass the request
 
-            #rq = json.decode(msg["body"])
-            rq = simplejson.loads(msg["body"])
+            #rq = json.decode(msg["body"]) # remove all these <<--
+            if type(msg["body"]) == type(""): # for local static requests
+                rq = simplejson.loads(msg["body"])
+            else:
+                rq = msg["body"] # for locally-binded ipc only
             
             if "ack" in rq:
                 self.ack_rcv(rq["ack"])
@@ -602,7 +639,7 @@ h = Hub()
 # from twisted.internet import reactor # imported earlier
 from twisted.web import static, server
 from twisted.web.resource import Resource
-import base64
+import base64,cStringIO
 
 # there are two options: - render GET /blob, render POST /blob;
 # render GET /base64, POST /base64
@@ -610,7 +647,11 @@ import base64
 
 CONN_TIMEOUT = 100 # seconds
 BLOB_TIMEOUT = 150 # seconds, to be sure all connections already dropped
+PIPE_TIMEOUT = 150 # seconds to transfer a READBYTES chunk
 
+READBYTES = 10 # 20000 # 20k bytes
+TREAT_AS_BLOB_SIZE = 1000000 # 1 mb to treat as BLOB
+GETPIPE_TERMNAME = "http_request" # name of DataPipe static terminal
 
 # DEFS
 ENCODE = 0
@@ -621,8 +662,13 @@ TIME = 2
 class BlobPipe(Resource):
 
     requests = {} # TODO: a zodb serializeable storage not RAM?
+    pipes = {}
+    waitblob = {}
+    
     clean1 = None
     clean2 = None
+    
+    #static_session = "" # to be set
     
     def conn_checkdrop(self):
         # TODO: do not drop if transfer is ongoing
@@ -644,9 +690,18 @@ class BlobPipe(Resource):
         c.execute("delete from tmp where time < ?", (deltime,));
         blobtmp.commit();
         c.close();            
-        
+
+    def pipe_checkdrop(self):
+        tm = time.time()
+        for v in copy.copy(self.pipes):
+            if tm - self.pipes[v]["ts"] > PIPE_TIMEOUT:
+                self.pipes[v]["request"].setResponseCode(500);
+                self.pipes[v]["request"].write("Internal error: timeout")
+                self.pipes[v]["request"].finish();
+                del self.pipes[v]
 
     def add_blob(self, sess, key, data):
+
         if not self.requests.has_key(key):
             # there is no request, just append to database
             c = blobtmp.cursor()
@@ -662,14 +717,23 @@ class BlobPipe(Resource):
             self.requests[key][REQUEST].finish();
             del self.requests[key];
 
+        if key in self.waitblob:
+            self.blobreceived(self.waitblob[key])
+            del self.waitblob[key]
+
     def get_blob(self, sess, key):
         c= blobtmp.cursor();
         # now check if a record exists
-        c.execute('select data from tmp where sessid=? and key=?', (sess, key));
+        if sess: c.execute('select data from tmp where sessid=? and key=?', (sess, key));
+        else: c.execute('select data from tmp where key=?', (key)); # ugly workarund for blob_received
         d = c.fetchone()
         c.close()
         if d is None:
             return d
+        c= blobtmp.cursor();
+        c.execute('delete from tmp where key=?', (key)); # ugly workarund for blob_received
+        c.close()
+        blobtmp.commit()
         return d[0]
 
             
@@ -678,14 +742,24 @@ class BlobPipe(Resource):
 
     def render_GET(self, request):
         if not self.clean1: 
+            # XXX the ugly initializtiona way
             self.clean1 = LoopingCall(self.conn_checkdrop)
             self.clean1.start(CONN_TIMEOUT)
-        if not self.clean2: 
             self.clean2 = LoopingCall(self.blob_checkdrop)
             self.clean2.start(BLOB_TIMEOUT)
+            self.clean3 = LoopingCall(self.pipe_checkdrop)
+            self.clean3.start(PIPE_TIMEOUT)
+            
+            # now init the requestHUb object
+            self.requestHub = h;
+
+            termid = GETPIPE_TERMNAME
+            self.requestHub.register_session(termid, self.blobreceived); 
+            
         
-        if "base64send" in request.prepath:
-            pass # do receive the blob in base64
+        
+                
+        if "base64send" == request.prepath[0]:
             try:
                 b64blob = request.args['data'][0]
                 blobid = request.args['blobid'][0]
@@ -696,14 +770,14 @@ class BlobPipe(Resource):
             # and mark any waiting queues to start sending data [in fact, send data entirely]
             self.add_blob(sess, blobid, b64blob.decode("hex")); 
             return "OK"
-        elif "base64get" in request.prepath:
-            pass # do send the available blob [or suspend until blob received]
+        elif "base64get" == request.prepath[0]:
             try:
                 blobid = request.args['blobid'][0]
                 sess = request.args['blob_session'][0]
             except KeyError:
                 return "EPARM"
-            d = self.get_blob(sess, blobid) 
+            # d = self.get_blob(sess, blobid)
+            d = self.get_blob(None, blobid) # XXX not sure why session is EVER NEEDED ?!?!
             if d is None:
                 # defer request
                 self.requests[blobid] = [1, request, time.time()];
@@ -711,42 +785,14 @@ class BlobPipe(Resource):
                 request.write(d.encode("hex"));
                 request.finish();
             return server.NOT_DONE_YET
-            
-        return "OK"
-    
-
-    def render_POST(self, request):
-        #[]
-        if "blobsend" in request.prepath:
-            #pass # do receive the blob in base64
-            blob = request.content.read(); # the body of request
-            
-            print "GOT POST BODY: ", blob #############################################
-
-
-#            blobid = request.requestHeaders.getRawHeaders("blobid")[0]
-#            sess = request.requestHeaders.getRawHeaders("blob_session")[0]
-
-            #blobid = request.received_headers["blobid"][0]
-            #sess =   request.received_headers["blob_session"][0]
-
-            blobid = request.args['blobid'][0]
-            sess = request.args['blob_session'][0]
-
-
-            # now store the blob in the availability list
-            # and mark any waiting queues to start sending data [in fact, send data entirely]
-            self.add_blob(sess, blobid, blob);
-            return "OK"
-        elif "blobget" in request.prepath:
-            #pass # do send the available blob [or suspend until blob received]
-
-            #blobid = request.received_headers["blobid"][0]
-            #sess =   request.received_headers["blob_session"][0]
-
-            blobid = request.args['blobid'][0]
-            sess = request.args['blob_session'][0]
-            d = self.get_blob(sess, blobid) 
+        elif "blobget" == request.prepath[0]:
+            try:
+                blobid = request.args['blobid'][0]
+                sess = request.args['blob_session'][0]
+            except KeyError:
+                return "EPARM"
+            #d = self.get_blob(sess, blobid)
+            d = self.get_blob(None, blobid)  # XXX not sure why session is EVER NEEDED ?!?!
             if d is None:
                 # defer request
                 self.requests[blobid] = [0, request];
@@ -755,8 +801,237 @@ class BlobPipe(Resource):
                 request.finish();
             
             return server.NOT_DONE_YET
+        else: # This means that we got a direct access request and we should parse it into sequential READs
+            pass;
+            # first, add to object-waiting list: request and 
+            #   can we accept chunked transfer without knowing the LENGTH?
+            # create new rq object and ID
+            rq = {
+                    "id": genhash(10)+str(newId()), 
+                    "terminal_id": "/"+GETPIPE_TERMNAME,
+                    #// optional but mandatory for local calls
+                    "caller_type": "",
+                    "caller_uri": "/"+GETPIPE_TERMNAME,
+                    "caller_security": "",
+                    #// now the actual params
+                    "uri": request.path,
+                    "method": "read",
+                    "args": [0,READBYTES]
+            };
+            rq["hub_oid"] = rq["id"] # for compat
+
+            self.pipes[rq["id"]] = {"rq": rq, "request": request, "pos": READBYTES, "ts": time.time(), "uri": request.path, "dir": 0};
+            
+
+            self.requestHub.self_receive(GETPIPE_TERMNAME, rq) ## NO!! do not send to session
+            ## we need to expose a mechanism to resolver normal requests (for example, have a special session ID for external RQs)
+
+            
+            return  server.NOT_DONE_YET
+            
+            
             
         return "OK"
+    
+    def blobreceived(self, rq):
+        # TODO HERE
+        # + we should then watch for this ID either in DB or wait till received
+        # + then send. If the length is less than 100k -> finish the connection and remove
+        # + else - retrieve and send next chunk
+        # + timeout pipes
+        # + watch for errors (for eaxmple object not found by path)
+        # - handle pipe for read() and write() by different paths
+        # - close incoming POST connection upon first rq receipt (with offset 0)
+        
+        #print "RQ is", repr(rq)
+
+        # rq = simplejson.loads(rq["body"]) 
+        
+        if not rq["id"] in self.pipes:
+            print "ASSERT!!! -> request %s not found in PIPES" % rq["id"]
+            return
+        
+        if rq["status"] != "OK" and self.pipes[rq["id"]]["request"]: # checking for request is required for POST pipe
+            # parse error into HTTP errors
+            if rq["status"] == "EPERM":
+                self.pipes[rq["id"]]["request"].setResponseCode(403);
+                self.pipes[rq["id"]]["request"].write("Forbidden")
+                self.pipes[rq["id"]]["request"].finish();
+            elif "not found" in rq["result"]:
+                self.pipes[rq["id"]]["request"].setResponseCode(404);
+                self.pipes[rq["id"]]["request"].write("Object not found: "+rq["result"])
+                self.pipes[rq["id"]]["request"].finish();
+            else:
+                self.pipes[rq["id"]]["request"].setResponseCode(500);
+                self.pipes[rq["id"]]["request"].write("Error at callee side: "+rq["result"])
+                self.pipes[rq["id"]]["request"].finish();
+            del self.pipes[rq["id"]]
+            return
+                    
+        
+        if self.pipes[rq["id"]]["dir"]: # 1 means "blob POST"
+            # now that we received the data, we may safely close request
+            if self.pipes[rq["id"]]["request"]:
+                self.pipes[rq["id"]]["request"].finish();
+                print "Closing request"
+            # warning! different ABI here from the below!
+            self.send_blob(self.pipes[rq["id"]]["uri"], self.pipes[rq["id"]]["fd"], self.pipes[rq["id"]]["isblob"], self.pipes[rq["id"]]["pos"], READBYTES, None)
+            del self.pipes[rq["id"]]
+        else:
+            
+            blobid = rq["result"] # it may be a blobid OR a resulting STRING!!!
+
+            #try:
+            
+            # OMG!! very tiny chance of failure here (not completely robust) TODO address this later: properly escape/unescape Blobs
+            if blobid[0:5] == "Blob(" and blobid[-1] == ")":
+                isblob = True
+            else:
+                isblob = False
+            
+            
+            #except:
+            #    if rq["id"] in self.pipes: del pipes[rq["id"]]
+            #    return # just ignore malformed response
+
+
+            # slightly inefficient memory usage
+            rq2 = {
+                    "id": genhash(10)+str(newId()), 
+                    "terminal_id": "/"+GETPIPE_TERMNAME,
+                    #// optional but mandatory for local calls
+                    "caller_type": "",
+                    "caller_uri": "/"+GETPIPE_TERMNAME,
+                    "caller_security": "",
+                    #// now the actual params
+                    "uri": self.pipes[rq["id"]]["uri"],
+                    "method": "read",
+                    "args": [self.pipes[rq["id"]]["pos"],READBYTES]
+            };
+            rq2["hub_oid"] = rq2["id"] # for compat
+
+
+            if isblob:
+                b = self.get_blob(None, blobid)
+                if b:
+                    self.pipes[rq["id"]]["request"].write(b);
+                    if len(b) < READBYTES:
+                        self.pipes[rq["id"]]["request"].finish();
+                        del self.pipes[rq["id"]]
+                    else:
+                        # request next block
+                        self.pipes[rq2["id"]] = {"rq": rq2, "request": self.pipes[rq["id"]]["request"], "pos": self.pipes[rq["id"]]["pos"]+READBYTES, "ts":time.time(), "uri": self.pipes[rq["id"]]["uri"], "dir": 0}
+                        self.requestHub.self_receive(GETPIPE_TERMNAME, rq2) ## NO!! do not send to session
+                        
+                        del self.pipes[rq["id"]]
+                        
+                else:
+                    # wait for blob to arrive here!
+                    self.waitblob[blobid] = rq # TODO: re-invoke blobreceived, delete from waitblob
+            else:
+                self.pipes[rq["id"]]["request"].write(blobid);
+                if len(blobid) < READBYTES:
+                    self.pipes[rq["id"]]["request"].finish();
+                    del self.pipes[rq["id"]]
+                else:
+                    # request next block
+                    # COPYPASTE WARNING HERE!
+
+                    self.pipes[rq2["id"]] = {"rq": rq2, "request": self.pipes[rq["id"]]["request"], "pos": self.pipes[rq["id"]]["pos"]+READBYTES, "ts": time.time(), "uri": self.pipes[rq["id"]]["uri"], "dir": 0}
+                    self.requestHub.self_receive(GETPIPE_TERMNAME, rq2) ## NO!! do not send to session
+                    
+                    del self.pipes[rq["id"]]
+                    #print "rq2 is", rq2["id"], (rq2["id"] in self.pipes)
+                    # END COPYPASTE WARNING!!!@!@
+                    
+
+    def render_POST(self, request):
+        #[]
+        if "blobsend" == request.prepath[0]:
+            #pass # do receive the blob in base64
+            blob = request.content.read(); # the body of request         
+            #print "GOT POST BODY: ", blob #############################################
+            blobid = request.args['blobid'][0]
+            sess = request.args['blob_session'][0]
+
+            # now store the blob in the availability list
+            # and mark any waiting queues to start sending data [in fact, send data entirely]
+            self.add_blob(sess, blobid, blob);
+            return "OK"
+        else:
+            # try to parse the POST in a multipart form
+            # and then sequentally write it to receiver
+            # returning the correct status (not found, forbidden, internal error or OK)
+            
+            # XXX DOC: the program must first make sure the ramstore object exists and is in a proper state
+            #         (is empty or is set to appropriate length, supports BLOBs or UTF-8 TEXT)
+            
+            fd = request.content
+            # now, treat it as BLOB is the file is larger than 1000 kb
+            # also treat it as blob if these 1000kb could not be converted in UTF-8
+            fd.seek(TREAT_AS_BLOB_SIZE)
+            isblob = True # treat as blob by default
+            if not fd.read(1):
+                isblob = False
+            else:
+                fd.seek(0)
+                r = fd.read()
+                try:
+                    r.decode("UTF-8")
+                    isblob = False
+                except UnicodeDecodeError:
+                    pass
+            
+            fd.seek(0)
+            
+            fd2 = cStringIO.StringIO()
+            fd2.write(fd.read()) # SHIT. why the FUCK do I need to copy it every time???
+            fd2.seek(0)
+            
+            # XXX DOC
+            #         if the blob size is more than TREAT_AS_BLOB_SIZE = 1000000 bytes - send as Blob()
+            #         else, try to encode the data in UTF-8 first
+            #         if succeeded, deliver as TEXT argument, otherwise - as BLOB argument
+            
+            
+            self.send_blob(request.path, fd2, isblob, 0, READBYTES, request)
+            return  server.NOT_DONE_YET
+            
+        return "OK"
+
+
+    def send_blob(self, uri, fd, isblob, pos=0, size=READBYTES, request = None):
+
+        rq = {
+                "id": genhash(10)+str(newId()), 
+                "terminal_id": "/"+GETPIPE_TERMNAME, # will be changed by terminal anyways
+                #// optional but mandatory for local calls
+                "caller_type": "",
+                "caller_uri": "/"+GETPIPE_TERMNAME,
+                "caller_security": "",
+                #// now the actual params
+                "uri": uri,
+                "method": "write",
+        };
+        rq["hub_oid"] = rq["id"] # for compat
+        
+        #fd.seek(pos)
+        data = fd.read(size)
+        print "Data is:", data, " of size: ", size
+        print "Value is:", fd.getvalue()
+        
+        if isblob:
+            # first, create a blobid and the blob
+            blobid = "Blob(args."+genhash(15)+")"
+            self.add_blob("NOSESSION", blobid, data); # session to be ignored
+            rq["args"] = [blobid, pos]
+        else:
+            rq["args"] = [data.decode("UTF-8"),pos]
+
+        if len(data) == size: self.pipes[rq["id"]] = {"pos": pos+size, "ts": time.time(), "uri": uri, "isblob": isblob, "fd": fd, "dir": 1, "request" : request};
+        else: 
+            if request: request.finish()
+        self.requestHub.self_receive(GETPIPE_TERMNAME, rq)
 
 site = server.Site(BlobPipe())
 

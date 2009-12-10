@@ -8,14 +8,14 @@ sdata = "";
 function read(rq, offset, len) {
     // TODO: error checking?
     //ErrorConsole.log("ramstore: returning data: "+sdata.substr(offset, len) + " params: "+offset+" l "+len);
-    offset = offset || 0;
-    len = len || sdata.length;
+    if(!offset) offset = 0;
+    if(!len) len = sdata.length;
     return sdata.substr(offset, len);
 }
 
 function write(rq, data, offset) {
     // TODO: error checking?
-    offset = offset || 0;
+    if(!offset) offset = 0;
     sdata = "".concat(sdata.substr(0, offset), data, sdata.substr(offset+data.length, sdata.length));
     return true;
 }

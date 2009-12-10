@@ -29,6 +29,7 @@ MAX_WINDOW_SIZE = 60000; // ms. max window size for ACKs to remember
 KEY_LENGTH = 80; // bytes stringkey length
 // GENERAL INIT part
 KCONFIG = {
+  terminal_id: "~", // init as unknown, will be set later at terminal object instance
   autorestore: false,
   autoswapout: false,
   MEMOBJECTS: 1000, // max allowed amount of objects in memory (in __eos_objects)}; // kernel configuration
@@ -691,7 +692,7 @@ function blob_parse (key, value, blobCount, rqh) {
             value.slice(-1) == ')') {
         d = value.slice(5, -1).split(".");       
         // the last check
-        if (d[0] == key) {
+        //if (d[0] == key) { // XXX the blob should just be properly escaped!
             // now wait for Blob... (try to http/get it)
             // TODO HERE
             // callee may have no support for blobs. In this case, we should get not the Blob but
@@ -707,7 +708,7 @@ function blob_parse (key, value, blobCount, rqh) {
                               // XXX DOC the blobObject will not nessessarily be instanceof global Blob!! this will
                               // eventually show that the Blob was received but not locally-generated
                               // in either case .toString() value should be used as well as .getBytes
-        }
+        //}
     }
     return value;
 }

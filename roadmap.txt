@@ -171,13 +171,22 @@ ASSORTED TODO ITEMS
 - implement atob/btoa using Orbited's converter wrapper
 - check for getChild() ipc(?)object. method to get child ref redirect instead of kernel URI resolution procedure
 - check if the values of function parameters not supplied are defined but set to 'undefined' so that || or && notation could be used safely
-- wrapped string operations for base64 using formulas (see g:stackoverflow base64 size)
-- rename URI to JRI
-- transfer chunked data instead of just bare body; pack the blobs into FormFileTransfer-alike HTTP pieces; parse them chunked in Twisted and send to callee/caller this way
++ wrapped string operations for base64 using formulas (see g:stackoverflow base64 size) -- done with HEX encoding
+- if there are several Blobs in request - transfer chunked data instead of just bare body in many requests; pack the blobs into FormFileTransfer-alike HTTP pieces; parse them chunked in Twisted and send to callee/caller this way
 - estimate object memory/fixed storage usage
 - properly debug/audit conections
-- profile memory usage
 - we need A THOROUGH security discussion!
+- reauth for terminal when connection drops (acquire temporary key or do a real reauth when hubConnectionChanged or a kernel method to store AUTH info temporarily)
+- propose more terminal independence: do not ACK at HUB but ACK at terminals only; will require a thorough HUB/terminal data protocol review
+  IMPORTANT!
+- set cache ageing in HAProxy to seconds - for debug - to 1 day - for retail
+- introduce debug flag for hub instead of just constantly dumping everything
+- pinging HUB does not seem to prevent from session drop :-\ (BUG)
+- create in-jeneric unit testing framework and move everything into it (see python unittest module)
+- go the twisted.web2 way to handle file uploads :-\
+- escape/unescape "Blob("+")" in the STRING data being sent (in the parser/reviver and in hub)
+- profile firefox memory leakage; general memory usage
+- alternative getChild for more object path resolution control
 kernel programming advisory: be careful with methods that stop the stack - report any possible error via try/catch and stack release w/throw
 
 ---------------
@@ -222,6 +231,7 @@ DOCUMENTATION HINTS
 - collect all exceptions/error reports and create exception matrix
 - LIPC sending function references and executing them in another vm may result in any unpredicted behaviour (stack mess)
 - EOS or POS?
+- hub.py is VERY poorly code-designed
 
 
 ---------------
