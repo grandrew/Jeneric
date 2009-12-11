@@ -806,6 +806,12 @@ class BlobPipe(Resource):
             # first, add to object-waiting list: request and 
             #   can we accept chunked transfer without knowing the LENGTH?
             # create new rq object and ID
+            
+            # create an arg-joint object
+            rarg = {}
+            for v in request.args:
+                rarg[v] = request.args[v][0] # XXX DOC use only the FIRST entry parameter value
+            
             rq = {
                     "id": genhash(10)+str(newId()), 
                     "terminal_id": "/"+GETPIPE_TERMNAME,
@@ -819,9 +825,11 @@ class BlobPipe(Resource):
                     "args": [0,READBYTES]
             };
             rq["hub_oid"] = rq["id"] # for compat
-
-            self.pipes[rq["id"]] = {"rq": rq, "request": request, "pos": READBYTES, "ts": time.time(), "uri": request.path, "dir": 0};
             
+            abortFlag = {"ABORT": False}
+
+            self.pipes[rq["id"]] = {"rq": rq, "request": request, "pos": READBYTES, "ts": time.time(), "uri": request.path, "dir": 0, "arg": rarg, "abort": abortFlag};
+            request.notifyFinish().addErrback(self._responseFailed, abortFlag)
 
             self.requestHub.self_receive(GETPIPE_TERMNAME, rq) ## NO!! do not send to session
             ## we need to expose a mechanism to resolver normal requests (for example, have a special session ID for external RQs)
@@ -832,6 +840,11 @@ class BlobPipe(Resource):
             
             
         return "OK"
+    
+    # errback to cancel request
+    def _responseFailed(self, err, call):
+        call["ABORT"] = True
+        # need to somehow cancel connection other way!!!
     
     def blobreceived(self, rq):
         # TODO HERE
@@ -875,9 +888,12 @@ class BlobPipe(Resource):
                 self.pipes[rq["id"]]["request"].finish();
                 print "Closing request"
             # warning! different ABI here from the below!
-            self.send_blob(self.pipes[rq["id"]]["uri"], self.pipes[rq["id"]]["fd"], self.pipes[rq["id"]]["isblob"], self.pipes[rq["id"]]["pos"], READBYTES, None)
+            self.send_blob(self.pipes[rq["id"]]["uri"], self.pipes[rq["id"]]["fd"], self.pipes[rq["id"]]["isblob"], self.pipes[rq["id"]]["pos"], READBYTES, None, self.pipes[rq["id"]]["arg"])
             del self.pipes[rq["id"]]
         else:
+            
+            if self.pipes[rq["id"]]["abort"]["ABORT"]: # esoteric method of aborting
+                return;
             
             blobid = rq["result"] # it may be a blobid OR a resulting STRING!!!
 
@@ -909,6 +925,10 @@ class BlobPipe(Resource):
                     "args": [self.pipes[rq["id"]]["pos"],READBYTES]
             };
             rq2["hub_oid"] = rq2["id"] # for compat
+            
+            rarg = self.pipes[rq["id"]]["arg"]
+            rarg.update(rq2)
+            rq2 = rarg
 
 
             if isblob:
@@ -920,7 +940,7 @@ class BlobPipe(Resource):
                         del self.pipes[rq["id"]]
                     else:
                         # request next block
-                        self.pipes[rq2["id"]] = {"rq": rq2, "request": self.pipes[rq["id"]]["request"], "pos": self.pipes[rq["id"]]["pos"]+READBYTES, "ts":time.time(), "uri": self.pipes[rq["id"]]["uri"], "dir": 0}
+                        self.pipes[rq2["id"]] = {"rq": rq2, "request": self.pipes[rq["id"]]["request"], "pos": self.pipes[rq["id"]]["pos"]+READBYTES, "ts":time.time(), "uri": self.pipes[rq["id"]]["uri"], "dir": 0, "arg": rarg, "abort": self.pipes[rq["id"]]["abort"]}
                         self.requestHub.self_receive(GETPIPE_TERMNAME, rq2) ## NO!! do not send to session
                         
                         del self.pipes[rq["id"]]
@@ -937,7 +957,7 @@ class BlobPipe(Resource):
                     # request next block
                     # COPYPASTE WARNING HERE!
 
-                    self.pipes[rq2["id"]] = {"rq": rq2, "request": self.pipes[rq["id"]]["request"], "pos": self.pipes[rq["id"]]["pos"]+READBYTES, "ts": time.time(), "uri": self.pipes[rq["id"]]["uri"], "dir": 0}
+                    self.pipes[rq2["id"]] = {"rq": rq2, "request": self.pipes[rq["id"]]["request"], "pos": self.pipes[rq["id"]]["pos"]+READBYTES, "ts": time.time(), "uri": self.pipes[rq["id"]]["uri"], "dir": 0, "arg": rarg, "abort": self.pipes[rq["id"]]["abort"]}
                     self.requestHub.self_receive(GETPIPE_TERMNAME, rq2) ## NO!! do not send to session
                     
                     del self.pipes[rq["id"]]
@@ -993,15 +1013,18 @@ class BlobPipe(Resource):
             #         else, try to encode the data in UTF-8 first
             #         if succeeded, deliver as TEXT argument, otherwise - as BLOB argument
             
-            
-            self.send_blob(request.path, fd2, isblob, 0, READBYTES, request)
+            rarg = {}
+            for v in request.args:
+                rarg[v] = request.args[v][0] # XXX DOC use only the FIRST entry parameter value
+    
+            self.send_blob(request.path, fd2, isblob, 0, READBYTES, request, rarg)
             return  server.NOT_DONE_YET
             
         return "OK"
 
 
-    def send_blob(self, uri, fd, isblob, pos=0, size=READBYTES, request = None):
-
+    def send_blob(self, uri, fd, isblob, pos=0, size=READBYTES, request = None, rarg = {}):
+        
         rq = {
                 "id": genhash(10)+str(newId()), 
                 "terminal_id": "/"+GETPIPE_TERMNAME, # will be changed by terminal anyways
@@ -1014,6 +1037,10 @@ class BlobPipe(Resource):
                 "method": "write",
         };
         rq["hub_oid"] = rq["id"] # for compat
+        
+        rarg.update(rq)
+        
+        rq = rarg
         
         #fd.seek(pos)
         data = fd.read(size)
@@ -1028,7 +1055,7 @@ class BlobPipe(Resource):
         else:
             rq["args"] = [data.decode("UTF-8"),pos]
 
-        if len(data) == size: self.pipes[rq["id"]] = {"pos": pos+size, "ts": time.time(), "uri": uri, "isblob": isblob, "fd": fd, "dir": 1, "request" : request};
+        if len(data) == size: self.pipes[rq["id"]] = {"pos": pos+size, "ts": time.time(), "uri": uri, "isblob": isblob, "fd": fd, "dir": 1, "request" : request, "arg": rarg};
         else: 
             if request: request.finish()
         self.requestHub.self_receive(GETPIPE_TERMNAME, rq)
