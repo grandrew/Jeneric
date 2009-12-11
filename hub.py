@@ -978,6 +978,18 @@ class BlobPipe(Resource):
             # and mark any waiting queues to start sending data [in fact, send data entirely]
             self.add_blob(sess, blobid, blob);
             return "OK"
+        elif "base64send" == request.prepath[0]:
+            try:
+                b64blob = request.args['data'][0]
+                blobid = request.args['blobid'][0]
+                sess = request.args['blob_session'][0]
+            except KeyError:
+                return "EPARM"
+            # now store the blob in the availability list
+            # and mark any waiting queues to start sending data [in fact, send data entirely]
+            self.add_blob(sess, blobid, b64blob.decode("hex")); 
+            return "OK"
+
         else:
             # try to parse the POST in a multipart form
             # and then sequentally write it to receiver
