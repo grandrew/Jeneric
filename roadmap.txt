@@ -56,7 +56,7 @@ TESTING - SERIALIZE
   - where to store creds?
 
 TESTING - HUB
-- data pipes
++ data pipes
 
 TESTING - DOM
 - DOM
@@ -188,6 +188,8 @@ ASSORTED TODO ITEMS
 - profile firefox memory leakage; general memory usage
 - alternative getChild for more object path resolution control
 - write a standard shared library: a shared library is in fact a cloud-based shared method storage. The library may load some code on-demand and will contain wrappers for cloud-based methods
+- gears fully autonomous operation vs. portable hub?
+- gears 'don't allow' to continue without gears instead of halting (?!?)
 kernel programming advisory: be careful with methods that stop the stack - report any possible error via try/catch and stack release w/throw
 
 ---------------
