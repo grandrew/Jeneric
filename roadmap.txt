@@ -64,6 +64,7 @@ TESTING - DOM
 
 TESTING - ALPHA
 
+- bugfixes below
 - cross browser code
 - write simplest but working security model
 - write security model for terminal (including TODOs for security in there
@@ -90,8 +91,8 @@ How to start communicating?
 
 HUB TODO
 --------------
-- Data pipe protocol
-  - including BLOB arguments transparent/mixed transfer (m.b. kernel parameters to control usage of Gears to deliver all messages?)
++ Data pipe protocol
+  + including BLOB arguments transparent/mixed transfer (m.b. kernel parameters to control usage of Gears to deliver all messages?)
     instead of native AJAX
 - HUB relay - the simplest integration (the PHP)
 - HUB relay with service plugins?? (PHP)
@@ -104,8 +105,8 @@ HUB TODO
 
 DATA PIPE proposal
 - integrated into web security model: session auth
-- an rq like GET jeneric.net/termname/var/test?session=XXXXX will create a set of requests to read() the data from location and set the session variable to request object for security model validation.
-- the same with POST/multipart with 'data' POST field set to file contents (how does it work exactly?)
++ an rq like GET jeneric.net/termname/var/test?session=XXXXX will create a set of requests to read() the data from location and set the session variable to request object for security model validation.
++ the same with POST/multipart with 'data' POST field set to file contents (how does it work exactly?)
 - for the POST and GET transfers of BLOBs we will need pipe support at the terminal.
 - arbitrary data transfer: pipe support at terminal!!
 - fixed storage suport is also required
@@ -118,8 +119,8 @@ ASSORTED TODO ITEMS
 ----------------------------------------------------------------------------
 
 + security: signRequest at work
-- getAbsoluteURI method
-- fix encoding (do utf-8 everywhere)
++ getMyAbsoluteURI method
++ fix encoding (do utf-8 everywhere)
 - LTR a more unix-like shell: cwd, etc..
 - terminal connection init SLOW
    - introduce connection API (in case we will want to disconnect manually?)
@@ -133,7 +134,7 @@ ASSORTED TODO ITEMS
         trace/profile that! 
         -> + because of the creation algorithm... see 4 full IPC calls + massive user-level code involved
         -> - parsing is slow! -> compile to binary!
-- hubAuthenticationChanged (and kconfig altering)
++ hubAuthenticationChanged (and kconfig altering)
 - general notification API?? invent general (kernel??) notification/subscription protocol!
 + maybe add object_security? TypeURI and SecurityURI to request object!?
 - implement passwd change in ic.jn (write program?)
@@ -142,7 +143,7 @@ ASSORTED TODO ITEMS
 - safe logout (notify the hub of sign-off)
   the hub should also drop session if there are many failed send attempts ?? or not?? no! 
 - ic: introduce more timeouts
-  typeto should be a better parse of exceptions
+- typeto should be a better parse of exceptions
 + supply kernel parameters as #-string in location: 
   http://go.jeneric.net/#init=/path/to/init,terminal_id=myterminal,terminal_key=TeRmPaSs
 - ramstore object notifications hooks (what notifications???? investigate this? like object ready, object modified, child added, etc?)
@@ -150,7 +151,7 @@ ASSORTED TODO ITEMS
 - remove default jn instance (code cleanup)
 - get rid of defineProperty
 - jsexec: Move the methods from highly closured state to unclosured.
-- investigate JSON-RPC compatibility
+- investigate JSON-RPC compatibility [stabilize error codes]
 + safe wrapper for Gears
 + THE MOST general terminal init object: read some autostart values locally/remotely(?)
   - DOCument this
@@ -190,6 +191,12 @@ ASSORTED TODO ITEMS
 - write a standard shared library: a shared library is in fact a cloud-based shared method storage. The library may load some code on-demand and will contain wrappers for cloud-based methods
 - gears fully autonomous operation vs. portable hub?
 - gears 'don't allow' to continue without gears instead of halting (?!?)
+- jeneric in 'prefix mode' - for easier integration: prefix="/hub.php" -> all requests go through "mysite.com/hub.php?q=/tcp/...", "mysite.com/hub.php?q=/os/ramstore.jn", etc. 
+  - pass jeneric kernel parameters in integration-friendly mode
+- do eosinit, etc. via callable init() routine for integration
+- detach security reference from vm.global (and attach to vm.security, having all(almost?) sec defined in a 'security' object)
+- absolute path resolution improvement: watch for LIPC requests defined as WIPC; do not send through HUB
+- steal unit tests for DOM
 kernel programming advisory: be careful with methods that stop the stack - report any possible error via try/catch and stack release w/throw
 
 ---------------

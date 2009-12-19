@@ -1535,6 +1535,15 @@ Jnaric.prototype.putValue = function (v, w, vn) {
         }
         */
         //return r; 
+        if(v.base && v.base.___setters && v.base.___setters[v.propertyName]) {
+            if(v.base.___setters[v.propertyName] == 1) {
+                throw new TypeError("JNARIC: setting a property that has only a getter", vn.filename, vn.lineno);
+            }
+            return v.base.___setters[v.propertyName].apply(v.base, [v.propertyName, w]);
+            // r not equalling to value should be treated as failed setter set attempt ? XXX decide on that
+            // currently, a setter is not allowed to fail
+        }
+
         return (v.base || this.global)[v.propertyName] = w;
         //var vr = w;
         //if(v.base) v.base[v.propertyName] = w;
@@ -1568,7 +1577,11 @@ Jnaric.prototype.getValue = function (v) {
             return; // return undefined
         }
         if(v.propertyName.substr(0,3) == "___") throw (new this.global.InternalError("JNARIC: triple underscore is reserved")); 
-        
+        // implement hard-coded getter
+        if(v.base.___getters && v.base.___getters[v.propertyName]) {
+            // return value returned by getter
+            return v.base.___getters[v.propertyName].apply(v.base, [v.propertyName]);
+        }
         return v.base[v.propertyName];
     }
     return v;
