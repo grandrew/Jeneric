@@ -54,12 +54,16 @@ _terminal_vm.global.wakeupIPCLock = new _terminal_vm.global.Lock();
 
 
 // BINDING part
-var dmb = document.createElement("DIV");
-dmb.style.width = "100%";
-document.body.appendChild(dmb);
+//var dmb = document.createElement("DIV");
+//dmb.style.width = "100%";
+//document.body.appendChild(dmb);
 
-_dmb = new __HTMLElement(_terminal_vm, "DIV" );
-_dmb.___link = dmb;
+var d = new DOMImplementation(); // SLOW??
+ddocument = d.loadXML("<div/>"); // SLOW???
+_dmb = ddocument.documentElement;
+//_dmb = new __HTMLElement(_terminal_vm, "DIV" );
+_dmb.___link.style.width = "100%";
+document.body.appendChild(_dmb.___link);
 
 _terminal_vm.bind_dom(_dmb); // TODO bind to fake DOM element since it is currently impossible to serialize DOM-enabled elements
 _terminal_vm.bind_om(); // bind the protected EOS object model

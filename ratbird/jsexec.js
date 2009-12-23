@@ -901,7 +901,7 @@ function Jnaric() {
                 var a = Array.prototype.splice.call(args, 0, args.length);
                 a.__defineProperty__('callee', fun, false, false, true);
             } else {
-                a = [];
+                var a = [];
                 a.__defineProperty__('callee', fun, false, false, true);
             }
             var f = fun.node;

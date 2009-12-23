@@ -197,6 +197,10 @@ ASSORTED TODO ITEMS
 - detach security reference from vm.global (and attach to vm.security, having all(almost?) sec defined in a 'security' object)
 - absolute path resolution improvement: watch for LIPC requests defined as WIPC; do not send through HUB
 - steal unit tests for DOM
+- set and debug for DOCTYPE strict setting (mozilla will render faster) see https://developer.mozilla.org/en/Migrate_apps_from_Internet_Explorer_to_Mozilla
+- rename all exceptions that use JNARIC: to JENERIC: ; also remove 'JENERIC: ' from exception string to be in conformance
+- jsdmo: better DOM cache cleanup upon removal :-\
+- check that ["___prop"] indexing is protected (triple underscore indexes are not supported TypeError)
 kernel programming advisory: be careful with methods that stop the stack - report any possible error via try/catch and stack release w/throw
 
 ---------------

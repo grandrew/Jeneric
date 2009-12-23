@@ -1,8 +1,11 @@
 <html>
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+<!-- misc util -->
 <script type="text/javascript" src="ratbird/DataRequestor.js"></script>
 <script type="text/javascript" src="ratbird/json2.js"></script>
+
+<!-- kernel -->
 <script type="text/javascript" src="ratbird/jsdefs.js"></script>
 <script type="text/javascript" src="ratbird/jsparse.js"></script>
 <script type="text/javascript" src="ratbird/jsexec.js"></script>
@@ -10,10 +13,14 @@
 <!-- we need gears here-->
 <script type="text/javascript" src="os/gears_init.js"></script>
 <script type="text/javascript" src="os/jsobject.js"></script>
+
+<!-- full dom wrapper -->
+<script type="text/javascript" src="os/xmlsax.js"></script>
+<script type="text/javascript" src="os/jsdom2.js"></script>
 <script type="text/javascript" src="os/jsdom.js"></script>
 
+<!-- orbited init -->
 <script> document.domain = document.domain; </script>
-
 <script src="static/Orbited.js"></script>
 <script>
   TCPSocket = Orbited.TCPSocket;
@@ -21,11 +28,10 @@
 <script src="static/protocols/stomp/stomp.js"></script>
 
 </head>
+
 <body>
 
-<script type="text/javascript">
-</script>
-
+<!-- init system TODO: do this via JS init() method, not directly -->
 <script type="text/javascript" src="os/eosinit.js"></script>
 
 </body>
