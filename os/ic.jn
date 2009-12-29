@@ -164,7 +164,7 @@ while(true) {
         // xedit - highlighting text editor; determine filetype by name/ext or by mimetype, if any returned
         break;
       case "version":
-        printDOM("Version ic# 0.0.1 pre-alpha; registered as "+object.getMyURI() + "; Running on kernel version "+object.version);
+        printDOM("Version ic# 0.0.1 pre-alpha; registered as "+object.getMyAbsoluteURI() + "; Running on kernel version "+object.version);
         brDOM();
         break;
       case "ls":

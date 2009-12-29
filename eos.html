@@ -14,14 +14,15 @@
 <script type="text/javascript" src="os/gears_init.js"></script>
 <script type="text/javascript" src="os/jsobject.js"></script>
 
-<!-- full dom wrapper -->
+<!-- orbited init -->
+<script> document.domain = document.domain; </script>
+<script src="static/Orbited.js"></script>
+
+<!-- full dom wrapper: orbited is needed for btoa wrapper -->
 <script type="text/javascript" src="os/xmlsax.js"></script>
 <script type="text/javascript" src="os/jsdom2.js"></script>
 <script type="text/javascript" src="os/jsdom.js"></script>
 
-<!-- orbited init -->
-<script> document.domain = document.domain; </script>
-<script src="static/Orbited.js"></script>
 <script>
   TCPSocket = Orbited.TCPSocket;
 </script>

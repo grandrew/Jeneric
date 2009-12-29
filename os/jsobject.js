@@ -2331,7 +2331,8 @@ Jnaric.prototype.bind_om = function () {
         return __tihs.uri;        
     };
     this.global.object.getMyAbsoluteURI = function() {
-        return KCONFIG["terminal_id"] + __tihs.uri.split("~",1)[1]; // to remove ~ or fail :-\       
+        //return KCONFIG["terminal_id"] + __tihs.uri.split("~",1)[1]; // to remove ~ or fail :-\       
+        return KCONFIG["terminal_id"] + __tihs.uri.slice(1);     
     };    
     this.global.object.getMyTypeURI = function() {
         return __tihs.TypeURI;        

@@ -478,7 +478,7 @@ __jn_stacks = {
         
         // okay now burst the stack!
         var ot = (new Date()).getTime(), i = 0, curtm = (new Date()).getTime();
-        var rt, st, steps,bc,j;
+        var rt, st, steps,bc,j,ex_status;
 
         // create a copy of currently bursting stack
         var stacks_running_copy = [].concat(this.stacks_running);
@@ -517,7 +517,15 @@ __jn_stacks = {
                 // WARNING! stepping could push another task into stacks_running
                 //          so the 'i' will not correspond to the right value anymore
                 //          so do the splices over there VERY carefully...
-                if(!st.vm.step_next(st.stack)) { // means the stack finished
+                
+                try {
+                    ex_status = st.vm.step_next(st.stack);
+                } catch (exc) { // will not stop scheduler!
+                    if(window.console) console.log(exc);
+                    ex_status = false;
+                }
+                
+                if(!ex_status) { // means the stack finished
                     //stacks_running_copy.splice(i,1);
                     for(j=0; j<this.stacks_running.length;j++) {
                         if(this.stacks_running[j] == st) {
@@ -527,6 +535,7 @@ __jn_stacks = {
                     }
                     break;
                 }
+                
                 curtm = (new Date()).getTime();
             }
             
@@ -1958,6 +1967,14 @@ Jnaric.prototype.step_next = function (g_stack) {
         } else {
             // TODO: add onerror event alongside with onfinish
             this.ErrorConsole.log("vm error: throwing exception '"+e.toString()+"' " + (e.message ? (e.message + ": ") : "") +(e.message ? e.message : "")+"' Stack trace: "+__print_strace(g_stack));
+            if(e.toString() == "[object Object]") {
+                this.ErrorConsole.log("dumb exception obect found; inspecting object to get more information:");
+                var ress = "";
+                for(var eo in e) {
+                    ress = ress + eo + "=" + e[eo] + "; ";
+                }
+                this.ErrorConsole.log(ress);
+            }
             // purge stack and all possible exceptions??
             delete g_stack.EXCEPTION;
             do {
@@ -3984,7 +4001,7 @@ Jnaric.prototype.evaluate_thread = function (s, f, l) {
 }
 
 
-Jnaric.prototype.execf_thread = function (func, args, onok, onerr, nice) {
+Jnaric.prototype.execf_thread = function (func, args, onok, onerr, nice, thisObject) {
 
           // TODO: execf with ref as parameter
           // TODO: thread NICE
@@ -3998,6 +4015,8 @@ Jnaric.prototype.execf_thread = function (func, args, onok, onerr, nice) {
     
     
     var x2 = new this.ExecutionContext(GLOBAL_CODE);
+    if(typeof(thisObject) == "undefined") x2.thisObject = this.global;
+    else x2.thisObject = thisObject;
 
 
     if(typeof(args) != "undefined" ) {

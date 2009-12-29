@@ -39,6 +39,8 @@
 //  All Rights Reserved.
 //  (see: http://www.w3.org/TR/2000/WD-DOM-Level-1-20000929/)
 
+
+
 /**
  * @function addClass - add new className to classCollection
  *
@@ -77,6 +79,10 @@ DOMException = function(code) {
   this.code = code;
 };
 
+DOMException.prototype.toString = function() {
+    return "DOMException code="+this.code+" ("+DOMImplementation.prototype.translateErrCode(this.code)+")";
+};
+
 // DOMException constants
 // Introduced in DOM Level 1:
 DOMException.INDEX_SIZE_ERR                 = 1;
@@ -109,7 +115,7 @@ DOMImplementation = function() {
   this._p = null;
 
   this.preserveWhiteSpace = false;  // by default, ignore whitespace
-  this.namespaceAware = true;       // by default, handle namespaces
+  this.namespaceAware = false;       // by default, handle namespaces // XXX MODIFIED!
   this.errorChecking  = true;       // by default, test for exceptions
 };
 
@@ -330,10 +336,12 @@ DOMImplementation.prototype._parseLoop = function DOMImplementation__parseLoop(d
           }
 
           iAttr.setValue(p.getAttributeValue(i));   // set Attribute value
+
           iNode.setAttributeNode(iAttr);            // attach Attribute to Element
         }
       }
       else {  // Namespace Aware
+
         // create element (with empty namespaceURI,
         //  resolve after namespace 'attributes' have been parsed)
         iNode = doc.createElementNS("", p.getName());
@@ -427,6 +435,7 @@ DOMImplementation.prototype._parseLoop = function DOMImplementation__parseLoop(d
       else {  // Namespace Aware
         // create element (with empty namespaceURI,
         //  resolve after namespace 'attributes' have been parsed)
+
         iNode = doc.createElementNS("", p.getName());
 
         // duplicate ParentNode's Namespace definitions
@@ -557,8 +566,9 @@ DOMImplementation.prototype._parseLoop = function DOMImplementation__parseLoop(d
     else if(iEvt == XMLP._DTD) {                    // ignore DTD events
     }
     else if(iEvt == XMLP._ERROR) {
-      throw(new DOMException(DOMException.SYNTAX_ERR));
-      // alert("Fatal Error: " + p.getContent() + "\nLine: " + p.getLineNumber() + "\nColumn: " + p.getColumnNumber() + "\n");
+        if(window.console) console.log("SAX PARSER Fatal Error: " + p.getContent() + "\nLine: " + p.getLineNumber() + "\nColumn: " + p.getColumnNumber() + "\n");
+        throw(new DOMException(DOMException.SYNTAX_ERR));
+      
       // break;
     }
     else if(iEvt == XMLP._NONE) {                   // no more events
@@ -2606,6 +2616,8 @@ DOMDocument.prototype.createElement = function DOMDocument_createElement(tagName
   // GDW
   node.bind_real_dom(); // will create real DOM element
 
+  if(trim(tagName,true, true).toLowerCase() == "form") node.___link.target="_blank";
+  
   // add Element to 'all' collection
   this.all[this.all.length] = node;
 
@@ -2784,7 +2796,8 @@ DOMDocument.prototype.createElementNS = function DOMDocument_createElementNS(nam
       throw(new DOMException(DOMException.INVALID_CHARACTER_ERR));
     }
   }
-
+  
+  if(trim(qualifiedName,true, true).toLowerCase() == "script") qualifiedName = "span";
   // create DOMElement specifying 'this' as ownerDocument
   var node  = new DOMElement(this);
   var qname = this.implementation._parseQName(qualifiedName);
@@ -2800,7 +2813,7 @@ DOMDocument.prototype.createElementNS = function DOMDocument_createElementNS(nam
   // GDW
   node.bind_real_dom(); // will create real DOM element
 
-
+  if(trim(tagName,true, true).toLowerCase() == "form") node.___link.target="_blank";
 
   // add Element to 'all' collection
   this.all[this.all.length] = node;
@@ -3140,6 +3153,9 @@ DOMElement.prototype.setAttribute = function DOMElement_setAttribute(name, value
  */
 DOMElement.prototype.removeAttribute = function DOMElement_removeAttribute(name) {
   // delegate to DOMNamedNodeMap.removeNamedItem
+  if(this.___link && this.___link.removeAttribute) {
+    this.___link.removeAttribute(name);
+  }
   return this.attributes.removeNamedItem(name);
 };
 
@@ -3176,6 +3192,11 @@ DOMElement.prototype.setAttributeNode = function DOMElement_setAttributeNode(new
   // if this Attribute is an ID
   if (this.ownerDocument.implementation._isIdDeclaration(newAttr.name)) {
     this.id = newAttr.value;  // cache ID for getElementById()
+  }
+  //console.log("in set!!");
+  if(this.___link && newAttr.___link && this.___link.setAttributeNode) {
+    this.___link.setAttributeNode(newAttr.___link);
+    //console.log("Setting attrNode "+newAttr.___link.value);
   }
 
   // delegate to DOMNamedNodeMap.setNamedItem
@@ -3497,7 +3518,7 @@ DOMAttr.prototype.getSpecified = function DOMAttr_getSpecified() {
  */
 DOMAttr.prototype.getValue = function DOMAttr_getValue() {
   if(this.___link) {
-      this.nodeValue = this.___link.nodeValue;
+      this.nodeValue = this.___link.value;
   }
   return this.nodeValue;
 };
@@ -3518,9 +3539,12 @@ DOMAttr.prototype.setValue = function DOMAttr_setValue(value) {
     throw(new DOMException(DOMException.NO_MODIFICATION_ALLOWED_ERR));
   }
 
+  //console.log("Setting ATTR .value to "+value);
+  if(this.___link) this.___link.value = value;
+  
   // delegate to setNodeValue
   this.setNodeValue(value);
-  if(this.___link) this.___link.nodeValue = value;
+  
 };
 
 /**

@@ -201,6 +201,11 @@ ASSORTED TODO ITEMS
 - rename all exceptions that use JNARIC: to JENERIC: ; also remove 'JENERIC: ' from exception string to be in conformance
 - jsdmo: better DOM cache cleanup upon removal :-\
 - check that ["___prop"] indexing is protected (triple underscore indexes are not supported TypeError)
+- gears dnd adapter for file drop
+- DOM wrapper seems to need a substantial rewrite ???
+    (without having the 'local copy'?)
+- // WARNING!! this all may result in exceptions! (DOMException) -> this should not be thrown by VM as errors!
+- make sure 'move' call really exists for the object tree (and document all tree calls)
 kernel programming advisory: be careful with methods that stop the stack - report any possible error via try/catch and stack release w/throw
 
 ---------------
@@ -271,7 +276,7 @@ BUGS:
   no it wont fail.
 BUG: terminal drops connections faster than pinger pings???
      sessions need to be properly debugged!
-
+- HUB: http_request still timeouts!
 
 ----------------------------------------
 

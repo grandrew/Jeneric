@@ -649,11 +649,11 @@ CONN_TIMEOUT = 100 # seconds
 BLOB_TIMEOUT = 150 # seconds, to be sure all connections already dropped
 PIPE_TIMEOUT = 150 # seconds to transfer a READBYTES chunk
 
-READBYTES = 10 # 20000 # 20k bytes
+READBYTES = 20000 # 20000 # 20k bytes
 TREAT_AS_BLOB_SIZE = 1000000 # 1 mb to treat as BLOB
 GETPIPE_TERMNAME = "http_request" # name of DataPipe static terminal
 
-# DEFS
+# DEFS DONT TOUCH
 ENCODE = 0
 REQUEST = 1
 TIME = 2
@@ -741,23 +741,8 @@ class BlobPipe(Resource):
         return self
 
     def render_GET(self, request):
-        if not self.clean1: 
-            # XXX the ugly initializtiona way
-            self.clean1 = LoopingCall(self.conn_checkdrop)
-            self.clean1.start(CONN_TIMEOUT)
-            self.clean2 = LoopingCall(self.blob_checkdrop)
-            self.clean2.start(BLOB_TIMEOUT)
-            self.clean3 = LoopingCall(self.pipe_checkdrop)
-            self.clean3.start(PIPE_TIMEOUT)
-            
-            # now init the requestHUb object
-            self.requestHub = h;
-
-            termid = GETPIPE_TERMNAME
-            self.requestHub.register_session(termid, self.blobreceived); 
-            
         
-        
+        self.preinit();
                 
         if "base64send" == request.prepath[0]:
             try:
@@ -963,10 +948,28 @@ class BlobPipe(Resource):
                     del self.pipes[rq["id"]]
                     #print "rq2 is", rq2["id"], (rq2["id"] in self.pipes)
                     # END COPYPASTE WARNING!!!@!@
-                    
+    def preinit(self):
+        if not self.clean1: 
+            # XXX the ugly initializtiona way
+            self.clean1 = LoopingCall(self.conn_checkdrop)
+            self.clean1.start(CONN_TIMEOUT)
+            self.clean2 = LoopingCall(self.blob_checkdrop)
+            self.clean2.start(BLOB_TIMEOUT)
+            self.clean3 = LoopingCall(self.pipe_checkdrop)
+            self.clean3.start(PIPE_TIMEOUT)
+            
+            # now init the requestHUb object
+            self.requestHub = h;
+
+            termid = GETPIPE_TERMNAME
+            self.requestHub.register_session(termid, self.blobreceived); 
+            
 
     def render_POST(self, request):
         #[]
+        
+        self.preinit();
+        
         if "blobsend" == request.prepath[0]:
             #pass # do receive the blob in base64
             blob = request.content.read(); # the body of request         
@@ -1017,7 +1020,8 @@ class BlobPipe(Resource):
             fd.seek(0)
             
             fd2 = cStringIO.StringIO()
-            fd2.write(fd.read()) # SHIT. why the FUCK do I need to copy it every time???
+            # fd2.write(fd.read()) # SHIT. why the FUCK do I need to copy it every time???
+            fd2.write(request.args['file'][0]); # only one file is supported per upload!
             fd2.seek(0)
             
             # XXX DOC

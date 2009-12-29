@@ -1,44 +1,16 @@
 /*
 
-
-TODO NOW
-
-
-+ element.waitEvent: temporarily bind to event; similar to addEventListener x.waitEvent("keyup");
-    + event interface!! -  e.keyCode || e.wich ?
-    - event queue ! LATER.6
-    + ie && others - see event type
-+ document.createElement("DIV");
-+ x.style
-+ document.createTextNode(txt);
-+ x.appendChild(t);
-+ document.body (.appenChild() ...)
-+ x.focus();
-+ setAttr("contentEditable", val) x.contentEditable = true; (?!?!?) - do set_contentEditable() and get_contentEditable()
-+ t.nodeValue - do get_nodeValue() (!!! we cannot support getters/setters due to future possible SUBJIT problems)
-
-
-
 Seems that we're going to implement
 http://www.w3.org/TR/2000/REC-DOM-Level-2-Core-20001113/java-binding.html
 and not
 http://www.w3.org/TR/2000/REC-DOM-Level-2-Core-20001113/ecma-script-binding.html
 
-- bind_event: bind an event (??) -- this is a native method...
-
-- TODO GETTERS/SETTERS!
-- cookie storage
- - append some VMID(PID? DOMID?) to all IDs of elements of the DOM? then getElementById() will prepend the DOMID to request
-   and that will be a much faster search?
- - getElementById
- - getElementsByTagName: run the method, then 
 */
 
 
 Jnaric.prototype.bind_dom = function (wrapped_domElement) {
     
-    // TODO HERE: if domElement is undefined - bind to Fake DOM element
-    
+  
     /*
     if(typeof domElement == 'undefined')
         var l_body = new __HTMLElement(this, "BODY"); //fake element
@@ -72,19 +44,25 @@ Jnaric.prototype.bind_dom = function (wrapped_domElement) {
     this.global.document.___vm = this;
     
     
-    this.global.window = { // TODO: reimplement!
-        scrollTo: function ( x, y ) {
-            window.scrollTo(x,y);
-        }
-    };
+    this.global.window = new __Window();
+    
+    // now extend global with window
+    for(var o in this.global.window) {
+        this.global[o] = this.global.window[o];
+    }
+    
+    this.global.window.document = this.global.document;
+    this.global.window.location = "JENERIC";
+    this.global.window.parent = this.global.window;
+    this.global.window.top = this.global.window;
+    this.global.window.window = this.global.window;
+    this.global.window.self = this.global.window;
+    
     
 };
 
 // XXX LAME! the ___ property can still be accessed via obj["___propname"]
 
-
-
-// TODO: implement a virtual getter/setter interface here to defeat browser incompatibless
 
 /*
 
@@ -100,30 +78,55 @@ TODO
     ? meth: document.[STD DOM], createEvent, hasFocus, ?write, (ononline, onoffline - MOZ)
     - body: set at inittime
 + implement event model
-- do the switch to xmldom2 as described in bind_dom
-- run all the above shit
-- introduce DOM clean hooks (and general clear on DELETE object event)
-- test new clean hooks (the apps to remove from DOM)
-
-- getComputedStyle(elementRef, pseudoElementName) Not supported in IE, which uses the "currentStyle" property instead.
-    and others. WTF??
-- implement each HTML element interface as of mozilla DOM reference https://developer.mozilla.org/en/gecko_dom_reference
-- implement execCommand
-- window full support: selection, etc.
++ do the switch to xmldom2 as described in bind_dom
++ run all the above shit
+((( do we need this ever?
+    - introduce DOM clean hooks (and general clear on DELETE object event)
+        - or clean DOM by calling clean by a parent? Then notify parent of child finish() (maybe thru iclib?)
+    - test new clean hooks (the apps to remove from DOM)
+)))
++ window.getComputedStyle(elementRef, pseudoElementName) Not supported in IE, which uses the "currentStyle" property instead.
++ window full support: selection, etc.
     - props: innerHeght/width to be set to containing element
     - methods:
++ selection objects WRAP
+    - securioty issue of toString
++ range objects WRAP
+    + document.createRange
+    - security issue
+    - internal XML mods
++ implement execCommand
++ event handlers: set 'this' pointer to the needed value (& modify the ABI of execf)
++ set 'navigator': 
+    + userAgent object to return 'Jeneric (Gecko translator Jeneric 0.1)'
+    + product to equal "Gecko"
++ set 'window.virtual' object to contain information about current VM: running environment, real user agent, etc.
+
+- implement each HTML element interface as of mozilla DOM reference https://developer.mozilla.org/en/gecko_dom_reference
+    + link
+    + form
+    - select
+    (others, see https://developer.mozilla.org/en/gecko_dom_reference)
+    see rhino env.js anyways; Gecko ref is incomplete
+    http://www.google.com/codesearch/p?hl=en#PSg8XFiA2K0/plugins/jXmanip/lib/env.js&q=lang:javascript%20env.js%20rhino&sa=N&cd=1&ct=rc
 - FORM SUBMIT healing with _target https://developer.mozilla.org/en/DOM/element.name - iframe name (associated with each form?)
-- LINK HREF with _target = _blank
     - create a default named target for all this stuff
-- selection objects WRAP
-- range objects WRAP
-    - with these it is that element cache for ___link back-resolving is required
+    - implement a _target controlled setter (to set target to what is desired for developer)
+- LINK HREF with _target = _blank
+- IFRAME to support DOMDocument interface.. see http://www.mozilla.org/editor/ie2midas.html and others
+
 - support for CSS loading/unloading and cleanup alongside with DOM!
-
-
-
+    - allow apps to detect which browser is in case
+- create IE-specific wrappers:  
+    - add Event IE properties, window.event object
+    - document.selection & TextContent
+    - document.designMode
+- implement *NS DOM methods: createElementNS and others,
 - XXX TODO: remember the form submit problems as well as links problems (set navigate-away notifier?? with kernel disable initline)
 
+wtf is: 
+     // fix IE image caching issue
+     4:         document.execCommand("BackgroundImageCache", false, true);
 
 - CSS: setting-by-id problem? need to tweak element IDs??? ever possible to set CSS to elements without distortion?
 
@@ -302,7 +305,29 @@ ___DOMHTMLGetters = {
     onmouseup : __get_onevent_listener,
     onresize : __get_onevent_listener,
     onscroll : __get_onevent_listener,
-    onsubmit : __get_onevent_listener
+    onsubmit : __get_onevent_listener,
+    
+    // HTML element interface
+    
+    // link properties
+    
+    charset: __htmldom_get_direct,
+    disabled: __htmldom_get_direct,
+    href: __htmldom_get_direct,
+    hreflang: __htmldom_get_direct,
+    media: __htmldom_get_direct,
+    rel: __htmldom_get_direct,
+    rev: __htmldom_get_direct,
+    target: __htmldom_get_direct,
+    type: __htmldom_get_direct,
+    
+    // form
+    
+    action : __htmldom_get_direct,
+    enctype : __htmldom_get_direct,
+    encoding : __htmldom_get_direct,
+    method : __htmldom_get_direct
+    
     
 };
 
@@ -310,23 +335,33 @@ ___DOMHTMLGetters = {
 ___DOMHTMLSetters = {
     contentEditable: __htmldom_set_direct,
     innerHTML: function (name, value) {
+        /*
         // parse through innerHTML
+        // XXX it introduces HTML4 quirksmode errors so is not appropriate for parsing now.
+        // the system will only accept strict XML
         if(typeof document != "undefined" && document.createElement) {
             var tmp_t = document.createElement(this.tagName);
             tmp_t.innerHTML = value; // parse
             value = tmp_t.innerHTML; // get... ECMAbindings :-\
         }
-        
+        */
         // clear current element's child list
         delete this.childNodes; //._nodes;
-        // this.childNodes._nodes = [];
+        this.childNodes._nodes = [];
         // parse as innerHTML and get the parsed values, then re-parse the correct XML with our parser
         // not attaching it anywhere onevent
         var di = new DOMImplementation();
         // XXX namespace-inaware!! TODO: more conformace
         // not quite conforming to http://www.w3.org/TR/2008/WD-html5-20080610/dom.html#innerhtml1
+        //console.log("Setting innerHTML to: "+value);
         var dom = di.loadXML("<"+this.tagName+">"+value+"</"+this.tagName+">"); 
-        this.childNodes = dom.documentElement.childNodes;
+        //this.childNodes = dom.documentElement.childNodes; // what with ownerDocument??
+        this.___link.innerHTML = "";
+        // TODO: deal with memory-management mess here (ownerDocument, delete old DI, parents, etc. refs)
+        for(var i=0; i<dom.documentElement.childNodes.getLength(); i++) {
+            dom.documentElement.childNodes.item(i).ownerDocument = this.ownerDocument; // like w3c? 
+            this.appendChild(dom.documentElement.childNodes.item(i));
+        }
     },
     
     textContent: function (name, value) {
@@ -397,8 +432,31 @@ ___DOMHTMLSetters = {
     onmouseup : __set_onevent_listener,
     onresize : __set_onevent_listener,
     onscroll : __set_onevent_listener,
-    onsubmit : __set_onevent_listener
+    onsubmit : __set_onevent_listener,
 
+    // HTML element interface
+    
+    // link properties
+    
+    charset: __htmldom_set_direct,
+    disabled: __htmldom_set_direct,
+    href: __htmldom_set_direct,
+    hreflang: __htmldom_set_direct,
+    media: __htmldom_set_direct,
+    rel: __htmldom_set_direct,
+    rev: __htmldom_set_direct,
+    target: function (name, val) {
+        if(this.tagName.toLowerCase() == "a") return; // if link -> always set to _blank
+        // if form -> set to NAME; and never set to _self
+        if(val != "_self") this[name] = val;
+    },
+    type: __htmldom_set_direct,
+    
+    // form
+    action : __htmldom_set_direct,
+    enctype : __htmldom_set_direct,
+    encoding : __htmldom_set_direct,
+    method : __htmldom_set_direct
 };
 
 
@@ -427,6 +485,15 @@ compareElementPosition (???) check that
 https://developer.mozilla.org/En/DOM/Node.isSupported
 
 */
+
+// form
+DOMElement.prototype.submit = function ( ) {
+    if(this.___link && this.___link.submit) this.___link.submit();
+};
+//form
+DOMElement.prototype.reset = function ( ) {
+    if(this.___link && this.___link.reset) this.___link.reset();
+};
 
 DOMElement.prototype.focus = function ( ) {
     if(this.___link && this.___link.focus) this.___link.focus();
@@ -674,10 +741,11 @@ DOMDocument.prototype.___rebuild_cache = function () {
 // warning for event model: 
 // + set to callable methods only 
 // + call in multi-threaded mode DOC IT
-// What to do with external calls to onsmth()?? 
-//  processes can access each other's DOM values and execute methods cross-vm. That's BAD!
-//  if the method is calling something with a lock -> the lock may be lost in stacks :-\ TODO resolve this!
-//  TODO: AT LEAST detect this situation!
+// - What to do with external calls to onsmth()?? 
+//      processes can access each other's DOM values and execute methods cross-vm. That's BAD!
+//      if the method is calling something with a lock -> the lock may be lost in stacks :-\ TODO resolve this!
+//      TODO: AT LEAST detect this situation!
+// - the events are fired each as new thread! this is dangerous! especially when everything is SO SLOW
 */
 
 /* EVENT MODEL
@@ -862,7 +930,7 @@ DOMElement.prototype.addEventListener = function ( type, listener, useCapture ) 
         var e = new __Event(vm, e); // create an event based on real event
         // TODO: more verbosity here
         var evt_fakeerr = function ( err ) { vm.ErrorConsole.log("Error executing event handler: "+err); };
-        vm.execf_thread(listener, [e], fake, evt_fakeerr); 
+        vm.execf_thread(listener, [e], fake, evt_fakeerr, undefined, e.target); 
     };
     
     // now register event
@@ -1004,6 +1072,7 @@ function __Event(vm, event) { // ABI WARNING!! event objects are attached to a d
     this.___link = event;
 
     this.altKey = event.altKey;
+    this.ctrlKey = event.ctrlKey;
     this.clientX = event.clientX;
     this.clientY = event.clientY;
     this.screenX = event.screenX;
@@ -1102,161 +1171,550 @@ function __get_onevent_listener(name) {
     return null; // means unset
 }
 
-
-
 ////////////////////////////////////////////////////////////////////
-// OLD CODE GOES BELOW
+// WINDOW model
 ////////////////////////////////////////////////////////////////////
+
 /*
-function __HTMLElement( vm, sTagName ) {
-    this.tagName = sTagName;
-    this.nodeType = 1;
-    
-    if(sTagName instanceof HTMLElement) {
-        this.___link = sTagName;
-        this.tagName = sTagName.tagName; // WARNING! the VM will not have 'BODY' element EVER!
-    } else if (sTagName instanceof __HTMLElement) {
-        this.___link = sTagName.___link;
-        this.tagName = sTagName.tagName;
-    } else {
-        this.___link = document.createElement(sTagName);
-    }
-    
-    this.___vm = vm;
-    this.___childNodes = []; // todo: getter interface for this??
-                             // todo: bind to readily available __HTMLElement with childNodes?
-    this.style = this.___link.style;
-}
+--- GETTERS/SETTERS LIST
 
-__HTMLElement.prototype.appendChild = function ( element ) {
-    this.___childNodes.push(element);
-    //console.log("running appendChild of "+element.nodeType + " exact " + element.___link.nodeType + " on " + this.tagName + " exact " + this.___link.tagName );
-    //console.log(this.___link);
-    //console.log(element.___link);
-    this.___link.appendChild( element.___link );
-    //console.log("now childNodes is");
-    //console.log(this.___link.childNodes);
-    
-};
+-- SET BY INIT:
++ document
++ location
++ parent
++ top
++ window
++ self
 
-__HTMLElement.prototype.focus = function ( ) {
-    this.___link.focus();
-};
+-- IMPLEMENT GETTERS:
++ innerHeight
++ innerWidth
++? name
++ outerHeight
++ outerWidth
++ scrollX
++ scrollY
+
+screen ???
+
+(((
+!    navigator
+!    history
+)))
 
 
-__setAttrs = {
-    contentEditable: null,
-    textContent: function (n, v) {
-        if("textContent" in n) {
-           n.textContent = v;
-        }
-        else n.innerText = v;
-    }    
-};
+--- METHODS
 
-__getAttrs = {
-    contentEditable: null,
-    innerHTML: null,
-    textContent: function (n) {
-        if("textContent" in n) return n.textContent;
-        return n.innerText;
-    }
-};
+LEGEND: 
+    + - implemented 
+      - unimplemented 
+    ! - incompatible and should be avoided
+    ? - undecided
 
-// WARNING!!! DANGEROUS METHOD - gives access to anything !?!
-// - or - block unauthorised ??
-__HTMLElement.prototype.setAttr = function ( attrName, value) {
-    if(!(attrName in __setAttrs)) return;
-    if(__setAttrs[attrName]) {
-        __setAttrs[attrName](this.___link, value);
-    } else this.___link[attrName] = value;
++ atob
++ btoa
+! back
+! blur
 
-    
-};
+    // TODO: decide will these be compatible or not??
+addEventListener ? -> document.addEventListener
+    onload!!
+removeEventListener
 
-__HTMLElement.prototype.getAttr = function ( attrName ) {
-    if(!(attrName in __getAttrs)) return;
-    if(__getAttrs[attrName]) {
-        return __getAttrs[attrName](this.___link);
-    } else return this.___link[attrName];
-};
++ clearInterval
++ clearTimeout
+! close
+! confirm
 
-__HTMLElement.prototype.waitEvent = function ( eType, timeout ) {
-    // block the current calling stack
-    timeout = timeout || 0;
-    var cs = this.___vm.cur_stack;
-    var x2 = cs.my.x2; // set x2.result
-    cs.EXCEPTION = false;
-    var mySTOP = __jn_stacks.newId();
-    cs.STOP = mySTOP;
-    var elmt = this;
-    
-    
-    var evt = function (e) {
-        // catch MS event
-        var characterCode;
++ escape
+! focus
+! find
+! forward
+! getAttention (?)
 
-        e = e || event
-        
-        if(e.target != elmt.___link) return; // bypass
-        
-        var ev = new __Event(e.type);
-        ev.target = elmt;
-        ev.keyCode = e.keyCode;
-        ev.ctrlKey = e.ctrlKey;
++ getComputedStyle
 
-        // now unregister event
-        if(elmt.___link.addEventListener) elmt.___link.removeEventListener(eType, evt, true);
-        else elmt.___link.detachEvent("on"+eType, evt); // IE
+getSelection !!!!!!!!!!!!!-> mozilla
+    AND I do not know what to do with IE currently
+    ... just implement it as-is for IE! everybody has already done everything needed to support that stuff
+    check out IERange project!! 
 
-        
-        x2.result = ev;
-        cs.EXCEPTION = RETURN;
-        cs.STOP = false;
-        // cs.push(S_EXEC, {n: {type:TRUE}, x: {}, Nodes: {}, Context: cs.exc, NodeNum: 0, pmy: cs.my.myObj});
-        __jn_stacks.start(cs.pid);
-        
+! home
 
-    };
-    
-    // now register event
-    if(this.___link.addEventListener) this.___link.addEventListener(eType, evt, true);
-    else this.___link.attachEvent("on"+eType, evt); // IE
+! moveBy
+! moveTo
+! open
+! resizeBy
+! resizeTo
 
-    // now wait for event or for timeout
-    if( timeout ) {
-        var tm = function () {
-            if(cs.STOP != mySTOP) return; // means we're out
-            // release the stack
-            x2.result = null; // means no event caught tadviser.ru
-            
-            cs.EXCEPTION = RETURN;
-            cs.STOP = false;
-            // cs.push(S_EXEC, {n: {type:TRUE}, x: {}, Nodes: {}, Context: cs.exc, NodeNum: 0, pmy: cs.my.myObj});
-            __jn_stacks.start(cs.pid);
-        };
-        setTimeout(tm, timeout);
-    }
+! openDialog
+! print
+! prompt
 
-    
-};
 
-function __Event(type) {
-    this.type = type;
-}
++ window.scroll
+    Scrolls the window to a particular place in the document.
 
-function __Text(vm, txt) {
-    this.nodeType = 3;
-    this.___link = document.createTextNode(txt);
-    this.___vm = vm;
-}
++ window.scrollBy
+    Scrolls the document in the window by the given amount.
 
-__Text.prototype.getNodeValue = function () {
-    return this.___link.nodeValue;
-}
+window.scrollByLines
+    Scrolls the document by the given number of lines.
 
-__Text.prototype.setNodeValue = function (txt) {
-    return this.___link.nodeValue = txt;
-}
+window.scrollByPages
+    Scrolls the current document by the specified number of pages.
+
++ window.scrollTo
+    Scrolls to a particular set of coordinates in the document.
+
++ window.unescape
+
+
+--- EVENT HANDLERS (a plenty of)
+
 */
 
+
+// window object should extend 'global' object with all its methods and properties!
+
+function __Window() { 
+    // this.document to be set by inuit!!!!
+    this.frameElement = null;
+    this.frames = [];
+    this.length = 0;
+        
+}
+
+// just do not implement incompatible methods!!
+// __Window.prototype.back = fake;
+// __Window.prototype.close = fake;
+// __Window.prototype.confirm = fake;
+
+__Window.prototype.escape = escape; 
+__Window.prototype.unescape = unescape;
+
+// TODO for these: Hide IE differences??
+__Window.prototype.encodeURI = encodeURI;
+__Window.prototype.decodeURI = decodeURI;
+
+__Window.prototype.btoa = Orbited.base64.encode;
+__Window.prototype.atob = Orbited.base64.decode;
+
+__Window.prototype.scrollTo = function (x,y) {
+    if(window.scrollTo) window.scrollTo(x,y);
+};
+__Window.prototype.scroll = __Window.prototype.scrollTo;
+
+__Window.prototype.scrollBy = function (x,y) {
+    if(window.scrollBy) window.scrollBy(x,y);
+};
+
+if(window.getSelection) {
+    __Window.prototype.getSelection = function getSelection () {
+        // IE: nouse!!
+        var sel = new __Selection();
+        sel.___document = this.document;
+        return sel;
+    };
+
+    function __Selection() {
+        // go Gecko- only way
+        this.sel = window.getSelection(); // fixed
+        this.___link = this.sel; // because i pissed.
+    }
+
+    __Selection.prototype.getRangeAt = function (n) {
+        // TODO: return a Range wrapper object! huh.
+        // WARNING! Safari MAY not support this -> create a wrapper for this situation
+        if(this.___link.getRangeAt) {
+            var range = this.___link.getRangeAt(n);
+        } else {
+            var range = document.createRange();
+            range.setStart(this.___link.anchorNode,this.___link.anchorOffset);
+            range.setEnd(this.___link.focusNode,this.___link.focusOffset);
+        }
+        wrange = new __Range();
+        wrange.___link = range;
+        wrange.___document = this.___document;
+		return wrange;
+    };
+
+    __Selection.prototype.collapse = function (w_parentNode, offset) {
+        this.sel.collapse(w_parentNode.___link, offset);
+    };
+
+    __Selection.prototype.extend = function (w_parentNode, offset) {
+        this.sel.extend(w_parentNode.___link, offset);
+    };
+
+    __Selection.prototype.collapseToStart = function () {
+        this.sel.collapseToStart();
+    };
+
+    __Selection.prototype.collapseToEnd = function () {
+        this.sel.collapseToEnd();
+    };
+
+    __Selection.prototype.selectAllChildren = function (w_parentNode) {
+        this.sel.selectAllChildren(w_parentNode.___link);
+    };
+
+    __Selection.prototype.addRange = function (w_range) {
+        this.sel.addRange(w_range.___link);
+    };
+
+    __Selection.prototype.removeRange = function (w_range) {
+        this.sel.removeRange(w_range.___link);
+    };
+
+    __Selection.prototype.removeAllRanges = function () {
+        this.sel.removeAllRanges();
+    };
+
+    __Selection.prototype.deleteFromDocument = function () {
+        this.sel.deleteFromDocument();
+    };
+
+    __Selection.prototype.containsNode = function (w_aNode, aPartlyContained) {
+        return this.sel.containsNode(w_aNode.___link, aPartlyContained);
+    };
+
+    __Selection.prototype.toString = function () {
+        // TODO: return only if the selection is inside the 'vm document'
+        // XXX otherwise it is a security issue!
+        return this.___link.toString();
+    };
+
+    // ... and selection getters!
+    
+    __Selection.prototype.___get_wrapped_node  = function (name) {
+        return this.___document.___get_from_link(this.sel[name]);
+    };
+    
+    __Selection.prototype.___getters = { 
+        anchorNode: __Selection.prototype.___get_wrapped_node,
+        anchorOffset: __htmldom_get_direct,
+        focusNode: __Selection.prototype.___get_wrapped_node,
+        focusOffset: __htmldom_get_direct,
+        isCollapsed: __htmldom_get_direct,
+        rangeCount: function (name) { // __htmldom_get_direct // not supported by Safari, Opera, Chrome
+            if("rangeCount" in this.___link) return this.___link.rangeCount;
+            return 1;
+        }
+    };
+    
+    __Selection.prototype.___setters = { 
+        anchorNode:1,
+        anchorOffset:1,
+        focusNode:1,
+        focusOffset:1,
+        isCollapsed:1,
+        rangeCount:1
+    };
+    
+    // now for the Range object
+    
+    // WARNING! gecko methods left unimplemented (see https://developer.mozilla.org/En/DOM/Range)
+    
+    function __Range() {
+        // ___link and ___document MUST be set by instantizer!
+    }
+    
+    // XXX what will be with absent ___link?
+    __Range.prototype.setStart = function (startNode, startOffset) {
+        this.___link.setStart(startNode.___link, startOffset);
+    };
+    
+    __Range.prototype.setEnd = function (startNode, startOffset) {
+        this.___link.setEnd(startNode.___link, startOffset);
+    };
+    
+    __Range.prototype.setStartBefore = function (startNode) {
+        this.___link.setStartBefore(startNode.___link);
+    };
+    
+    __Range.prototype.setStartAfter = function (startNode) {
+        this.___link.setStartAfter(startNode.___link);
+    };
+    
+    __Range.prototype.setEndBefore = function (startNode) {
+        this.___link.setEndBefore(startNode.___link);
+    };
+    
+    __Range.prototype.setEndAfter = function (startNode) {
+        this.___link.setEndAfter(startNode.___link);
+    };
+    
+    __Range.prototype.selectNode = function (startNode) {
+        this.___link.selectNode(startNode.___link);
+    };
+    
+    __Range.prototype.selectNodeContents = function (startNode) {
+        this.___link.selectNodeContents(startNode.___link);
+    };
+    
+    __Range.prototype.collapse = function (toStart) {
+        this.___link.collapse(toStart);
+    };
+    
+    // --- editing methods
+    
+    // expensive function
+    __Range.prototype.cloneContents = function () {
+        var docFragment = this.___link.cloneContents();
+        
+        // Curse W3C !
+        var tmpe = document.createElement("DIV");
+        tmpe.appendChild(docFragment)
+        var ihtml = tmpe.innerHTML;
+        // end curse W3C 
+        
+        var wdf = this.___document.createDocumentFragment();
+        wdf.___setters.innerHTML("innerHTML", ihtml); // XXX test it!
+        return wdf;
+    };
+    
+    __Range.prototype.deleteContents = function () {
+        
+        // TODO: reflect changes in local XML tree!
+        this.___link.deleteContents();
+    };
+    
+    __Range.prototype.extractContents = function () {
+        var wdf = this.cloneContents();
+        this.deleteContents();
+        return wdf;
+    };
+    
+    __Range.prototype.insertNode = function (newNode) {
+    
+        // TODO: reflect changes in local XML tree!
+        this.___link.insertNode(newNode.___link);
+    };
+    
+    __Range.prototype.surroundContents = function (newNode) {
+        newNode.appendChild(this.extractContents()); 
+        this.insertNode(newNode);
+    };
+    
+    // Other Methods 
+    
+    __Range.prototype.compareBoundaryPoints = function (how, sourceRange) {
+        return this.___link.compareBoundaryPoints(how, sourceRange.___link);
+    };
+    
+    __Range.prototype.cloneRange = function () {
+        var wr = new __Range();
+        wr.___link = this.___link.cloneRange();
+        wr.___document = this.___document;
+        return wr;
+    };
+    
+    // WARNING!! this all may result in exceptions! (DOMException) -> this should not be thrown by VM as errors!
+    __Range.prototype.detach = function () {
+        this.___link.detach();
+    };
+    
+    __Range.prototype.toString = function () {
+        // TODO: DOM security enhancements!
+        return this.___link.toString();
+    };
+    
+    __Range.prototype.END_TO_END = Range.END_TO_END;
+    __Range.prototype.END_TO_START = Range.END_TO_START;
+    __Range.prototype.START_TO_END = Range.START_TO_END;
+    __Range.prototype.START_TO_START = Range.START_TO_START;
+    
+    DOMDocument.prototype.createRange = function () {
+        var wr = new __Range();
+        wr.___link = document.createRange();
+        wr.___document = this;
+        return wr;
+    };
+    
+    // no Gecko methods implemented...
+    
+} else {
+    // IE way here...
+    alert("IERange library not loaded!");
+}
+// ----------------------------
+
+__Window.prototype.getComputedStyle = function getComputedStyle (wrappedElement) {
+    // IE: .currentStyle
+    return (new ComputedStyle(wrappedElement));
+};
+
+function ComputedStyle(wrappedElement) {
+    this.el = wrappedElement;
+}
+
+ComputedStyle.prototype.getPropertyValue = function (name) {
+    if(window.getComputedStyle) {
+        return window.getComputedStyle(this.el.___link).getPropertyValue(name); 
+    } else {
+        return this.el.___link.currentStyle[name];
+    }
+};
+
+
+__window_getters = {
+    innerHeight: function (name) {
+        return this.document.documentElement.___getters.clientHeight("clientHeight");
+    },
+    innerWidth: function (name) {
+        return this.document.documentElement.___getters.clientWidth("clientWidth");
+    },
+    name: function (name) { return ""; }, // ???
+    outerHeight: function (name) {
+        return this.document.documentElement.___getters.offsetHeight("offsetHeight");
+    },
+    outerWidth: function (name) {
+        return this.document.documentElement.___getters.offsetWidth("offsetWidth");
+    },
+    scrollX: function (name) {
+        return this.document.documentElement.___getters.scrollLeft("scrollLeft");
+    },
+    scrollY: function (name) {
+        return this.document.documentElement.___getters.scrollTop("scrollTop");
+    }
+    
+    // TODO: implement window.selection
+};
+
+__window_setters = {
+    innerHeight: 1,
+    innerWidth: 1,
+    name: fake,
+    outerHeight: 1,
+    outerWidth: 1,
+    scrollX: 1,
+    scrollY: 1
+    
+    // TODO: implement window.selection
+};
+
+__nav_set = {
+    appCodeName : 1,
+    appName  : 1,
+    appVersion  : 1,
+    buildID  : 1,
+    cookieEnabled : 1, 
+    language  : 1,
+    mimeTypes  : 1,
+    onLine  : 1,
+    oscpu  : 1,
+    platform  : 1,
+    plugins  : 1,
+    product  : 1,
+    productSub  : 1,
+    securityPolicy  : 1,
+    userAgent  : 1,
+    vendor  : 1,
+    vendorSub  : 1
+};
+
+
+__nav_get = {
+    appCodeName : function () {return "jeneric";},
+    appName  : function () {return "Netscape";},
+    appVersion  : function () {return "0.1";},
+    buildID  : function () {return "2009a";},
+    cookieEnabled : function () {return false;},
+    language  : function () {return "en-US";},
+    mimeTypes  : function () {return navigator.mimeTypes; },
+    onLine  : function () {return true;}, // TODO: return a real value based on HUB connectivity
+    oscpu  : function () {return navigator.oscpu;},
+    platform  : function () {return navigator.platform;},
+    plugins  : function () {return navigator.plugins;},
+    product  : function () {return "Gecko";},
+    productSub  : function () {return "Jeneric0.1";},
+    securityPolicy  : function () {return "process";},
+    userAgent  : function () {return "Jeneric Web Virtual Machine (Gecko translator Jeneric 0.1)";},
+    vendor  : function () {return "jeneric.net";},
+    vendorSub  : function () {return "doc.jeneric.net";}
+};
+
+__vrt_set = __nav_set;
+
+function __get_real_nav(name) {
+    return navigator[name];
+}
+
+__vrt_get = {
+    appCodeName : __get_real_nav,
+    appName  : __get_real_nav,
+    appVersion  : __get_real_nav,
+    buildID  : __get_real_nav,
+    cookieEnabled : __get_real_nav,
+    language  : __get_real_nav,
+    mimeTypes  : __get_real_nav,
+    onLine  : __get_real_nav,
+    oscpu  : __get_real_nav,
+    platform  : __get_real_nav,
+    plugins  : __get_real_nav,
+    product  : __get_real_nav,
+    productSub  : __get_real_nav,
+    securityPolicy  : __get_real_nav,
+    userAgent  : __get_real_nav,
+    vendor  : __get_real_nav,
+    vendorSub  : __get_real_nav
+};
+
+__Window.prototype.virtual = { ___setters: __vrt_set, ___getters: __vrt_get, "vmkernel": "ratbird", "vmkernelVersion": "0.1" };
+__Window.prototype.navigator = { ___setters: __nav_set, ___getters: __nav_get };
+
+__Window.prototype.___getters = __window_getters;
+__Window.prototype.___setters = __window_setters;
+
+///////////////////////////////////////////////////////////
+// execCommand
+
+__execCMDs = {
+    backColor:1,
+    bold:1,
+    contentReadOnly:1,
+    copy:1,
+    createLink:1, // must be treated accurately
+    cut:1,
+    decreaseFontSize:1,
+    "delete":1,
+    fontName:1,
+    fontSize:1,
+    foreColor:1,
+    formatBlock:1,
+    heading:1,
+    hiliteColor:1,
+    increaseFontSize:1,
+    indent:1,
+    insertHorizontalRule:1,
+    //insertHTML:1, // XXX currently unsupported
+    insertImage:1,
+    insertOrderedList:1,
+    insertUnorderedList:1,
+    insertParagraph:1,
+    italic:1,
+    justifyCenter:1,
+    justifyLeft:1,
+    justifyRight:1,
+    outdent:1,
+    paste:1,
+    redo:1,
+    removeFormat:1,
+    selectAll:1,
+    strikeThrough:1,
+    subscript:1,
+    superscript:1,
+    underline:1,
+    undo:1,
+    unlink: 1,
+    styleWithCSS: 1
+};
+
+DOMDocument.prototype.execCommand = function (aCommandName, aShowDefaultUI, aValueArgument) {
+    // there are some unsafe elements! Like <link>
+    // we need to insert _target for each <LINK> ! 
+    // parse again, for example, before switching from EDIT to HTML.. or such
+    if(!__execCMDs[aCommandName]) return false; // filter out
+    return document.execCommand(aCommandName, aShowDefaultUI, aValueArgument);
+};
