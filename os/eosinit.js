@@ -569,7 +569,7 @@ hubConnection.receive = eos_rcvEvent; // XXX this interconnects with jsobject.js
 
 // very tightly connected with jsobject.js for Gears Blobs
 function blob_replacer(key, value, req) {
-    if (value.getBytes && value.slice && value.toString && value.toString() == "[object GearsBlob]") {
+    if (value.toString() == "[object GearsBlob]") {
         // now, check if we are a native Blob or a wrapped UUstring
          
         // add object to BlobSender and send separately
@@ -645,7 +645,7 @@ function getBlob(bid, blobCount, blobObject, req) {
                 }
             } else {
                 req.rq["status"] = "ECONN"; // DOC document this too
-                req.rq["result"] = "blob send failed with status "+request.status; // DOC document this too
+                req.rq["result"] = "blob GET failed with status "+request.status; // DOC document this too
                 delete req.rq["args"];
                 hubConnection.send(req.rq);
                 if(window.console) console.log("blob receive failure for request "+req.rq.id);            

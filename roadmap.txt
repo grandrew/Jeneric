@@ -206,6 +206,7 @@ ASSORTED TODO ITEMS
     (without having the 'local copy'?)
 - // WARNING!! this all may result in exceptions! (DOMException) -> this should not be thrown by VM as errors!
 - make sure 'move' call really exists for the object tree (and document all tree calls)
+- need to re-announce (or ping) if connection lost 101 ???
 kernel programming advisory: be careful with methods that stop the stack - report any possible error via try/catch and stack release w/throw
 
 ---------------

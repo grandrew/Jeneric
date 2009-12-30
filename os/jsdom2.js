@@ -39,7 +39,11 @@
 //  All Rights Reserved.
 //  (see: http://www.w3.org/TR/2000/WD-DOM-Level-1-20000929/)
 
-
+_DOM_idsource = 0;
+function __dom_id() {
+    _DOM_idsource += 1;
+    return _DOM_idsource;
+}
 
 /**
  * @function addClass - add new className to classCollection
@@ -3042,6 +3046,7 @@ DOMElement.prototype = new DOMNode;
 DOMElement.prototype.bind_real_dom = function DOMElement_bind_real_dom() {
   if(!document.createElement) return; // document must be globally defined anyways but should be null :-\ XXX DOC for implementations!
   this.___link = document.createElement(this.tagName); // call ONLY when tagName initialized
+  this.___link.___id = __dom_id();
   this.attributes.___link = this.___link;
   this.style = this.___link.style; // XXX is this secure?
   //this.childNodes.___link = this.___link;

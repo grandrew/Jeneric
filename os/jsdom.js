@@ -718,16 +718,21 @@ DOMDocument.prototype.getElementsByName = function () {
 };
 
 DOMDocument.prototype.___get_from_link = function (domElement) {
+    if(!domElement) return undefined;
     if(!this.___DOMcache || this.___DOMcache_outdated) this.___rebuild_cache();
-    return this.___DOMcache[domElement];
+    
+    var wt = this.___DOMcache[domElement.___id];
+    if(!wt && window.console) console.log("Cache problem! Element not found");
+    return wt;
 };
 
 DOMDocument.prototype.___rebuild_cache = function () {
     var all = (this.documentElement.getElementsByTagName("*"))._nodes;
+    //console.log("Len rebuild: "+all.length);
     delete this.___DOMcache;
     this.___DOMcache = {};
     for(var i=0; i<all.length; i++) {
-        if( all[i].___link ) this.___DOMcache[all[i].___link] = all[i];
+        if( all[i].___link ) this.___DOMcache[all[i].___link.___id] = all[i];
     }
     this.___DOMcache_outdated = false;
 };
@@ -1011,11 +1016,17 @@ DOMElement.prototype.waitEvent = function ( eType, timeout, propertyName, proper
     var evt = function (aEvent) {
         e = new __Event(___vm, aEvent);
         
-        if(e.target != elmt) return; // bypass // and check if everything works (like cache)
+        if(e.target != elmt) {
+            return; // bypass // and check if everything works (like cache)
+        }
         
         if(propertyName && propertyValue) {
-            if(e[propertyName] != propertyValue) return;
+            if(e[propertyName] != propertyValue) {
+                //console.log("PROPERTY FAILURE");
+                return;
+            }
         }
+        //console.log("FIRING EVENT");
 
         // now unregister event
         if(elmt.___link.addEventListener) elmt.___link.removeEventListener(eType, arguments.callee, false);

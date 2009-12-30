@@ -293,9 +293,7 @@ BlobBuilder.prototype.append = function (obj) {
             this.___bloblist.push(lh);
         }
     }
-};
-
-////////////////////////////////////
+}; ////////////////////////////////////
 
 function BlobObject() {
     // TODO: copy prototypes to local Blob object at bind_om()
@@ -1492,9 +1490,7 @@ function eos_createObject(vm, name, type_src, sec_src, parentURI, typeURI, secUR
         
     var obj = new Jnaric();
     
-    obj.onerror = function (ex) {
-        vm.global.ErrorConsole.log("created child main thread died with exception: "+ex);        
-    }; 
+     
     
 /*    
     obj.onfinish = function () {
@@ -1519,6 +1515,10 @@ function eos_createObject(vm, name, type_src, sec_src, parentURI, typeURI, secUR
     
     obj.bind_dom(DOMElement); // TODO bind to protected wrapped DOM or to fake DOM element
     obj.bind_om(); // bind the protected EOS object model
+    
+    obj.onerror = function (ex) {
+        vm.global.ErrorConsole.log("created child (URI "+obj.uri+") main thread died with exception: "+ex);        
+    };
     
     obj.evaluate(sec_src, secURI); // the single threaded nature here ensures we're not going to receive onfinish not in time
     obj.evaluate(type_src, typeURI);
@@ -2375,6 +2375,8 @@ Jnaric.prototype.bind_om = function () {
     
     // getMethodList ?? describeObject ?? or is it security code??
     
+    
+    
     this.global.BlobBuilder = function () {
         if(window.google && google.gears) {
             this.___builder = google.gears.factory.create("beta.blobbuilder");
@@ -2382,6 +2384,7 @@ Jnaric.prototype.bind_om = function () {
             this.___bloblist = [];
         }
     };
+    this.global.object.BlobBuilder = this.global.BlobBuilder;
     inject_proto(this.global.BlobBuilder, BlobBuilder); // XXX check for prototype-safety!!!
     // protos...
     this.global.BlobBuilder.prototype.getAsBlob = BlobBuilder.prototype.getAsBlob;    
@@ -2429,7 +2432,11 @@ FixedStorage.prototype.storeBlob = function (blob, fname, contenttype) {
 };
 
 FixedStorage.prototype.getAsBlob = function (fname) {
-    if(this.isStored(fname)) return this.___r.getAsBlob(this.___vm.uri+"/~blobs/"+fname);
+    if(this.isStored(fname)) {
+        var wrapped_blob = new BlobObject();
+        wrapped_blob.___blob = this.___r.getAsBlob(this.___vm.uri+"/~blobs/"+fname);
+        return wrapped_blob;
+    }
     else return null;
 };
 
@@ -2445,7 +2452,7 @@ FixedStorage.prototype.getAllHeaders = function (fname) {
 Jnaric.prototype.bind_storage = function () {
 
 /*
-FixedStorage class
+object.FixedStorage class
    void          remove(string fname) : remove [object_url]/fname
    void          rename(string fname1, string fname2) : fname1 -> fname2
    void          copy(string fname1, string fname2) 

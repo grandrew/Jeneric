@@ -90,6 +90,7 @@ dbconn.commit()
 c.close()
 
 blobtmp = sqlite3.connect(TMP_DB);
+blobtmp.text_factory = str;
 c = blobtmp.cursor()
 c.execute('''create table if not exists tmp
 (key text UNIQUE, sessid text, data blob, time int)''')
@@ -725,13 +726,13 @@ class BlobPipe(Resource):
         c= blobtmp.cursor();
         # now check if a record exists
         if sess: c.execute('select data from tmp where sessid=? and key=?', (sess, key));
-        else: c.execute('select data from tmp where key=?', (key)); # ugly workarund for blob_received
+        else: c.execute('select data from tmp where key=?', (key,)); # ugly workarund for blob_received
         d = c.fetchone()
         c.close()
         if d is None:
             return d
         c= blobtmp.cursor();
-        c.execute('delete from tmp where key=?', (key)); # ugly workarund for blob_received
+        c.execute('delete from tmp where key=?', (key,)); # ugly workarund for blob_received
         c.close()
         blobtmp.commit()
         return d[0]
@@ -795,7 +796,7 @@ class BlobPipe(Resource):
             # create an arg-joint object
             rarg = {}
             for v in request.args:
-                rarg[v] = request.args[v][0] # XXX DOC use only the FIRST entry parameter value
+                if self.checkarg(request.args[v][0]): rarg[v] = request.args[v][0] # XXX DOC use only the FIRST entry parameter value
             
             rq = {
                     "id": genhash(10)+str(newId()), 
@@ -1007,8 +1008,8 @@ class BlobPipe(Resource):
             fd.seek(TREAT_AS_BLOB_SIZE)
             isblob = True # treat as blob by default
             if not fd.read(1):
-                isblob = False
-            else:
+            #    isblob = False
+            #else:
                 fd.seek(0)
                 r = fd.read()
                 try:
@@ -1031,13 +1032,24 @@ class BlobPipe(Resource):
             
             rarg = {}
             for v in request.args:
-                rarg[v] = request.args[v][0] # XXX DOC use only the FIRST entry parameter value
+                if self.checkarg(request.args[v][0]): rarg[v] = request.args[v][0] # XXX DOC use only the FIRST entry parameter value
     
             self.send_blob(request.path, fd2, isblob, 0, READBYTES, request, rarg)
             return  server.NOT_DONE_YET
             
         return "OK"
 
+    def checkarg(self, data):
+        "check if data is an adequate argument to send in RQ object"
+        # TODO: a more strict checking
+        if len(data) > 100000: return False
+        try:
+            data.decode("UTF-8")
+        except UnicodeDecodeError:
+            return False
+        # except:
+        #   return False # if any other error
+        return True
 
     def send_blob(self, uri, fd, isblob, pos=0, size=READBYTES, request = None, rarg = {}):
         
@@ -1060,8 +1072,8 @@ class BlobPipe(Resource):
         
         #fd.seek(pos)
         data = fd.read(size)
-        print "Data is:", data, " of size: ", size
-        print "Value is:", fd.getvalue()
+        #print "Data is:", data, " of size: ", size
+        #print "Value is:", fd.getvalue()
         
         if isblob:
             # first, create a blobid and the blob

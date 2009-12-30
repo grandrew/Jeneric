@@ -96,6 +96,25 @@ function execChild(childPath, progPath, argv) {
     
 }
 
+
+
+/*
+function printdog () {
+    var itick = 0;
+    while(1) {
+        printDOM(",");
+        ErrorConsole.log("tick."+itick);
+        itick++;
+        sleep(3000);
+    }
+}
+
+pid2 = start_new_thread(printdog, []); // use pid??
+*/
+
+
+
+
 brDOM();
 brDOM();
 printDOM("Welcome to ic# - an Interactive Core commandline. Type 'help' for help. Click-TAB to reactivate input (if lost).");
