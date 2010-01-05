@@ -1,15 +1,17 @@
 // anarchic.jn
 
-function setSecurityState(state) {
+security.setSecurityState = function (state) {
     wakeupIPCLock.release(); // this should be the only place to release wakeupIPCLock!! TQLW here too (the code is first loaded then security)
-}
+};
 
-function getSecurityState() {
+security.getSecurityState = function() {
     return {};
-}
+};
 
-function validateRequest (rq) {
+security.validateRequest = function (rq) {
     return true; // always allow...
-}
+};
 
-// initIPCLock = false; // means we have been initialized ?? WHY??
+delete security; // nobody will notice ;-)
+
+

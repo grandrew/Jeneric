@@ -120,6 +120,12 @@ brDOM();
 printDOM("Welcome to ic# - an Interactive Core commandline. Type 'help' for help. Click-TAB to reactivate input (if lost).");
 brDOM();
 // TODO: write Google Gears hint - if not detected
+if(!object.FixedStorage)
+{  
+    printDOM("Google Gears not installed. Will not save objects locally! Please check http://gears.google.com/");
+    brDOM();
+}
+
 
 pc = 0;
 initIPCLock.release(); // = false; // ready for IPC...
@@ -159,10 +165,10 @@ while(true) {
         printDOM("  link <What-URI> <As-URI> - link an object URI creating a 'link' child at <As-URI>");
         brDOM();
 
-        printDOM("  register <name> <key> <identity info> - register a terminal at HUB");
+        printDOM("  terminal_register <name> <key> <identity info> - register a terminal at HUB");
         brDOM();
 
-        printDOM("  auth <name> <key>  - authenticate a terminal at HUB");
+        printDOM("  terminal_auth <name> <key>  - authenticate a terminal at HUB");
         brDOM();
 
         
@@ -227,6 +233,7 @@ while(true) {
                 oparent = lURI.join("/");
                 //printDOM("Creating "+oname+" at "+oparent); brDOM();
                 execURI(oparent, "deleteChild", [oname], 10000);
+                printDOM("object deleted"); brDOM();
         } catch (e) {
             printDOM("delete: failed with: "+e); brDOM();
         }     
@@ -246,7 +253,10 @@ while(true) {
         try {
             execURI(p1, "write", [p2], 20000);
         } catch (e) {
-            printDOM("typeto: write() failed with: "+e+"; trying to create ramstore instead"); brDOM();
+            if(e.toString().indexOf("not found") == -1) {
+                printDOM("typeto: write() failed with: "+e); brDOM();
+                break;
+            }
             try {
                 // get name and get parent
                 lURI=p1.split("/");
@@ -320,7 +330,7 @@ while(true) {
         
         break;
 
-      case "register":
+      case "terminal_register":
         p1 = s.split(" ")[1];
         p2 = s.split(" ")[2];
         var p3 = s.split(" ")[3]; // TODO: need multi-word support. like braces or smth?
@@ -341,7 +351,7 @@ while(true) {
         break;
 
 
-      case "auth":
+      case "terminal_auth":
         p1 = s.split(" ")[1];
         p2 = s.split(" ")[2];
         if(!p1 || !p2 ) {

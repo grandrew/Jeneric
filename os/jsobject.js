@@ -18,6 +18,7 @@ TODO response did not reach recipient(caller) in HUB and HERE! work out the issu
 - HOLD() to hold down all the activity until "CONTINUE" presed (will stop the scheduler)
   (for those willing to get maximum from their machine that is being accessed or is sharing files, 
   for a period of time)
+  this will be accomplished by total serialization - it will be possible to just hibernate the machine
 
 + duplicate object names issue !! in createChild and others!
     + createChild( ... )
@@ -354,213 +355,6 @@ BlobObject.prototype.slice = function (offset, len) {
 
 
 
-
-
-// XXX UNUSED -->>
-//    does not provide signRequest
-
-/*
-
-function eos_execURI_old(vm, sUri, sMethod, lArgs, timeout) {
-    // this is a blocking call, so block the VM thread first
-    var cs = vm.cur_stack;
-    cs.EXCEPTION = false;
-    var mystop = __jn_stacks.newId();
-    cs.STOP = mystop;
-    if(vm.DEBUG) vm.ErrorConsole.log("in execURI... stopped stack!");
-    // . means current object
-    // .. means parent object
-    // ~ means current terminal object
-    // otherwise let the URI-HUB decide on what to do
-    
-    // first, find the dest object: if it is local - pass to eos_processRequest (vm, )
-    // else - form&execute query to URI-hub and wait for result via callback
-    
-    
-    if((typeof sUri != "string") && !(sUri instanceof String)) {
-        cs.EXCEPTION = THROW;
-        cs.exc.result = new vm.global.TypeError("First execURI argument must be a string, got: "+typeof(sUri));
-        cs.STOP = false;
-        return;
-    }
-    
-    if((typeof sMethod != "string") && !(sMethod instanceof String)) {
-        cs.EXCEPTION = THROW;
-        cs.exc.result = new vm.global.TypeError("Second execURI argument must be a string, got: "+typeof(sMethod));
-        cs.STOP = false;
-        return;
-    }
-
-    if(!(lArgs instanceof Array)) {
-        cs.EXCEPTION = THROW;
-        cs.exc.result = new vm.global.TypeError("Args execURI argument must be an Array object");
-        cs.STOP = false;
-        return;
-    }
-    
-    if((typeof timeout != "undefined") && !(timeout >= 0)) {
-        cs.EXCEPTION = THROW;
-        cs.exc.result = new vm.global.TypeError("timeout execURI argument must be a number >= 0");
-        cs.STOP = false;
-        return;
-    }
-    
-    var lURI = sUri.split("/");
-    if(lURI[0] == "") { // means this is root HUB request
-        // create a request
-        // ... and callback
-        if(vm.DEBUG) vm.ErrorConsole.log("in execURI... request for HUB");
-        try {
-            eos_hubRequest(vm, cs, sUri, sMethod, lArgs, timeout, mystop); 
-        } catch (e) {
-            cs.EXCEPTION = THROW;
-            cs.exc.result = e;
-            cs.STOP = false;
-            return;
-        }
-        
-    } else {
-        // TODO: URI caching
-        if(vm.DEBUG) vm.ErrorConsole.log("in execURI... getting child");
-        // execute locally
-    
-        try {
-            var dest = vm.getChild(lURI);
-
-        } catch (e) {
-            cs.EXCEPTION = THROW;
-            cs.exc.result = e;
-            cs.STOP = false;
-            return;
-        }
-        
-        if(dest == null) {
-            // child not found...
-            cs.EXCEPTION = THROW;
-            cs.exc.result = new vm.global.InternalError("object not found by URI "+sUri);
-            cs.STOP = false;
-            return;
-        }
-        
-        if(typeof(dest)=="string") { // means we're redirect to ... eos_execURI back 
-            if(vm.DEBUG) vm.ErrorConsole.log("in execURI... again execURI!");
-            
-            // XXX EXECURI is NOT ALLOWED TO FAIL!!!
-            eos_execURI(vm, dest, sMethod, lArgs); // we're taking advantage of the 'GIL' in js engine
-        
-        } else { // means it is a VM instance, so execute the request
-            // create the request object
-            if(vm.DEBUG) vm.ErrorConsole.log("in execURI... child is: "+dest.name);
-            var rq = {
-                id: __jn_stacks.newId(), 
-                //user_name: __eos_objects["terminal"].global.my_username ? __eos_objects["terminal"].global.my_username : "", // XXX can be undefined..??
-                terminal_id: "~", // always 'myself'
-                //terminal_id: __eos_comet.getID(), // TODO: persistent comet connection ID!
-                // optional but mandatory for local calls
-                // object_name: vm.name, // part of uri
-                object_type: vm.TypeURI,
-                object_uri: vm.uri,
-                object_security: vm.SecurityURI,
-                // now the actual params
-                method: sMethod,
-                args: lArgs
-            };
-            if(vm.DEBUG) vm.ErrorConsole.log("Request from "+vm.uri+" to "+sUri+" meth "+sMethod);
-            // for the callbacks, save the stack, set the result and continue stack as in fetchUrl()
-            var x2 = cs.my.x2;
-            var cbOK = function (rs) { // callback on OK
-                // set the result
-                if(vm.DEBUG) vm.ErrorConsole.log("in execURI... execIPC cbOK");
-                if(vm.global.validateResponse) {
-                    // now first validate response!
-                    var cbo = function (vr) {
-                        if(vr) {
-                            
-                            x2.result = rs.result;
-                            
-                            // the following is the procedure just to release the stack
-                            cs.EXCEPTION = RETURN;
-                            cs.STOP = false;
-                            //cs.push(S_EXEC, {n: {type:TRUE}, x: {}, Nodes: {}, Context: cs.exc, NodeNum: 0, pmy: cs.my.myObj});
-                            __jn_stacks.start(cs.pid);
-                            
-                            
-                        } else {
-
-                            cs.EXCEPTION = THROW;
-                            var ex = new vm.global.SecurityError("failed to validate RESPONSE that was received");
-                            ex.result = rs.result;
-                            cs.exc.result = ex;
-                            cs.STOP = false; // XXX TODO: MAY it release foreign LOCK??? SHIT!!
-                            __jn_stacks.start(cs.pid);   
-
-                        
-                        }
-                    };
-                    
-                    var cbe = function (vr) {
-                        cs.EXCEPTION = THROW;
-                        var ex = new vm.global.InternalError("validateResponse failed with exception: "+vr);
-                        ex.result = rs.result;
-                        cs.exc.result = ex;
-                        cs.STOP = false; // XXX TODO: MAY it release foreign LOCK??? SHIT!!
-                        __jn_stacks.start(cs.pid);   
-
-                    };
-                    
-                    vm.execf_thread(vm.global.validateResponse, [rq], cbo, cbe); 
-                } else {
-                    x2.result = rs.result;
-                    
-                    // the following is the procedure just to release the stack
-                    cs.EXCEPTION = RETURN;
-                    cs.STOP = false;
-                    //cs.push(S_EXEC, {n: {type:TRUE}, x: {}, Nodes: {}, Context: cs.exc, NodeNum: 0, pmy: cs.my.myObj});
-                    __jn_stacks.start(cs.pid);
-                }
-
-                
-                
-            };
-            
-            var cbERR = function (rs) {
-                if(vm.DEBUG) vm.ErrorConsole.log("in execURI... execIPC cbERR");
-                if (rs.status == "EEXCP") {
-                    cs.EXCEPTION = THROW;
-                    var ex = new vm.global.InternalError("execURL failed with exception: "+rs.result);
-                } else if (rs.status == "EPERM") {
-                    cs.EXCEPTION = THROW;
-                    var ex = new vm.global.SecurityError(rs.result);
-                } else {
-                    cs.EXCEPTION = THROW;
-                    var ex = new vm.global.InternalError("execURL failed with UNKNOWN status: "+rs.status);
-                }
-                ex.result = rs.result;
-                cs.exc.result = ex;
-                cs.STOP = false; // XXX TODO: MAY it release foreign LOCK??? SHIT!!
-                __jn_stacks.start(cs.pid);   
-                
-            };
-            if(vm.DEBUG) vm.ErrorConsole.log("in execURI... doing execIPC!");
-            try {
-                dest.execIPC(rq, cbOK, cbERR); 
-            } catch (e) {
-                cs.EXCEPTION = THROW;
-                cs.exc.result = e;
-                cs.STOP = false;
-                return;
-            }
-        }
-
-            
-    }
-    
-    
-}
-
-
-*/
-
 function eos_execURI(vm, sUri, sMethod, lArgs, timeout) {
     // this is a blocking call, so block the VM thread first
     var cs = vm.cur_stack;
@@ -668,142 +462,6 @@ function eos_execURI(vm, sUri, sMethod, lArgs, timeout) {
 
 
 
-// XXX UNUSED -->>
-//    does not provide signRequest
-function eos_hubRequest(vm, cs, sUri, sMethod, lArgs, timeout, _mystop) {
-
-    // TODO: return something if the HUB connection is not ready!?!?!
-    //       deal with sudden hibernation???
-    // TODO: ensure the message is delivered if the TIMEOUT for execURI is not set
-    
-    // will do everything needed, including waking the stack up
-    var x2 = cs.my.x2;
-    // create request object
-    var rq = {
-        id: __jn_stacks.newId(), 
-        //user_name: __eos_objects["terminal"].global.my_username ? __eos_objects["terminal"].global.my_username : "", // XXX can be undefined..??
-        //terminal_name: __eos_objects["terminal"].global.my_terminal ? __eos_objects["terminal"].global.my_terminal : "",
-        terminal_id: "~",//__eos_comet.getID(), // TODO: persistent comet connection ID!
-        // optional but mandatory for local calls
-        //object_name: vm.name,
-        object_type: vm.TypeURI,
-        object_uri: vm.uri,
-        object_security: vm.SecurityURI,
-        // now the actual params
-        uri: sUri,
-        method: sMethod,
-        args: lArgs
-    };
-    
-    __eos_requests[rq.id] = {request: rq, stack: cs, context: x2, vm: vm}; 
-    
-    /////////////////////////////////////////////////////////////////
-    // all the below does not apply to STOMP/Comet method ->>
-    
-    
-    //
-    
-    //var dr = new DataRequestor();
-    
-    //dr.addArg(_POST, "request", JSON.stringify(rq)); // document to never use __defineProperty__
-    
-    // onload just okay; we will wait for the responce via COMET connection??
-    // watch for the result; if the result is not status="WAIT" then use the result
-    // else - wait for the result via comet
-    
-    /*
-    dr.onload = function (data, obj) {
-        if(!cs.STOP) return;
-        var rs = JSON.parse(data);
-        if(rs.status == "OK") {
-            x2.result = rs.result;
-            // the following is the procedure just to release the stack
-            cs.EXCEPTION = RETURN;
-            cs.STOP = false;
-            cs.push(S_EXEC, {n: {type:TRUE}, x: {}, Nodes: {}, Context: cs.exc, NodeNum: 0, pmy: cs.my.myObj});
-            __jn_stacks.start(cs.pid);
-            delete __eos_requests[rq.id];
-            
-        } else if (rs.status == "EEXCP") {
-            cs.EXCEPTION = THROW;
-            var ex = new vm.global.InternalError("execURL failed with exception: "+rs.result);
-            ex.result = rs.result;
-            cs.exc.result = ex;
-            cs.STOP = false;
-            __jn_stacks.start(cs.pid);   
-            delete __eos_requests[rq.id];        
-            
-        } else if (rs.status == "EPERM") {
-            cs.EXCEPTION = THROW;
-            var ex = new vm.global.SecurityError(rs.result);
-            ex.result = rs.result;
-            cs.exc.result = ex;
-            cs.STOP = false;
-            __jn_stacks.start(cs.pid);   
-            delete __eos_requests[rq.id];        
-        
-        } else if (rs.status == "WAIT") {
-            // XXX always return this status in case the server has received the request successfully!!
-            // else means that we will have to wait for result to arrive via COMET intrf
-            // pass... ?
-        } else {
-            // unknown status received
-            cs.EXCEPTION = THROW;
-            var ex = new vm.global.InternalError("execURL failed with UNKNOWN status: "+rs.status);
-            ex.result = rs.result;
-            cs.exc.result = ex;
-            cs.STOP = false;
-            __jn_stacks.start(cs.pid);   
-            delete __eos_requests[rq.id];
-
-        }
-    };
-    
-    dr.onfail = function (status, txt ) {
-        if(!cs.STOP) return;
-        // raise an exception with status
-        cs.EXCEPTION = THROW;
-        var ex = new vm.global.InternalError("execURL failed with status: "+status);
-        ex.status = status;
-        cs.exc.result = ex;
-        cs.STOP = false;
-        __jn_stacks.start(cs.pid);   
-        delete __eos_requests[rq.id];
-    };
-    
-    dr.getURL( "/urihub" );
-    
-    */
-    
-    // Set a general timeout anyways...
-    // TODO: general timeout should be dependent on data receipt???
-    //       if there is no data receiving??? wtf?
-    //       XXX XXX XXX need another mechanism to remove locks 
-    //       TODO: ping server regularly! (or the session will expire and be deleted)
-    ///// var to = 60000; 
-    if(typeof(timeout) == "number") {
-
-        var tmf = function () {
-
-            if(cs.STOP != _mystop) return;
-
-            cs.EXCEPTION = THROW;
-            var ex = new vm.global.InternalError("execURL failed with TIMEOUT");
-            ex.status = "TIMEOUT";
-            cs.exc.result = ex;
-            cs.STOP = false;
-            __jn_stacks.start(cs.pid);   
-            //delete __eos_requests[rq.id];
-            hubConnection.abort(rq.id);
-            
-        };
-        setTimeout(tmf, timeout); // document that timeout is milliseconds
-    }
-    
-    hubConnection.send(rq);
-
-}
-
 function eos_rcvEvent(rq) {
 
    //rq = JSON.parse(data);
@@ -839,9 +497,9 @@ function eos_rcvEvent(rq) {
         // TODO: check what is unused here!!!
         
         if(rq.status == "OK") {
-            
+            // i HOPE that this IF path is unused!!
             // now there are two options: we have validateResponse defined - and we  have not.
-            if(vm.global.validateResponse) {
+            if(vm.security.validateResponse) {
                     var cbo = function (vr) {
                         if(vr) {
                             x2.result = rq.result;
@@ -875,7 +533,7 @@ function eos_rcvEvent(rq) {
 
                     };
                     
-                    vm.execf_thread(vm.global.validateResponse, [rq], cbo, cbe); 
+                    vm.execf_thread(vm.security.validateResponse, [rq], cbo, cbe, undefined, vm.security); 
             } else {
                 x2.result = rq.result;
                 // the following is the procedure just to release the stack
@@ -1013,8 +671,8 @@ Jnaric.prototype.execIPC = function (rq, cbOK, cbERR) {
         if(!result) {
             cbERR({id: rq.id, status: "EPERM", result: "permission denied"});
         }
-        
-        if(rq.method in self.global.object.ipc) { // __ipc
+        var ipcm;
+        if( (ipcm = (rq.method in self.global.object.ipc)) || (rq.method in self.security)) { // __ipc
 
             var cbo2 = function (result) {
                 // if(typeof(result) == "undefined") result = -999999999;
@@ -1022,7 +680,7 @@ Jnaric.prototype.execIPC = function (rq, cbOK, cbERR) {
                 // DOC: no result -> undefined (this is how json seialization does it)
                 
                 
-                if(self.global.signResponse) {
+                if(self.security.signResponse) {
 
                     var cbo = function (res) {
                         cbOK({id: rq.id, status: "OK", result: res});
@@ -1032,7 +690,7 @@ Jnaric.prototype.execIPC = function (rq, cbOK, cbERR) {
                         cbERR({id: rq.id, status: "EEXCP", result: "signResponse failed with exception: "+ex});
                     };
 
-                    self.execf_thread(self.global.signResponse, [rq], cbo, cbe); 
+                    self.execf_thread(self.security.signResponse, [rq], cbo, cbe, undefined, self.security); 
                 } else {
                     cbOK({id: rq.id, status: "OK", result: result});
                 }
@@ -1046,7 +704,9 @@ Jnaric.prototype.execIPC = function (rq, cbOK, cbERR) {
             };
 
 
-            self.execf_thread(self.global.object.ipc[rq.method], [rq].concat(rq.args), cbo2, cbe2); // TODO: execf with ref as parameter
+            if(ipcm) self.execf_thread(self.global.object.ipc[rq.method], [rq].concat(rq.args), cbo2, cbe2); 
+            else self.execf_thread(self.security[rq.method], [].concat(rq.args), cbo2, cbe2); 
+        
         } else {
             if(self.DEBUG) self.ErrorConsole.log("method IPC call failed with NO SUCH METHOD"); // for debug only
             
@@ -1086,8 +746,8 @@ Jnaric.prototype.execIPC = function (rq, cbOK, cbERR) {
 
 
     
-    if(this.global.validateRequest) {
-        this.execf_thread(this.global.validateRequest, [rq], cbo, cbe); 
+    if(this.security.validateRequest) {
+        this.execf_thread(this.security.validateRequest, [rq], cbo, cbe, undefined, this.security); 
     } else {
         cbe("validateRequest is undefined at callee side");
     }
@@ -1241,7 +901,7 @@ function kIPC(vm, uri, method, args, onok, onerr, timeout) {
     //var TIMEOUT_OK = {v: false};
         
     var afterSign = function () {
-        if (vm.global.validateResponse) {
+        if (vm.security.validateResponse) {
             var myonok = function (rs) {
                 // validate response, if appropriate
                 // TODO: these are currently unusable for in-stack execution; need to set SecurityError instead
@@ -1259,7 +919,7 @@ function kIPC(vm, uri, method, args, onok, onerr, timeout) {
                     onerr({id: rq.id, status: "EEXCP", result: "validateResponse failed with exception: "+vr});
                 };
                 
-                vm.execf_thread(vm.global.validateResponse, [rq], cbo, cbe); 
+                vm.execf_thread(vm.security.validateResponse, [rq], cbo, cbe, undefined, vm.security); 
             };
         } else {
             //var myonok = function (rs) { TIMEOUT_OK.v = true; onok(rs); };
@@ -1309,7 +969,7 @@ function kIPC(vm, uri, method, args, onok, onerr, timeout) {
     };
 
     // TODO HERE
-    if (vm.global.signRequest) {
+    if (vm.security.signRequest) {
         // do somehow validate request
         var onSok = function (res){
             if(res) { // XXX DOC the signRequest should modify the rq object itself and it should return true
@@ -1322,7 +982,7 @@ function kIPC(vm, uri, method, args, onok, onerr, timeout) {
         var onSerr = function (exc) {
             onerr({id: rq.id, status: "EEXCP", result: "signRequest failed with exception: "+exc});
         };
-        vm.execf_thread(vm.global.signRequest, [rq], onSok, onSerr); 
+        vm.execf_thread(vm.security.signRequest, [rq], onSok, onSerr, undefined, vm.security); 
     } else {
         afterSign();
     }
@@ -1330,46 +990,6 @@ function kIPC(vm, uri, method, args, onok, onerr, timeout) {
 }
 
 
-// XXX UNUSED ->>>
-/*
-function kLIPC(vm, uri, method, args, onok, onerr) {
-    var obj = vm.getChild(uri.split("/"));
-    // now form the request objec
-    var rq = {
-        id: __jn_stacks.newId(), 
-        terminal_name: "~", // always 'myself'
-        object_type: vm.TypeURI,
-        object_uri: vm.uri, // named request
-        object_security: vm.SecurityURI,
-        method: method,
-        args: args
-    };
-
-    obj.execIPC(rq, onok, onerr); // XXX parse results?? if not -> change wakeObject!!    
-}
-*/
-
-/*
-function eos_createChild_unpriv(vm, name, typeURI, secURI) {
-    
-    // first, stop the stack as usual
-    var cs = vm.cur_stack;
-    cs.EXCEPTION = false;
-    cs.STOP = true;
-    // store the result here
-    var x2 = cs.my.x2;
-    
-    
-    // the result of this method is a wrapper object (see getChild and ___ property protection)
-
-    
-    var f = function (){};
-    __eos_objects["terminal"].execIPC(,f,f);
-    
-    
-    
-}
-*/
 
 function eos_wakeObject(parent, name, serID) {
     // XXX: delay the request until the objects get deserialized!!! this is accomplished via execIPC - check that!
@@ -1473,6 +1093,7 @@ function eos_wakeObject(parent, name, serID) {
         // we'll be setting Sec while getting Type..
         obj.evaluate(sec_src.result, dump.SecurityURI); // this will set the initIPCLock to false (XXX why ever initLock needed here??)
         var onfs = function (type_src) {
+            
             obj.evaluate(type_src.result, dump.TypeURI); // XXX TYPE SRC CODE MUST RELEASE MAIN THREAD for serialization..
                                            // OR IT WILL DEADLOCK THE SYSTEM IPC FOR THAT OBJECT
             
@@ -1480,7 +1101,7 @@ function eos_wakeObject(parent, name, serID) {
 
             obj.onfinish = function () {
                 // XXX this should set the wakeupIPCLock to false
-                obj.execf_thread(obj.global.setSecurityState, [JSON.parse(dump.SecurityProp)], dummy, dummy_assert); 
+                obj.execf_thread(obj.security.setSecurityState, [JSON.parse(dump.SecurityProp)], dummy, dummy_assert); 
             };
         };
         kIPC(__eos_objects["terminal"], obj.TypeURI, "read", [], onfs, onerror);
@@ -1900,7 +1521,8 @@ Jnaric.prototype.serialize = function (onfinish, onerror) {
         onerror && onerror(exc);
     };
 
-    self.execf_thread(self.global.getSecurityState, [], onGetSec, onGetSecError); 
+    // TODO: error checking (like it does not exist...)
+    self.execf_thread(self.security.getSecurityState, [], onGetSec, onGetSecError); 
     //};
     
     /*
@@ -2203,6 +1825,20 @@ eos_om = {
         
         kIPC(__tihs, src_uri, "read", [], exec_f, onfail);
         
+    },
+    
+    deleteChild: function (vm, name) {
+        var r = eos_deleteChild(vm, name);
+        var cs = vm.cur_stack;
+        var x2 = cs.my.x2;
+        if(r == -3) {
+            cs.EXCEPTION = THROW;
+            cs.exc.result = new vm.global.Error("object not found by URI");
+        } else if (r < 0) {
+            cs.EXCEPTION = THROW;
+            cs.exc.result = new vm.global.Error("delete object error code "+r);        
+        }
+        return r;
     }
 }
 
@@ -2245,7 +1881,7 @@ function eos_deleteChild(vm, name) {
     
     var ch = vm.childList[name];
     if(!ch) {
-        __eos_objects["terminal"].ErrorConsole.log("deleteChild: impossible scenario happened: child not found in cl "+vm.uri+" "+name);
+        __eos_objects["terminal"].ErrorConsole.log("deleteChild: child not found in cl "+vm.uri+" "+name);
         //vm.cur_stack.my.x2.result = -3; // set an exception?? // another impossible scenario
         return -3;
     }
@@ -2334,6 +1970,9 @@ Jnaric.prototype.bind_om = function () {
     this.kconfig_r = ['init', 'terminal_id']; // access nothing
     this.kconfig_w = [];
     
+    this.security = {}; // empty security
+    this.global.security = this.security;
+    
     this.global.object = {name: this.name, version: this.VERSION};
     this.global._object = this.global.object; // backup object...
     this.global.object.ipc = {};
@@ -2368,7 +2007,7 @@ Jnaric.prototype.bind_om = function () {
     
     this.global.object.deleteChild = function(name) {
         
-        eos_deleteChild(__tihs, name);
+        eos_om.deleteChild(__tihs, name);
     };
     //this.global.deleteChild = this.global.object.deleteChild;
     
@@ -2433,6 +2072,7 @@ Jnaric.prototype.bind_om = function () {
     
     this.global.object.destroyInstance = function () {
         // delete myself and all my children - from my parent
+        // XXX: API change - detect errors via return value
         eos_deleteChild(__tihs.parent, __tihs.name);
     };
     this.global.object.destroy = this.global.object.destroyInstance;

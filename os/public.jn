@@ -1,19 +1,21 @@
 // public.jn
-_public_adminterminal = null;
-function setSecurityState(state) {
-    if(state.terminal) _public_adminterminal = state.terminal;
+
+security._public_adminterminal = null;
+
+security.setSecurityState = function (state) {
+    if(state.terminal) this._public_adminterminal = state.terminal;
     wakeupIPCLock.release(); // = false;
-}
+};
 
-function getSecurityState() {
-    return { terminal: _public_adminterminal };
-}
+security.getSecurityState = function() {
+    return { terminal: this._public_adminterminal };
+};
 
-function validateRequest (rq) {
+security.validateRequest = function (rq) {
     if(rq.method == "read") return true;
-    if(_public_adminterminal == null) return true;
-    if(rq.terminal_uri == _public_adminterminal) return true;
+    if(this._public_adminterminal == null) return true;
+    if(rq.terminal_uri == this._public_adminterminal) return true;
     return false;
-}
+};
 
-// initIPCLock = false; // means we have been initialized WHY???
+delete security; // detach from global...

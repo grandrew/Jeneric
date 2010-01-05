@@ -8,16 +8,17 @@ GLOBAL JEOS3 ROADMAP
         - ic: execute CLL
         - jh: run child programs with parameters fed to them via IPC to console_main(paramlist); via the DOM <pre> node bound
             multicall methods:
-            - typeto URI: create/replace URI of filestore/ramstore type object with the text typed; similar to 'cat' utility
+            + typeto URI: create/replace URI of filestore/ramstore type object with the text typed; similar to 'cat' utility
         - implement object types:
-            - ramstore (get)
-            - terminal
+            + ramstore (get)
+            + terminal
         - implement security models:
             - anarchy
-            - owner write/all read
+            - owner write/all read (public)
+            - UNIX security?
             - list write / all read / owner securityProperties change
         
-    - совместно с проработкой DOM Wrapper'а
+- проработка DOM Wrapper'а
 - интеграция jeos3 в движок СвояСеть (вкл. изобретение какого-нибудь
     интерфейса для установки и выполнения  программ)
     - продумывание необходимости дополнительных библиотек для удобства
@@ -25,24 +26,31 @@ GLOBAL JEOS3 ROADMAP
 - локализация СвояСеть для США
 - написание industrial-grade DB для корня СС
 - реализация SUBJIT для интерпретатора ядра
+- написание "компилирующего код" модуля
+- полная сериализация VM, включая стек и DOM
+- ?манипуляция DOM через WIPC?
 
+------------------------------------------
 - отладка всего этого
     - включая написание testsuite'ов и др.
     
+FULL gears/blob support, including 
+    + chunk sending/receiving, 
+    + serving locally
+    T blob property transfer
+    - dnd-serving, 
+    - fileselection-serving
+    - wrapped blobs for property usage
+  
+однако, очень интересным представляется следующее: написать плагин для браузера (скажем, назовем его некий 
+Java plugin) который сможет кушать Gears Blobs либо нативно либо через ФС на которой сохранен Blob, 
+и производить над данными некоторые манипуляции, например, перекодирование видео. Допустим, код этого Java, 
+назовем его "апплет", будет гнаться через jeneric WIPC, и, при желании, сохраняться локально под лицом 
+некоторого супервизящего объекта, который может включать в себя как JS код, так и любое кол-во "прикрепленных" 
+блобов, и сможет методами модификации отведенной ему части DOM-дерева, "запускать" тот самый Java-код, и кормить 
+его данными самостоятельно. Будет счастье :)
 
-... через Gears _возможно_ хранить, и как угодно работать с любыми объектами и файлами, в т.ч. открывать их локально в браузере (напр., для просмотра фильма или фотки либо "скачивания" - т.е. перенесения для обработки на реальную ФС), пересылать "любыми кусками" по HTTP, принимать по HTTP. Однако, это потребует реализации довольно хитроумной схемы работы подсистем jeneric при использовании Gears
-FULL gears/blob support, including chunk sending/receiving, serving locally, dnd-serving, fileselection-serving, etc
-  - using internal API wrapper that will expose an easy and straightforward API:
-  - object.blob.getAsUrl(blobRef) - return url by which the object may be accessed from the browser user-side 
-    (like open in target-blank, or load as an SWF player, etc.)
-  - chunk read/write that will pass these chunks in a different manner than incapsulating them into JSON requests
-    for example, the prior sub-connection establishment for arbitrary data receipt for a HUB
-однако, очень интересным представляется следующее: написать плагин для браузера (скажем, назовем его некий Java plugin) который сможет кушать Gears Blobs либо нативно либо через ФС на которой сохранен Blob, и производить над данными некоторые манипуляции, например, перекодирование видео. Допустим, код этого Java, назовем его "апплет", будет гнаться через jeneric WIPC, и, при желании, сохраняться локально под лицом некоторого супервизящего объекта, который может включать в себя как JS код, так и любое кол-во "прикрепленных" блобов, и сможет методами модификации отведенной ему части DOM-дерева, "запускать" тот самый Java-код, и кормить его данными самостоятельно. Будет счастье :)
   - maybe think of Sun microsystems cooperation to support this shit??
-
-TODO
-- test suite (to run from ic)
-
 
 
 
@@ -51,27 +59,30 @@ GENERAL JENERIC TODOLIST
 
 TESTING - SERIALIZE
 
-- google gears hint for ic.jn
++ google gears hint for ic.jn
 - cookie store(creds?) at eosinit.js?
   - where to store creds?
+  - maybe store session to survive page reloads?
 
 TESTING - HUB
 + data pipes
 
 TESTING - DOM
-- DOM
++ DOM
 - CSS
 
 TESTING - ALPHA
 
 - bugfixes below
+- faster parser
 - cross browser code
+- test suite (automated)
 - write simplest but working security model
 - write security model for terminal (including TODOs for security in there
 - write security model for ss storage
 - create some usable tools: a better ic# (completion? commands history?), better EDIT (+highlighting??)
 + run /lib
-- run /home [virtual?? non-browser]
+- run /home [virtual?? non-browser] - the industrial DB
 
 TESTING - BETA
 
@@ -121,13 +132,10 @@ ASSORTED TODO ITEMS
 + security: signRequest at work
 + getMyAbsoluteURI method
 + fix encoding (do utf-8 everywhere)
-- LTR a more unix-like shell: cwd, etc..
-- terminal connection init SLOW
-   - introduce connection API (in case we will want to disconnect manually?)
++? terminal connection init SLOW ?? suddenly self-fixed?
 + BUG in try/catch (see below)
 + import keyword (+userspace script injection)
 + semaphores (+think/document select()-like call using dynamic semaphores)
-  - LTR more semaphore types?
 + IPCLocks - to semaphores!
 + faster createChild
     WHY is object creation so slow?? - probably because of lacking lock/semaphore mechanism?? or what??
@@ -135,93 +143,150 @@ ASSORTED TODO ITEMS
         -> + because of the creation algorithm... see 4 full IPC calls + massive user-level code involved
         -> - parsing is slow! -> compile to binary!
 + hubAuthenticationChanged (and kconfig altering)
-- general notification API?? invent general (kernel??) notification/subscription protocol!
 + maybe add object_security? TypeURI and SecurityURI to request object!?
-- implement passwd change in ic.jn (write program?)
-  - rename to terminal_auth and terminal_register ??
-  - move terminal_auth to terminal.jn responsibility
-- safe logout (notify the hub of sign-off)
-  the hub should also drop session if there are many failed send attempts ?? or not?? no! 
-- ic: introduce more timeouts
-- typeto should be a better parse of exceptions
-+ supply kernel parameters as #-string in location: 
-  http://go.jeneric.net/#init=/path/to/init,terminal_id=myterminal,terminal_key=TeRmPaSs
-- ramstore object notifications hooks (what notifications???? investigate this? like object ready, object modified, child added, etc?)
-  general storage notification protocol and general general event protocol
-- remove default jn instance (code cleanup)
-- get rid of defineProperty
-- jsexec: Move the methods from highly closured state to unclosured.
-- investigate JSON-RPC compatibility [stabilize error codes]
++ rename to terminal_auth and terminal_register ??
++ ic: introduce more timeouts
++ typeto should be a better parse of exceptions
++ supply kernel parameters as #-string in location: http://go.jeneric.net/#init=/path/to/init,terminal_id=myterminal,terminal_key=TeRmPaSs
 + safe wrapper for Gears
 + THE MOST general terminal init object: read some autostart values locally/remotely(?)
-  - DOCument this
-- DOM ceanup upon object removal (+ DOM detach request for iclib)
-- LTR support for remote hibernation BEFORE launch! (why?)
-  - need fast native JSON to stringify/back for object setState
++ BLOB file access/local webstorage access
++ implement atob/btoa using Orbited's converter wrapper
++ wrapped string operations for base64 using formulas (see g:stackoverflow base64 size) -- done with HEX encoding
++ pinging HUB does not seem to prevent from session drop :-\ (BUG in pinger)
+- database access methods (if available)
+    (or kernel driver object?? - terminal security model that allows for native code "RING0" injection)
+
+- need a method to attach to child errors/system notifications: like if the child of ic dies before exec (also the IPC dedlocks!)
+
+
+- new kernel feature: check for getChild() ipc(?)object. method to get child ref redirect instead of kernel URI resolution procedure - alternative getChild for more object path resolution control
+- check if the values of function parameters not supplied are defined but set to 'undefined' so that || or && notation could be used safely
+- improvement: if there are several Blobs in request - transfer chunked data instead of just bare body in many requests; pack the blobs into FormFileTransfer-alike HTTP pieces; parse them chunked in Twisted and send to callee/caller this way
+- properly debug/audit conections
+- we need A THOROUGH security discussion!
+- reauth for terminal when connection drops (acquire temporary key or do a real reauth when hubConnectionChanged or a kernel method to store AUTH info temporarily)
+
+- set static file cache ageing header in HAProxy to seconds - for debug - to 1 day - for retail
+- create in-jeneric unit testing framework and move everything into it (see python unittest module)
+- go the twisted.web2 way to handle file uploads :-\
+- escape/unescape "Blob("+")" in the STRING data being sent (in the parser/reviver and in hub)
+- write a standard shared library: a shared library is in fact a cloud-based shared method storage. The library may load some code on-demand and will contain wrappers for cloud-based methods
+- gears fully autonomous operation vs. portable hub?
+- gears 'don't allow': to continue without gears instead of halting (?!?)
+
+- html templating support
+- i18n support
+
+URGENT:
+- detach security reference from vm.global (and attach to vm.security, having all(almost?) sec defined in a 'security' object)
+    + thisObject set to 'security' object
+    - how to safely call setSecurityState and getSecurityState ?
+        - call them from execIPC directly
+        - set thisObject
+- absolute path resolution improvement: watch for LIPC requests defined as WIPC; do not send through HUB
+- check that ["___prop"] indexing is protected (triple underscore indexes are not supported TypeError)
+- need fast native JSON global object to stringify/back for object setState
+  - and mozilla bug workaround!! use native_sringify
 - deal with native object prototyping: properly wrap the 'global' natives!
   - also note the __hasInstance__ and others defined at Fp
+  - see what Object.prototype = XXX will do
+- make sure 'move' call really exists for the object tree (
+  - and document all tree calls)
+- gears dnd adapter for file drop
+- gears adapter for file pickup
+- jsexec: Move the methods from highly closured state to unclosured.
+- remove default jn instance (code cleanup)
+- faster parser
+- get rid of defineProperty
 - get rid of TRUE in RETURN pushes -> everywhere
-- database access methods (if available)
-- BLOB file access/local webstorage access
-- technique to pass methods directly (kbind has failed!!) (watch out for references that will prevent from garbage-collecting!)
+- rename all exceptions that use JNARIC: to JENERIC: ; also remove 'JENERIC: ' from exception string to be in 
+    conformance (better define a .jeneric property to detect non-fatal kernel exceptions)
+- clean kernel code
+- profile firefox memory leakage; general memory usage
+- cross browser code
+- automated test suite + test cases
+- rename kernel version from jnaric to ratbird + basic automated build-based numbering (??)
+- estimate object memory/fixed storage usage
+- introduce debug flag for hub instead of just constantly dumping everything
+- jeneric in 'prefix mode' - for easier integration: prefix="/hub.php" -> all requests go through "mysite.com/hub.php?q=/tcp/...", "mysite.com/hub.php?q=/os/ramstore.jn", etc. 
+  - pass jeneric kernel parameters in integration-friendly mode
+- do eosinit, etc. via callable init() routine for integration
+- CSS support & testing
+
+- steal unit tests for DOM
+- set and debug for DOCTYPE strict setting (mozilla will render faster) see https://developer.mozilla.org/en/Migrate_apps_from_Internet_Explorer_to_Mozilla
+- jsdom: better DOM cache cleanup upon removal :-\
+
+
+- DOM wrapper seems to need a substantial rewrite ???
+    (without having the 'local copy'?)
+- // WARNING!! this all may result in exceptions! (DOMException) -> this should not be thrown by VM as errors!
+
+- need to re-announce (or ping) if connection lost 101 ???
+- BlobObject slice bugfix for Chrome (do not slice if we want full object)
+- totally-rename wrappedString to ___wrppedString for more security
+- decouple session from the online presense fact!???
+- file GEARS bug: when doing slice of size more than blob size -> the LENGTH is set to parameter sent to slice rather than real (0)
+
+--- LTR line
+----------------
+- some terminal security improvements
+    - move terminal_auth to terminal.jn responsibility (only allow to auth from "~" object)
+    - implement passwd change in ic.jn (write program?)
+    - safe logout (notify the hub of sign-off)
+      the hub should also drop session if there are many failed send attempts ?? or not?? no! 
+- general notification API?? invent general (kernel??) notification/subscription protocol!
+    - ramstore object notifications hooks (what notifications???? investigate this? like object ready, object modified, child added, etc?)
+      general storage notification protocol and general general event protocol
+    - connection notification, etc.
+- introduce connection API (in case we will want to disconnect manually?)
+- LTR a more unix-like shell: cwd, etc..
+- LTR more semaphore types?
+- DOM ceanup upon object removal NOT NEEDED (+ DOM detach request for iclib)
+- LTR support for remote hibernation BEFORE launch! (why?)
+- SUBJIT
+- TOTAL SERIAL
+- portable continuations
 - compiled code? like search for "type_src".o first
 - compiled code cache? like copy - not parse every time
 - object code parse cache: at least for wakeObject; for createObject too!
 - cache parsed code for all security models loaded (hmm.. not all.. some, with stack or smth
-- need a method to attach to child errors/system notifications: like if the child of ic dies before exec (also the IPC dedlocks!)
-- implement atob/btoa using Orbited's converter wrapper
-- check for getChild() ipc(?)object. method to get child ref redirect instead of kernel URI resolution procedure
-- check if the values of function parameters not supplied are defined but set to 'undefined' so that || or && notation could be used safely
-+ wrapped string operations for base64 using formulas (see g:stackoverflow base64 size) -- done with HEX encoding
-- if there are several Blobs in request - transfer chunked data instead of just bare body in many requests; pack the blobs into FormFileTransfer-alike HTTP pieces; parse them chunked in Twisted and send to callee/caller this way
-- estimate object memory/fixed storage usage
-- properly debug/audit conections
-- we need A THOROUGH security discussion!
-- reauth for terminal when connection drops (acquire temporary key or do a real reauth when hubConnectionChanged or a kernel method to store AUTH info temporarily)
-- propose more terminal independence: do not ACK at HUB but ACK at terminals only; will require a thorough HUB/terminal data protocol review
-  IMPORTANT!
-- set cache ageing in HAProxy to seconds - for debug - to 1 day - for retail
-- introduce debug flag for hub instead of just constantly dumping everything
-- pinging HUB does not seem to prevent from session drop :-\ (BUG)
-- create in-jeneric unit testing framework and move everything into it (see python unittest module)
-- go the twisted.web2 way to handle file uploads :-\
-- escape/unescape "Blob("+")" in the STRING data being sent (in the parser/reviver and in hub)
-- profile firefox memory leakage; general memory usage
-- alternative getChild for more object path resolution control
-- write a standard shared library: a shared library is in fact a cloud-based shared method storage. The library may load some code on-demand and will contain wrappers for cloud-based methods
-- gears fully autonomous operation vs. portable hub?
-- gears 'don't allow' to continue without gears instead of halting (?!?)
-- jeneric in 'prefix mode' - for easier integration: prefix="/hub.php" -> all requests go through "mysite.com/hub.php?q=/tcp/...", "mysite.com/hub.php?q=/os/ramstore.jn", etc. 
-  - pass jeneric kernel parameters in integration-friendly mode
-- do eosinit, etc. via callable init() routine for integration
-- detach security reference from vm.global (and attach to vm.security, having all(almost?) sec defined in a 'security' object)
-- absolute path resolution improvement: watch for LIPC requests defined as WIPC; do not send through HUB
-- steal unit tests for DOM
-- set and debug for DOCTYPE strict setting (mozilla will render faster) see https://developer.mozilla.org/en/Migrate_apps_from_Internet_Explorer_to_Mozilla
-- rename all exceptions that use JNARIC: to JENERIC: ; also remove 'JENERIC: ' from exception string to be in conformance
-- jsdmo: better DOM cache cleanup upon removal :-\
-- check that ["___prop"] indexing is protected (triple underscore indexes are not supported TypeError)
-- gears dnd adapter for file drop
-- DOM wrapper seems to need a substantial rewrite ???
-    (without having the 'local copy'?)
-- // WARNING!! this all may result in exceptions! (DOMException) -> this should not be thrown by VM as errors!
-- make sure 'move' call really exists for the object tree (and document all tree calls)
-- need to re-announce (or ping) if connection lost 101 ???
-- add moz 3.5.5 as minimal system requirements (needs Gecko 1.9.1.5 minimum due to jsno bug)
-- BlobObject slice bugfix for Chrome
-- totally-rename wrappedString to ___wrppedString for more security
-- decouple session from the online presense fact!
-- GEARS bug: when doing slice of size more than blob size -> the LENGTH is set to parameter sent to slice rather than real (0)
+
 kernel programming advisory: be careful with methods that stop the stack - report any possible error via try/catch and stack release w/throw
 
+
+--- PROPOSAL WORK
 ---------------
+- rethink MOVE & LINK object system properties
+- propose more terminal independence: do not ACK at HUB but ACK at terminals only; will require a thorough HUB/terminal data protocol review
+  IMPORTANT!
 - Need additional interface for the ramstore like object LIST method: creation date, file type, FILE LENGTH!!! etc ipc_type, ipc_contenttype.
 - Some additional standard object description methods should also be defined in Jnaric Standard Protocol Proposal (JSPP?)
 - A proposal for security description inside the object to allow for security models interoperability and succesful object serialization
 - A proposal for security setup and/or MVC model for the security setting.
 - The web browser may fail. We should consider different scenarios of what may or should happen.
 - Web services/site integration (hidden frame?) (kernel parameters for LOCATION change and restart?)
+- for BETA: Write standards for users and friending, autostart (system init like sysV?), security, storage object interface(entire)
+- investigate JSON-RPC compatibility [stabilize error codes]
+- technique to pass methods directly (kbind has failed!!) (watch out for references that will prevent from garbage-collecting!)
+    this is all to allow for faster IPC...
 
+
+
+
+--- DOCUMENTATION WORK
+---------------
+- DOCument startup procedure
+- further document security; explain examples
+- collect all exceptions/error reports and create exception matrix
+- LIPC sending function references and executing them in another vm may result in any unpredicted behaviour (stack mess)
+- EOS or POS?
+- hub.py is VERY poorly code-designed
+
+
+---------------
+Study google closurer after all.. Maybe they have a good compiler ;-)
 ---------------
 
 
@@ -234,32 +299,6 @@ http://www.openjs.com/scripts/events/keyboard_shortcuts/
 http://qooxdoo.org/about
 http://www.cdolivet.com/index.php?page=editArea&sess=09ec47cc055fa9d63a6aa765173a1d70
 jquery!!
-js to jn compiler to successfully compile jquery?!? 
-
----------------
-Higher-level init procedure:
-- terminal will pass all its rights on to init that does reside at (some address given in init-string as #init=)
-- 
-
----------------
-******
-After pre-beta public launch:
-Write standards for users and friending, autostart (system init like sysV?), security, storage object interface(entire)
-
-******
-Js to jn compiler: compile DOM getters into setAttr..
-Study google closurer after all.. Maybe they have a m,mm21pgood compiler ;-)
-
---------------------------------------------------------------------------------------------------
-DOCUMENTATION HINTS
-
-- collect all exceptions/error reports and create exception matrix
-- LIPC sending function references and executing them in another vm may result in any unpredicted behaviour (stack mess)
-- EOS or POS?
-- hub.py is VERY poorly code-designed
-
-
----------------
 
 
 QESTIONS:
@@ -277,15 +316,7 @@ QESTIONS:
 
 BUGS:
 
-???? GENERAL PROTOTYPING PROBLEM????? like Object.prototype.fuckingSHIT = shit -> will overlap with another proto!!
-  this is a core problem and cannot be addressed; also the SUBJIT will definitely fail here...
-  no it wont fail.
-BUG: terminal drops connections faster than pinger pings???
-     sessions need to be properly debugged!
-- HUB: http_request still timeouts!
-
 ----------------------------------------
-
 
 make ALL stack STOPs use the STOP ID!!
 
