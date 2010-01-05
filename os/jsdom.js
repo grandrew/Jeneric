@@ -1,11 +1,98 @@
 /*
 
 Seems that we're going to implement
-http://www.w3.org/TR/2000/REC-DOM-Level-2-Core-20001113/java-binding.html
-and not
 http://www.w3.org/TR/2000/REC-DOM-Level-2-Core-20001113/ecma-script-binding.html
+and not
+http://www.w3.org/TR/2000/REC-DOM-Level-2-Core-20001113/java-binding.html
+
+
+TODO
+
++ implement these setters through jsdom2
+    + also implement setter/getter interface
+    + also support no ___link available
++ implement innerHTML setter via parser -> load XML and attach node
++ NO! exclude <script>! use list of supported tags (exclude SCRIPT tag) SEE: <object> is OKAY !?!?! SECURITY PROBLEM!!
++ extend document interface
+    ? prop: document.title, body, URL, width, height, styleSheets, ?links, (readyState, activeElement - HTML5)
+    ? meth: document.[STD DOM], createEvent, hasFocus, ?write, (ononline, onoffline - MOZ)
+    - body: set at inittime
++ implement event model
++ do the switch to xmldom2 as described in bind_dom
++ run all the above shit
+((( do we need this ever?
+    - introduce DOM clean hooks (and general clear on DELETE object event)
+        - or clean DOM by calling clean by a parent? Then notify parent of child finish() (maybe thru iclib?)
+    - test new clean hooks (the apps to remove from DOM)
+)))
++ window.getComputedStyle(elementRef, pseudoElementName) Not supported in IE, which uses the "currentStyle" property instead.
++ window full support: selection, etc.
+    - props: innerHeght/width to be set to containing element
+    - methods:
++ selection objects WRAP
+    - securioty issue of toString
++ range objects WRAP
+    + document.createRange
+    - security issue
+    - internal XML mods
++ implement execCommand
++ event handlers: set 'this' pointer to the needed value (& modify the ABI of execf)
++ set 'navigator': 
+    + userAgent object to return 'Jeneric (Gecko translator Jeneric 0.1)'
+    + product to equal "Gecko"
++ set 'window.virtual' object to contain information about current VM: running environment, real user agent, etc.
+
+- implement each HTML element interface as of mozilla DOM reference https://developer.mozilla.org/en/gecko_dom_reference
+    + link
+    + form
+    - select
+    (others, see https://developer.mozilla.org/en/gecko_dom_reference)
+    see rhino env.js anyways; Gecko ref is incomplete
+    http://www.google.com/codesearch/p?hl=en#PSg8XFiA2K0/plugins/jXmanip/lib/env.js&q=lang:javascript%20env.js%20rhino&sa=N&cd=1&ct=rc
+- FORM SUBMIT healing with _target https://developer.mozilla.org/en/DOM/element.name - iframe name (associated with each form?)
+    - create a default named target for all this stuff
+    - implement a _target controlled setter (to set target to what is desired for developer)
+- LINK HREF with _target = _blank
+- IFRAME to support DOMDocument interface.. see http://www.mozilla.org/editor/ie2midas.html and others
+
+- support for CSS loading/unloading and cleanup alongside with DOM!
+    - allow apps to detect which browser is in case
+- CSS fixups:
+    - opacity setter for IE, to div.style.filter = "alpha(opacity=0)";
+    - IE border transparency
+- create IE-specific wrappers:  
+    - add Event IE properties, window.event object
+    - document.selection & TextContent
+    - document.designMode
+- implement *NS DOM methods: createElementNS and others,
+- XXX TODO: remember the form submit problems as well as links problems (set navigate-away notifier?? with kernel disable initline)
+
+wtf is: 
+     // fix IE image caching issue
+     4:         document.execCommand("BackgroundImageCache", false, true);
+
+- CSS: setting-by-id problem? need to tweak element IDs??? ever possible to set CSS to elements without distortion?
+
+??? automatic refactoring JSDOM into JNDOM ???    
+
+    -----------
+    
+if(typeof(document.compatMode)=='undefined' || document.compatMode=='CSS1Compat')
+return document.documentElement.clientWidth;
+else return document.body.clientWidth;
+-- WTF?
+
 
 */
+
+
+
+
+
+// XXX LAME! the ___ property can still be accessed via obj["___propname"]
+
+
+
 
 
 Jnaric.prototype.bind_dom = function (wrapped_domElement) {
@@ -61,86 +148,8 @@ Jnaric.prototype.bind_dom = function (wrapped_domElement) {
     
 };
 
-// XXX LAME! the ___ property can still be accessed via obj["___propname"]
 
 
-/*
-
-TODO
-
-+ implement these setters through jsdom2
-    + also implement setter/getter interface
-    + also support no ___link available
-+ implement innerHTML setter via parser -> load XML and attach node
-+ NO! exclude <script>! use list of supported tags (exclude SCRIPT tag) SEE: <object> is OKAY !?!?! SECURITY PROBLEM!!
-+ extend document interface
-    ? prop: document.title, body, URL, width, height, styleSheets, ?links, (readyState, activeElement - HTML5)
-    ? meth: document.[STD DOM], createEvent, hasFocus, ?write, (ononline, onoffline - MOZ)
-    - body: set at inittime
-+ implement event model
-+ do the switch to xmldom2 as described in bind_dom
-+ run all the above shit
-((( do we need this ever?
-    - introduce DOM clean hooks (and general clear on DELETE object event)
-        - or clean DOM by calling clean by a parent? Then notify parent of child finish() (maybe thru iclib?)
-    - test new clean hooks (the apps to remove from DOM)
-)))
-+ window.getComputedStyle(elementRef, pseudoElementName) Not supported in IE, which uses the "currentStyle" property instead.
-+ window full support: selection, etc.
-    - props: innerHeght/width to be set to containing element
-    - methods:
-+ selection objects WRAP
-    - securioty issue of toString
-+ range objects WRAP
-    + document.createRange
-    - security issue
-    - internal XML mods
-+ implement execCommand
-+ event handlers: set 'this' pointer to the needed value (& modify the ABI of execf)
-+ set 'navigator': 
-    + userAgent object to return 'Jeneric (Gecko translator Jeneric 0.1)'
-    + product to equal "Gecko"
-+ set 'window.virtual' object to contain information about current VM: running environment, real user agent, etc.
-
-- implement each HTML element interface as of mozilla DOM reference https://developer.mozilla.org/en/gecko_dom_reference
-    + link
-    + form
-    - select
-    (others, see https://developer.mozilla.org/en/gecko_dom_reference)
-    see rhino env.js anyways; Gecko ref is incomplete
-    http://www.google.com/codesearch/p?hl=en#PSg8XFiA2K0/plugins/jXmanip/lib/env.js&q=lang:javascript%20env.js%20rhino&sa=N&cd=1&ct=rc
-- FORM SUBMIT healing with _target https://developer.mozilla.org/en/DOM/element.name - iframe name (associated with each form?)
-    - create a default named target for all this stuff
-    - implement a _target controlled setter (to set target to what is desired for developer)
-- LINK HREF with _target = _blank
-- IFRAME to support DOMDocument interface.. see http://www.mozilla.org/editor/ie2midas.html and others
-
-- support for CSS loading/unloading and cleanup alongside with DOM!
-    - allow apps to detect which browser is in case
-- create IE-specific wrappers:  
-    - add Event IE properties, window.event object
-    - document.selection & TextContent
-    - document.designMode
-- implement *NS DOM methods: createElementNS and others,
-- XXX TODO: remember the form submit problems as well as links problems (set navigate-away notifier?? with kernel disable initline)
-
-wtf is: 
-     // fix IE image caching issue
-     4:         document.execCommand("BackgroundImageCache", false, true);
-
-- CSS: setting-by-id problem? need to tweak element IDs??? ever possible to set CSS to elements without distortion?
-
-??? automatic refactoring JSDOM into JNDOM ???    
-
-    -----------
-    
-if(typeof(document.compatMode)=='undefined' || document.compatMode=='CSS1Compat')
-return document.documentElement.clientWidth;
-else return document.body.clientWidth;
--- WTF?
-
-
-*/
 
 
 

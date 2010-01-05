@@ -207,10 +207,15 @@ ASSORTED TODO ITEMS
 - // WARNING!! this all may result in exceptions! (DOMException) -> this should not be thrown by VM as errors!
 - make sure 'move' call really exists for the object tree (and document all tree calls)
 - need to re-announce (or ping) if connection lost 101 ???
+- add moz 3.5.5 as minimal system requirements (needs Gecko 1.9.1.5 minimum due to jsno bug)
+- BlobObject slice bugfix for Chrome
+- totally-rename wrappedString to ___wrppedString for more security
+- decouple session from the online presense fact!
+- GEARS bug: when doing slice of size more than blob size -> the LENGTH is set to parameter sent to slice rather than real (0)
 kernel programming advisory: be careful with methods that stop the stack - report any possible error via try/catch and stack release w/throw
 
 ---------------
-- Need additional interface for the ramstore like object LIST method: creation date, file type, FILE LENGTH!!! etc .
+- Need additional interface for the ramstore like object LIST method: creation date, file type, FILE LENGTH!!! etc ipc_type, ipc_contenttype.
 - Some additional standard object description methods should also be defined in Jnaric Standard Protocol Proposal (JSPP?)
 - A proposal for security description inside the object to allow for security models interoperability and succesful object serialization
 - A proposal for security setup and/or MVC model for the security setting.

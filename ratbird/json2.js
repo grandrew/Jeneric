@@ -246,12 +246,14 @@ if (!this.JSON) {
 
         if (typeof rep === 'function') {
             value = rep.call(holder, key, value);
+            
         }
 
 // What happens next depends on the value's type.
 
         switch (typeof value) {
         case 'string':
+            
             return quote(value);
 
         case 'number':
@@ -350,7 +352,8 @@ if (!this.JSON) {
 
 // If the JSON object does not yet have a stringify method, give it one.
 
-    if (typeof JSON.stringify !== 'function') {
+    if ( (typeof JSON.stringify !== 'function') || (navigator.product == "Gecko")) { // do defeat FF3.5.6 bug
+    
         JSON.stringify = function (value, replacer, space) {
 
 // The stringify method takes a value and an optional replacer, and an optional

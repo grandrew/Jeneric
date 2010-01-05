@@ -410,6 +410,7 @@ __jn_stacks = {
             setTimeout(_wf, this.SET_TIMEOUT * 3);
         }
         // else assume it is running ???
+        
         return stack.pid;
         
     },
@@ -2142,6 +2143,7 @@ Jnaric.prototype.step_next = function (g_stack) {
             else {
                 //console.log("ex_obj is: "+typeof(ex_obj)+" .toString: "+!!ex_obj.toString+" type of "+typeof(ex_obj.toString));
                 this.ErrorConsole.log("Uncaught exception ... "+ex_obj+"' Stack trace: "+__print_strace(e_stack));
+                console.log("onerror is: " +g_stack.onerror+ " main onerror: "+ this.onerror+ " PID: "+g_stack.pid);
             }
             
             
@@ -4009,11 +4011,15 @@ Jnaric.prototype.execf_thread = function (func, args, onok, onerr, nice, thisObj
 
     // self.execf_thread(self.global.__ipc[rq.method], [rq].concat(rq.args), cbo2, cbe2); // TODO: execf with ref as parameter
 
+    //console.log(func);
+    
+    //console.log(onerr.toString());
+    
+if(!onerr) this.ErrorConsole.log("WARNING! running execf_thread without onerr");
+if(!onok) this.ErrorConsole.log("WARNING! running execf_thread without onok");
 
     if(typeof nice == "undefined") var nice = this.nice;
 
-    
-    
     var x2 = new this.ExecutionContext(GLOBAL_CODE);
     if(typeof(thisObject) == "undefined") x2.thisObject = this.global;
     else x2.thisObject = thisObject;
@@ -4042,6 +4048,7 @@ Jnaric.prototype.execf_thread = function (func, args, onok, onerr, nice, thisObj
     g_stack.onfinish = onok;
     g_stack.onerror = onerr;
     __jn_stacks.add_task(this, g_stack, nice, this.throttle);
+    
 
 }
 

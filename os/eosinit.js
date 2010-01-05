@@ -472,6 +472,7 @@ hubConnection = {
         var ct = (new Date()).getTime();
         for(var i in this.rqe) {
             if(i == "__defineProperty__") continue; // XXX FUCK!!
+            
             if(ct - this.rqe[i]["t"] > ACK_TIMEOUT) {
                 // XXX only for requests??
                 
@@ -497,15 +498,22 @@ hubConnection = {
                     return blob_replacer(key, value, rqq);
                 };
                 
+                
+                
                 try {
                     //this.stomp.send(JSON.stringify(this.rqe[i]["r"], replacer), HUB_PATH);
-                    this.stomp.send(JSON.stringify(this.rqe[i]["r"], replacer), HUB_PATH);
+                    var jsn = JSON.stringify(this.rqe[i]["r"], replacer);
+                    
+                    
+                    
+                    this.stomp.send(jsn, HUB_PATH);
                 } catch (e) {
 
                     this.rqe[i]["r"]["status"] = "EEXCP"; // DOC document this too
                     this.rqe[i]["r"]["result"] = "Could not parse JSON to send: "+e; // DOC document this too
                     this.receive(this.rqe[i]["r"]);
                     delete this.rqe[i]; // XXX TODO how will it interact with property-iteration?
+                    if(window.console) console.log("STOMP SEND Error occured: "+e);
                 }
             }
         }
@@ -539,7 +547,7 @@ hubConnection = {
 };
 
 // start the pinger
-setTimeout((function() {hubConnection.send({id: __jn_stacks.newId(), uri: "/", method: "ping", args: []});}), 90000)
+setInterval((function() {hubConnection.send({id: __jn_stacks.newId(), uri: "/", method: "ping", args: []});}), 90000)
 
 hubConnection.init();
 hubConnection.receive = eos_rcvEvent; // XXX this interconnects with jsobject.js in an ugly way...
@@ -569,17 +577,20 @@ hubConnection.receive = eos_rcvEvent; // XXX this interconnects with jsobject.js
 
 // very tightly connected with jsobject.js for Gears Blobs
 function blob_replacer(key, value, req) {
-    if (value.toString() == "[object GearsBlob]") {
+    
+    if (value && value.getBytes && value.toString() == "[object GearsBlob]") {
         // now, check if we are a native Blob or a wrapped UUstring
-         
+        
         // add object to BlobSender and send separately
         // return blob-representation object
         // XXX assume we HAVE gears installed if we encounter GearsBlob here!
+
         var blobID = "Blob("+key+"."+randomString(10)+")";
-        if(value.wrappedString) sendWrappedBlob(blobID, value, req); // TODO TODO
+        if(value.wrappedString) sendWrappedBlob(blobID, value, req); // TEST IT
         else sendBlob(blobID, value, req);
         return blobID;
     }
+    //console.log("returning: "+value.toString());
     return value; // always return the actual value
 }
 
@@ -589,7 +600,10 @@ function sendBlob(bid, blob, req) {
     request.open("POST", "/blobsend?blobid="+bid+"&blob_session="+hubConnection.___SESSIONKEY);
     //request.setRequestHeader("blob_session", hubConnection.___SESSIONKEY); // XXX ugly sessionkey get...
     //request.setRequestHeader("blobid", bid); 
+    //console.log("sending BLOB of length "+blob.___blob.length);
+    //AAABBB = blob.___blob;
     request.onreadystatechange = function () {
+        
         if(request.readyState == 4) {
             // ok?
             if(request.status != 200) {
@@ -599,10 +613,12 @@ function sendBlob(bid, blob, req) {
                 req["status"] = "ECONN"; // DOC document this too
                 req["result"] = "blob send failed with status "+request.status; // DOC document this too
                 hubConnection.receive(req);
-                if(window.console) console.log("blob send failure for request "+req.id);
+                if(window.console) console.log("blob send failure for request "+req.id+" status "+request.status+ " msg "+request.responseText);
+            } else {
+                //if(window.console) console.log("BLOB SENT");        
             }
         } else {
-            
+    
         } 
     }
     request.send(blob.___blob);

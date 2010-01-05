@@ -11,6 +11,7 @@
 # python-cjson egg [or (install... (python-cjson?)
 # stompservice egg
 # orbited egg
+# z3c.sharedmimeinfo egg
 # - patch line 119 /usr/lib/python2.5/site-packages/morbid-0.8.7.3-py2.5.egg/morbid/mqsecurity.py
 # +        global security_parameters
 # access rights for REGISTRAR_DB = "/var/lib/eoshub/registrar.sqlite"
@@ -640,7 +641,8 @@ h = Hub()
 # from twisted.internet import reactor # imported earlier
 from twisted.web import static, server
 from twisted.web.resource import Resource
-import base64,cStringIO
+from z3c.sharedmimeinfo import getType
+import base64,cStringIO,tempfile
 
 # there are two options: - render GET /blob, render POST /blob;
 # render GET /base64, POST /base64
@@ -706,7 +708,9 @@ class BlobPipe(Resource):
         if not self.requests.has_key(key):
             # there is no request, just append to database
             c = blobtmp.cursor()
-            c.execute("insert into tmp (sessid, key, data, time) values (?,?,?,?)", (sess, key, data, time.time()));
+            # XXX TODO AWFUL BLOB USAGE HERE!!! sqlite3.Binary <--!!!
+            c.execute("insert into tmp (sessid, key, data, time) values (?,?,?,?)", (sess, key, sqlite3.Binary(data), time.time())); # XXX AWFUL TODO
+            #c.execute("insert into tmp (sessid, key, data, time) values (?,?,?,?)", (sess, key, data, time.time())); # XXX AWFUL TODO
             blobtmp.commit();
             c.close();            
         else:
@@ -719,6 +723,7 @@ class BlobPipe(Resource):
             del self.requests[key];
 
         if key in self.waitblob:
+            print "BLOB is here! doing DO"
             self.blobreceived(self.waitblob[key])
             del self.waitblob[key]
 
@@ -726,16 +731,20 @@ class BlobPipe(Resource):
         c= blobtmp.cursor();
         # now check if a record exists
         if sess: c.execute('select data from tmp where sessid=? and key=?', (sess, key));
-        else: c.execute('select data from tmp where key=?', (key,)); # ugly workarund for blob_received
+        else: 
+            c.execute('select data from tmp where key=?', (key,)); # ugly workarund for blob_received
+            print "get_blob: checking", key
         d = c.fetchone()
         c.close()
         if d is None:
+            print "get_blob: no", key, "-", repr(d)
             return d
         c= blobtmp.cursor();
         c.execute('delete from tmp where key=?', (key,)); # ugly workarund for blob_received
         c.close()
         blobtmp.commit()
-        return d[0]
+        print "get_blob: returning what we've got!, length:", len(d[0])
+        return str(d[0])
 
             
     def getChild(self, name, request):
@@ -783,7 +792,7 @@ class BlobPipe(Resource):
                 # defer request
                 self.requests[blobid] = [0, request];
             else:
-                request.write(d);
+                request.write(d); 
                 request.finish();
             
             return server.NOT_DONE_YET
@@ -816,9 +825,12 @@ class BlobPipe(Resource):
 
             self.pipes[rq["id"]] = {"rq": rq, "request": request, "pos": READBYTES, "ts": time.time(), "uri": request.path, "dir": 0, "arg": rarg, "abort": abortFlag};
             request.notifyFinish().addErrback(self._responseFailed, abortFlag)
+            
+            
 
-            self.requestHub.self_receive(GETPIPE_TERMNAME, rq) ## NO!! do not send to session
-            ## we need to expose a mechanism to resolver normal requests (for example, have a special session ID for external RQs)
+            self.requestHub.self_receive(GETPIPE_TERMNAME, rq) # # NO!! do not send to session
+            # # we need to expose a mechanism to resolver normal requests (for example, have a special session ID for external RQs)
+            
 
             
             return  server.NOT_DONE_YET
@@ -919,20 +931,28 @@ class BlobPipe(Resource):
 
             if isblob:
                 b = self.get_blob(None, blobid)
-                if b:
+                if not b is None:
+                    print "blobIS there! trying to get", blobid, " POS ", self.pipes[rq["id"]]["pos"]
+                    if self.pipes[rq["id"]]["pos"] == 20000:
+                        # get type and set response header
+                        ctype = getType(file=cStringIO.StringIO(b))
+                        self.pipes[rq["id"]]["request"].setHeader("Content-Type", str(ctype))
+                        print "SETTING CONTENT-TYPE to ", ctype
                     self.pipes[rq["id"]]["request"].write(b);
                     if len(b) < READBYTES:
                         self.pipes[rq["id"]]["request"].finish();
                         del self.pipes[rq["id"]]
+                        print "FINISH", blobid
                     else:
                         # request next block
                         self.pipes[rq2["id"]] = {"rq": rq2, "request": self.pipes[rq["id"]]["request"], "pos": self.pipes[rq["id"]]["pos"]+READBYTES, "ts":time.time(), "uri": self.pipes[rq["id"]]["uri"], "dir": 0, "arg": rarg, "abort": self.pipes[rq["id"]]["abort"]}
                         self.requestHub.self_receive(GETPIPE_TERMNAME, rq2) ## NO!! do not send to session
-                        
+                        print "requesting NEXT block!", blobid
                         del self.pipes[rq["id"]]
                         
                 else:
                     # wait for blob to arrive here!
+                    print "will wait for blob", blobid
                     self.waitblob[blobid] = rq # TODO: re-invoke blobreceived, delete from waitblob
             else:
                 self.pipes[rq["id"]]["request"].write(blobid);
@@ -968,15 +988,21 @@ class BlobPipe(Resource):
 
     def render_POST(self, request):
         #[]
-        
+        print "POST!" # #####################
         self.preinit();
         
+        print "preinit done!" # #####################
         if "blobsend" == request.prepath[0]:
             #pass # do receive the blob in base64
-            blob = request.content.read(); # the body of request         
-            #print "GOT POST BODY: ", blob #############################################
-            blobid = request.args['blobid'][0]
-            sess = request.args['blob_session'][0]
+            print "blobsend!" # #####################
+            blob = request.content.read(); # the body of request, Google-Gears specific
+            
+            print "blobsend: GOT POST BODY length: ", len(blob) # ############################################
+            try:
+                blobid = request.args['blobid'][0]
+                sess = request.args['blob_session'][0]
+            except KeyError:
+                return "EPARM"
 
             # now store the blob in the availability list
             # and mark any waiting queues to start sending data [in fact, send data entirely]
@@ -1002,23 +1028,27 @@ class BlobPipe(Resource):
             # XXX DOC: the program must first make sure the ramstore object exists and is in a proper state
             #         (is empty or is set to appropriate length, supports BLOBs or UTF-8 TEXT)
             
-            fd = request.content
+            #fd = request.content # this is Gears way, not the MULTIPART way of browser
+            
             # now, treat it as BLOB is the file is larger than 1000 kb
             # also treat it as blob if these 1000kb could not be converted in UTF-8
-            fd.seek(TREAT_AS_BLOB_SIZE)
+            
+            #  Gears way
+            #fd.seek(TREAT_AS_BLOB_SIZE)
             isblob = True # treat as blob by default
-            if not fd.read(1):
-            #    isblob = False
-            #else:
-                fd.seek(0)
-                r = fd.read()
+            
+            #if not fd.read(1):
+            if len(request.args['file'][0]) < TREAT_AS_BLOB_SIZE:
+                #fd.seek(0)
+                #r = fd.read()
+                r = request.args['file']
                 try:
-                    r.decode("UTF-8")
+                    r[0].decode("UTF-8")
                     isblob = False
                 except UnicodeDecodeError:
                     pass
             
-            fd.seek(0)
+            #fd.seek(0)
             
             fd2 = cStringIO.StringIO()
             # fd2.write(fd.read()) # SHIT. why the FUCK do I need to copy it every time???
@@ -1072,8 +1102,8 @@ class BlobPipe(Resource):
         
         #fd.seek(pos)
         data = fd.read(size)
-        #print "Data is:", data, " of size: ", size
-        #print "Value is:", fd.getvalue()
+        print "Data is:, repr(data),  of size: ", size, "got size:", len(data)
+        print "Value is of length:", len(fd.getvalue())
         
         if isblob:
             # first, create a blobid and the blob

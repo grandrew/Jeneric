@@ -1,0 +1,125 @@
+// blobstore.jn
+
+// TODO: error checking everywhere!!
+if(!object.data.data) object.data.data = ""; // init data if not
+
+// XXX THESE ARE IGNORED BY TQLW principle XXX
+function getState() {
+    return object.data;
+}
+
+function setState(data) {
+    object.data.data = data.data;
+}
+// XXX END XXX
+
+STDNAME = "BLOB";
+
+if(object.FixedStorage) {
+    
+    fx = new object.FixedStorage();
+    
+    if(!fx.isStored(STDNAME)) {
+        var b = new object.BlobBuilder();
+        b.append("");
+        fx.storeBlob(b.getAsBlob(), STDNAME); // store an empty file
+    }
+    
+    function read(rq, offset, len) {
+        // TODO: error checking?
+        //ErrorConsole.log("ramstore: returning data: "+sdata.substr(offset, len) + " params: "+offset+" l "+len);
+        if(!offset) offset = 0;
+        if(!len) len = object.data.data.length;
+        var blb = fx.getAsBlob(STDNAME);
+        var sblb = blb.slice(offset, len);
+        
+        return sblb;  // MUST return BLOB wrapped object!!
+    }
+    
+    function write(rq, data, offset) {
+        // TODO: error checking?
+        if(typeof offset != "undefined") {
+            var blb = new object.BlobBuilder();
+            var bc = fx.getAsBlob(STDNAME);
+            blb.append(bc.slice(0, offset)); // no matter null or blb
+            blb.append(data); // no matter blob or wrapped
+            if(!("length" in data)) data.length = data.getLength();
+            blb.append( bc.slice(offset+data.length) );
+            fx.storeBlob(blb.getAsBlob(), STDNAME); // XXX no content-type??
+        } else {
+            var blb = new object.BlobBuilder();
+            blb.append(data); // no matter blob or wrapped
+            fx.storeBlob(blb.getAsBlob(), STDNAME); // XXX no content-type??
+        }
+        object.release(); // save and release
+        return true;
+    }
+    
+} else {
+    ErrorConsole.log("NO FIXED STOR DETECTED");
+    function read(rq, offset, len) {
+        // TODO: error checking?
+        //ErrorConsole.log("ramstore: returning data: "+sdata.substr(offset, len) + " params: "+offset+" l "+len);
+        if(!offset) offset = 0;
+        if(!len) len = object.data.data.length;
+        return object.data.data.substr(offset, len);
+    }
+
+    function write(rq, data, offset) {
+        // TODO: error checking?
+        if(typeof offset != "undefined") {
+            object.data.data = "".concat(object.data.data.substr(0, offset), data, object.data.data.substr(offset+data.length));
+        } else {
+            object.data.data = data;
+        }
+        object.release(); // save and release
+        return true;
+    }
+    
+}
+
+
+function ipc_addAsChild(rq, name, uri) {
+    // add as child the object of uri URI named name
+    object.linkChild(name, uri);
+    object.release(); // save and release
+}
+
+function ipc_createChild(rq, name, type, sec) {
+    object.createChild(name, type, sec); // create without any DOM binding!! (of course)
+    object.release(); // save and release
+}
+
+function ipc_deleteChild(rq, name) {
+    object.deleteChild(name);
+    object.release(); // save and release
+}
+
+function ipc_listChildren(rq) {
+    return object.enumerateChildren(); // will return an Array object
+}
+
+function ipc_type(rq) {
+    return "FixedStore GearsBlob-based object";
+}
+
+function ipc_contenttype(rq) {
+    return "not-detected";
+}
+
+
+object.ipc["read"] = read;
+object.ipc["write"] = write;
+object.ipc["addAsChild"] = ipc_addAsChild;
+object.ipc["createChild"] = ipc_createChild;
+object.ipc["deleteChild"] = ipc_deleteChild;
+object.ipc["listChildren"] = ipc_listChildren;
+object.ipc["type"] = ipc_type;
+object.ipc["contenttype"] = ipc_contenttype;
+
+//if(!wakeupIPCLock) object.release(); // mark that we can release safely // we dont want to save uninitialized file; only after write()!
+if(!wakeupIPCLock.check()) object.release(); // mark that we can release safely // we dont want to save uninitialized file; only after write()!
+
+// TODO: this should be set in security method ??? WHY??
+//       as well as wakeupIPCLock (in setSecurityState())
+initIPCLock.release();// = false; // ready for IPC...

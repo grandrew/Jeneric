@@ -191,7 +191,7 @@ while(true) {
         else p1 = "~";
         // TODO!!! p1 = s.split(" ")[1] || p1; does not work (evals to bool) for unknown reason!
         try {
-            ldata = execURI(p1, "listChildren", []);
+            ldata = execURI(p1, "listChildren", [], 10000);
             printDOM("List of objects at '"+p1+"':"); brDOM();
             for(var i=0; i<ldata.length; i++) {
                 printDOM(ldata[i]); brDOM();
@@ -207,7 +207,7 @@ while(true) {
             break;
         }
         try {
-            data = execURI(p1, "read", []);
+            data = execURI(p1, "read", [], 10000);
             preDOM(data);
         } catch (e) {
             printDOM("cat: fetch failed with: "+e); brDOM();
@@ -226,7 +226,7 @@ while(true) {
                 lURI.pop();
                 oparent = lURI.join("/");
                 //printDOM("Creating "+oname+" at "+oparent); brDOM();
-                execURI(oparent, "deleteChild", [oname]);
+                execURI(oparent, "deleteChild", [oname], 10000);
         } catch (e) {
             printDOM("delete: failed with: "+e); brDOM();
         }     
@@ -273,7 +273,7 @@ while(true) {
         }
 
         try {
-            data = execURI(p1, "read", []);
+            data = execURI(p1, "read", [], 10000);
         } catch (e) {
             printDOM("copy: object read failed with: "+e); brDOM();
             break;
@@ -288,8 +288,8 @@ while(true) {
                 oname = lURI[(lURI.length-1)];
                 lURI.pop();
                 oparent = lURI.join("/");
-                execURI(oparent, "createChild", [oname, "~/sys/ramstore", "~/sys/anarchic"]);
-                execURI(p2, "write", [data]);
+                execURI(oparent, "createChild", [oname, "~/sys/ramstore", "~/sys/anarchic"], 10000);
+                execURI(p2, "write", [data], 10000);
             } catch (e) {
                 printDOM("typeto: failed with: "+e); brDOM();
             }
@@ -312,7 +312,7 @@ while(true) {
         oparent = lURI.join("/");
         
         try {
-            execURI(oparent, "addAsChild", [ oname, p1]);
+            execURI(oparent, "addAsChild", [ oname, p1], 10000);
         } catch (e) {
             printDOM("link: object link failed with: "+e); brDOM();
             break;

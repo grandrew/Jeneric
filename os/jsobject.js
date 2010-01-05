@@ -263,7 +263,10 @@ BlobBuilder.prototype.getAsBlob = function () {
 };
 
 BlobBuilder.prototype.append = function (obj) {
-    if(this.___builder) return this.___builder.append(obj);
+    if(this.___builder) {
+        if(obj.___blob) return this.___builder.append(obj.___blob);
+        else return this.___builder.append(obj);
+    }
     // else
     if(obj.wrappedString) this.___bloblist.push(obj.wrappedString);
     else {
@@ -325,7 +328,21 @@ BlobObject.prototype.getBytes = function (offset, len) {
 };
 
 BlobObject.prototype.slice = function (offset, len) {
-    if(this.___blob) if(len) return this.___blob.slice(offset, len); else this.___blob.slice(offset);
+    if(this.___blob) {
+        // GEARS bug workaround:
+        // never set len to size more than real current length
+        
+        var newBlob = new this.constructor();
+        if(typeof(offset) == "undefined") newBlob.___blob = this.___blob.slice();
+        else if(typeof(len) != "undefined") {
+            var bytes_left = this.___blob.length - offset;
+            if(len > bytes_left) len = bytes_left;
+            if(len < 0) len = 0;
+            newBlob.___blob =  this.___blob.slice(offset, len); 
+        }
+        else newBlob.___blob = this.___blob.slice(offset);
+        return newBlob;
+    }
     else {
         var newBlob = new this.constructor();
         len = len || this.wrappedString.length;
@@ -550,6 +567,7 @@ function eos_execURI(vm, sUri, sMethod, lArgs, timeout) {
     var x2 = cs.my.x2;
     cs.EXCEPTION = false;
     var mystop = __jn_stacks.newId();
+    
     cs.STOP = mystop;
     if(vm.DEBUG) vm.ErrorConsole.log("in execURI... stopped stack!");
     // . means current object
@@ -594,7 +612,13 @@ function eos_execURI(vm, sUri, sMethod, lArgs, timeout) {
     
     // TODO: a smaller closure not to create such an overhead...?
     var onResponse = function (rq) {
-
+        if(cs.STOP != mystop) {
+            // could not detect that timeout is first or last; just skip for now
+            // and TODO- detect timeout first or last to arrive and report accordingly
+            //vm.ErrorConsole.log("WARNING: Stack lock mess; likely timeout fired but result arrived afterwards for "+vm.uri);
+            return; // may happen if timeout fires before the result arrives (no way to abort)
+        }
+        
         if(rq.status == "OK") {        
             x2.result = rq.result;
 
@@ -607,7 +631,7 @@ function eos_execURI(vm, sUri, sMethod, lArgs, timeout) {
             cs.EXCEPTION = THROW;
         
             if (rq.status == "EEXCP") {
-                var ex = new vm.global.InternalError("execURL failed with exception: "+rq.result);
+                var ex = new vm.global.InternalError("execURI failed with exception: "+rq.result);
                 ex.result = rq.result;
             } else if (rq.status == "ECONN") { 
                 cs.EXCEPTION = THROW;
@@ -624,7 +648,7 @@ function eos_execURI(vm, sUri, sMethod, lArgs, timeout) {
             } else {
                 // unknown status received
                 cs.EXCEPTION = THROW;
-                var ex = new vm.global.InternalError("execURL failed with UNKNOWN status: "+rq.status);
+                var ex = new vm.global.InternalError("execURI failed with UNKNOWN status: "+rq.status);
             }
 
             cs.exc.result = ex;
@@ -636,7 +660,9 @@ function eos_execURI(vm, sUri, sMethod, lArgs, timeout) {
 
     };
     
-    kIPC(vm, sUri, sMethod, lArgs, onResponse, onResponse);
+
+    
+    kIPC(vm, sUri, sMethod, lArgs, onResponse, onResponse, timeout);
     
 }
 
@@ -945,6 +971,7 @@ function eos_rcvEvent(rq) {
         } else {
             var cbo = function (rs) {
                 // rs is already a good object..
+                
                 hubConnection.send(rs);                
             };
 
@@ -992,6 +1019,7 @@ Jnaric.prototype.execIPC = function (rq, cbOK, cbERR) {
             var cbo2 = function (result) {
                 // if(typeof(result) == "undefined") result = -999999999;
                 // TODO: introduce UNDEFINED transfer?
+                // DOC: no result -> undefined (this is how json seialization does it)
                 
                 
                 if(self.global.signResponse) {
@@ -1191,7 +1219,7 @@ Jnaric.prototype.getParent = function () {
 // universal request method
 // TODO: REWRITE THE eos_execURI to BE STACK_INDEPENDENT!!!
 //       like do kIPC() and have eos_execURI as a wrapper??
-function kIPC(vm, uri, method, args, onok, onerr) {
+function kIPC(vm, uri, method, args, onok, onerr, timeout) {
 
     var rq = {
         id: __jn_stacks.newId(), 
@@ -1210,6 +1238,7 @@ function kIPC(vm, uri, method, args, onok, onerr) {
         args: args
     };
     
+    //var TIMEOUT_OK = {v: false};
         
     var afterSign = function () {
         if (vm.global.validateResponse) {
@@ -1219,6 +1248,7 @@ function kIPC(vm, uri, method, args, onok, onerr) {
                 //       maybe do not validate response here??
                 var cbo = function (vr) {
                     if(vr) {
+                        //TIMEOUT_OK.v = true;
                         onok(rs);                    
                     } else {
                         onerr({id: rq.id, status: "EPERM", result: "response validation failed"}); // this can actually be parsed as permission error and raise SecurityError..
@@ -1232,6 +1262,7 @@ function kIPC(vm, uri, method, args, onok, onerr) {
                 vm.execf_thread(vm.global.validateResponse, [rq], cbo, cbe); 
             };
         } else {
+            //var myonok = function (rs) { TIMEOUT_OK.v = true; onok(rs); };
             var myonok = onok;
         }
 
@@ -1265,6 +1296,16 @@ function kIPC(vm, uri, method, args, onok, onerr) {
                 }
             }
         }
+        
+        if(typeof(timeout) == "number") {
+            var tmf = function () {
+                //if(TIMEOUT_OK.v) return;
+                onerr({id: rq.id, status: "EEXCP", result: "TIMEOUT"});
+                //hubConnection.abort(rq.id); // fail silently?? or do not abort??
+            };
+            setTimeout(tmf, timeout); // document that timeout is milliseconds
+        }
+        
     };
 
     // TODO HERE
@@ -1405,7 +1446,16 @@ function eos_wakeObject(parent, name, serID) {
         // THESE methods should drop the ready flag immediately and restore it later on to avoid possible requests from being run on obj        
     };
     */
+
+    obj.onerror = function () {
         
+        obj.ErrorConsole.log("ERROR! object wakeup failed due to error in main thread. Removing dead object.");
+        if(obj.swapout() != 0) {
+            obj.clean_stacks();
+            delete __eos_objects[obj.uri];
+        }
+    };
+    
     // OKAY, write 2 more kernel methods: - to read() the data via URI and [LATER] to create system object manually
     //      i.e. createObject method
     // the kernel ipc loop: set the rq ids and callees as kIPC("URI", "", args)
@@ -1421,9 +1471,9 @@ function eos_wakeObject(parent, name, serID) {
     
     var onft = function (sec_src) {
         // we'll be setting Sec while getting Type..
-        obj.evaluate(sec_src.result); // this will set the initIPCLock to false (XXX why ever initLock needed here??)
+        obj.evaluate(sec_src.result, dump.SecurityURI); // this will set the initIPCLock to false (XXX why ever initLock needed here??)
         var onfs = function (type_src) {
-            obj.evaluate(type_src.result); // XXX TYPE SRC CODE MUST RELEASE MAIN THREAD for serialization..
+            obj.evaluate(type_src.result, dump.TypeURI); // XXX TYPE SRC CODE MUST RELEASE MAIN THREAD for serialization..
                                            // OR IT WILL DEADLOCK THE SYSTEM IPC FOR THAT OBJECT
             
             obj.global.object.data = JSON.parse(dump.Data); // set data variable directly
@@ -1517,7 +1567,14 @@ function eos_createObject(vm, name, type_src, sec_src, parentURI, typeURI, secUR
     obj.bind_om(); // bind the protected EOS object model
     
     obj.onerror = function (ex) {
-        vm.global.ErrorConsole.log("created child (URI "+obj.uri+") main thread died with exception: "+ex);        
+        // DOC this! 
+        vm.global.ErrorConsole.log("created child (URI "+obj.uri+") main thread died with exception: "+ex+". Removing dead object."); 
+        
+        // now delete the object
+        if(obj.swapout() != 0) {
+            obj.clean_stacks();
+            delete __eos_objects[obj.uri];
+        }
     };
     
     obj.evaluate(sec_src, secURI); // the single threaded nature here ensures we're not going to receive onfinish not in time
@@ -1585,6 +1642,7 @@ Jnaric.prototype.swapout = function (force) { // DOC this - force means clean ou
     
     if(hs) {
         // forget the stacks and all the shit
+        /*
         var newss = [];
         for(j=0;j<__jn_stacks.stacks_sleeping.length;j++)
             if(__jn_stacks.stacks_sleeping[j].vm != this)
@@ -1595,6 +1653,8 @@ Jnaric.prototype.swapout = function (force) { // DOC this - force means clean ou
             if(__jn_stacks.stacks_running[j].vm != this)
                 newss.push(__jn_stacks.stacks_running[j]);
         __jn_stacks.stacks_running = newss;
+        */
+        this.clean_stacks();
     }
     
     
@@ -1606,6 +1666,21 @@ Jnaric.prototype.swapout = function (force) { // DOC this - force means clean ou
     delete __eos_objects[this.uri];
 
     return 0;
+};
+
+// dangerous function!
+Jnaric.prototype.clean_stacks = function () {
+        // forget the stacks and all the shit
+        var newss = [];
+        for(j=0;j<__jn_stacks.stacks_sleeping.length;j++)
+            if(__jn_stacks.stacks_sleeping[j].vm != this)
+                 newss.push(__jn_stacks.stacks_sleeping[j]);
+        __jn_stacks.stacks_sleeping = newss;
+        newss = [];
+        for(j=0;j<__jn_stacks.stacks_running.length;j++)
+            if(__jn_stacks.stacks_running[j].vm != this)
+                newss.push(__jn_stacks.stacks_running[j]);
+        __jn_stacks.stacks_running = newss;
 };
 
 
@@ -2390,6 +2465,8 @@ Jnaric.prototype.bind_om = function () {
     this.global.BlobBuilder.prototype.getAsBlob = BlobBuilder.prototype.getAsBlob;    
     this.global.BlobBuilder.prototype.append = BlobBuilder.prototype.append;
     
+    this.bind_storage(); // always try to bind storage
+    
 };
 
 // TODO: move this utility function out of here!
@@ -2402,11 +2479,12 @@ function inject_proto (fn, donor) {
 // TODO: prettify this
 function FixedStorage() {}
 
-FixedStorage.prototype.___init = function () {
+FixedStorage.prototype.___init = function (vm) {
+    this.___vm = vm;
     this.___ls = google.gears.factory.create("beta.localserver");
     var storname = this.___vm.uri.split("/").join(".");
-    this.___r = ls.openStore(storname);
-    if(!this.___r) this.___r = ls.createStore(storname);
+    this.___r = this.___ls.openStore(storname);
+    if(!this.___r) this.___r = this.___ls.createStore(storname);
 };
 
 FixedStorage.prototype.remove = function (fname) {
@@ -2422,11 +2500,13 @@ FixedStorage.prototype.copy = function (fname1, fname2) {
 };
 
 FixedStorage.prototype.isStored = function (fname) {
-    this.___r.isCaptured(this.___vm.uri+"/~blobs/"+fname);
+    return this.___r.isCaptured(this.___vm.uri+"/~blobs/"+fname);
 };
 
 FixedStorage.prototype.storeBlob = function (blob, fname, contenttype) {
     var b = blob.___blob;
+    if(!b) throw "storeBlob: first argument must be a BlobObject with Gears installed";
+    
     if(contenttype) this.___r.captureBlob(b, this.___vm.uri+"/~blobs/"+fname, contenttype);
     else this.___r.captureBlob(b, this.___vm.uri+"/~blobs/"+fname);
 };
@@ -2464,7 +2544,9 @@ object.FixedStorage class
    string        getObjectUrl(string fname) : return the URL of stored object, otherwise fail.
 */
 
-    if(!window.google || !google.gears) return;
+    if(!window.google || !google.gears) {
+        return;
+    }
     
     var self = this;
     
