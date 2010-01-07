@@ -351,6 +351,7 @@ if (!this.JSON) {
     }
 
 // If the JSON object does not yet have a stringify method, give it one.
+if ( typeof JSON.stringify === 'function') JSON.native_stringify = JSON.stringify;
 
     if ( (typeof JSON.stringify !== 'function') || (navigator.product == "Gecko")) { // do defeat FF3.5.6 bug
     

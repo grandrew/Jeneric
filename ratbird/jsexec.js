@@ -365,9 +365,10 @@ __jn_stacks = {
         
         
         if(counter > vm.MAX_THREADS) {
-            vm.ErrorConsole.log("JNARIC Error: maximum amount of threads per this VM exceeded ("+counter+"); dropping thread creation");
-            
-            throw (new vm.global.InternalError("JNARIC Error: maximum amount of threads per this VM exceeded; dropping thread creation"));
+            vm.ErrorConsole.log("KERNEL Error: maximum amount of threads per this VM exceeded ("+counter+"); dropping thread creation");
+            var _err = new vm.global.InternalError("maximum amount of threads per this VM exceeded; dropping thread creation");
+            _err.___jeneric_err = true;
+            throw _err;
             return null; // never reached
         }
         
@@ -678,6 +679,612 @@ const GLOBAL_CODE = 0, EVAL_CODE = 1, FUNCTION_CODE = 2, S_EXEC = 3;
 
 __MAXARLEN = Math.pow(2,16)+1;
 
+GLOBAL_METHODS = {
+    eval: function (s) {
+        //console.log("data passed to eval: "+s);
+        if (typeof s != "string") {
+            this.cur_stack.my.v0 = s;
+            this.ExecutionContext.current.result = s;
+            return s;
+        }
+        var xx = this.ExecutionContext.current;
+        var xx2 = new this.ExecutionContext(EVAL_CODE);
+        xx2.thisObject = xx.thisObject;
+        xx2.caller = xx.caller;
+        xx2.callee = xx.callee;
+        xx2.scope = xx.scope; // x x2
+        this.ExecutionContext.current = xx2;    // switch context to one of eval
+        var my_cur_stack = this.cur_stack;
+        
+        var dexecf = function () {
+            //console.log("doneeval swapping results: "+xx.result+" to "+xx2.result);
+            xx.result = xx2.result;                // pass return value further...
+            this.ExecutionContext.current = xx; // switch context back
+            //my_cur_stack.my.v0 = xx2.result;
+        };
+        
+        var texecf = function () {
+            //console.log("throweval swapping results: "+xx.result+" to "+xx2.result);
+            xx.result = xx2.result;                // but before that, switch context results!
+            this.ExecutionContext.current = xx; // switch context back ??????????????
+            //my_cur_stack.my.v0 = xx2.result;
+        };
+        
+        // WARNING: ONLY ONE OF done_exec or finally_exec IS ALLOWED!!!
+        //this.cur_stack.my.finally_exec = dexecf;
+        //this.cur_stack.my.t_hrow_exec = texecf;
+        //if(DEBUG > 4) this.ErrorConsole.log("pushing to stack from eval()");
+        this.cur_stack.push(S_EXEC, {v: "v0", n: parse(s), x: xx2, pmy: this.cur_stack.my.myObj, finally_exec: dexecf, throw_exec: texecf }); 
+        xx.result = undefined;
+        this.cur_stack.my.v0 = undefined; // in case eval is called on a zero statements.
+    },
+    
+    sleep: function ( milliseconds ) {
+        // sleep will suspend current thread execution until timer event is received (event == interrupt here)
+
+        // set up a stop execution flag
+        var _mystop = __jn_stacks.newId();
+        this.cur_stack.STOP = _mystop;
+        var __cs = this.cur_stack;
+        
+        var cont_f = function () {
+            if( __cs.STOP != _mystop ) { // what does that mean???
+                 // if not false -> this.ErrorConsole.log("VM: sleep: internal programming error!");
+                 return;
+            }
+            __cs.STOP = false;
+            //this.step_next(__cs);
+
+            __jn_stacks.start(__cs.pid);
+        }
+        
+        // set up a sleep timer
+        setTimeout(cont_f, milliseconds);
+        
+        // set up a backup timeout timer
+        //   (not required here) 903 295 02 49
+    },
+    
+    setTimeout: function ( fun, millisec, args ) {
+        // NOTE: this is a threaded version of setTimeout!!
+        // it may result in serious race conditions if used improperly
+        
+        var x2 = new this.ExecutionContext(FUNCTION_CODE);
+            
+        x2.thisObject = this.global;
+        x2.caller = null;
+        x2.callee = fun;
+        
+        if(typeof(args) != "undefined" ) {
+            var a = Array.prototype.splice.call(args, 0, args.length);
+            //a.__defineProperty__('callee', fun, false, false, true);
+            a.callee = fun;
+        } else {
+            var a = [];
+            //a.__defineProperty__('callee', fun, false, false, true);
+            a.callee = fun;
+        }
+        var f = fun.node;
+        
+        //console.log("Normal call working...");
+        
+        x2.scope = {object: new Activation(f, a), parent: fun.scope};
+        
+        var g_stack = new __Stack(x2);
+        g_stack.push(S_EXEC, { n: f.body, x: x2, pmy: {} });
+        
+        var my_nice = __jn_stacks.__nice(this.cur_stack.pid);
+        
+        var run_code = function () {
+            // create a new execution context
+            //this.step_next(g_stack);
+            __jn_stacks.add_task(this, g_stack, my_nice, this.throttle);
+
+            
+        };
+        var t_id = setTimeout(run_code, millisec);
+        this.timeouts[t_id] = null; // TODO: clean out timeouts! (somehow??)
+        if(this.timeouts.length > 5000) {
+            this.ErrorConsole.log("timeouts cache overflow; restart required!!");
+            for(ob in this.timeouts) { delete this.timeouts[ob]; break; }
+        }
+        return t_id;
+    },
+    
+    start_new_thread: function ( fun, args ) { // DOC; args is optional Array
+            
+        var x2 = new this.ExecutionContext(FUNCTION_CODE);
+            
+        x2.thisObject = this.global;
+        x2.caller = null;
+        x2.callee = fun;
+        
+        if(typeof(args) != "undefined" ) {
+            var a = Array.prototype.splice.call(args, 0, args.length);
+            //a.__defineProperty__('callee', fun, false, false, true);
+        } else {
+            var a = [];
+            //a.__defineProperty__('callee', fun, false, false, true);
+        }
+        a.callee = fun;
+        var f = fun.node;
+        
+        //console.log("Normal call working...");
+        
+        x2.scope = {object: new Activation(f, a), parent: fun.scope};
+        
+        var g_stack = new __Stack(x2);
+        g_stack.push(S_EXEC, { n: f.body, x: x2, pmy: {} });
+        
+        var my_nice = __jn_stacks.__nice(this.cur_stack.pid);
+
+        var pid = __jn_stacks.add_task(this, g_stack, my_nice, this.throttle);
+        //console.log("running task in thread... "+a.length+ " pid:" + pid);
+        return pid;
+    },
+    
+    clearTimeout: function (id) {
+
+        if(id in this.timeouts) {
+
+            clearTimeout(parseInt(id)); // ECMA... need to parse object to Int for setTimeout to work; this is changed behaviour
+        }
+    },
+    
+    setInterval: function ( fun, millisec, args ) {
+        // NOTE: this is a threaded version of setTimeout!!
+        // it may result in serious race conditions if used improperly
+        
+        var x2 = new this.ExecutionContext(FUNCTION_CODE);
+            
+        x2.thisObject = this.global;
+        x2.caller = null;
+        x2.callee = fun;
+        
+        var f = fun.node;
+        
+        //console.log("Normal call working...");
+        
+        
+        var my_nice = __jn_stacks.__nice(this.cur_stack.pid);
+        
+        var run_code = function () {
+            // create a new execution context
+            //this.step_next(g_stack);
+
+            if(typeof(args) != "undefined" ) {
+                var a = Array.prototype.splice.call(args, 0, args.length);
+            } else {
+                var a = [];
+            }
+            //a.__defineProperty__('callee', fun, false, false, true);
+            a.callee = fun;
+
+
+            x2.scope = {object: new Activation(f, a), parent: fun.scope};
+        
+            var g_stack = new __Stack(x2);
+            g_stack.push(S_EXEC, { n: f.body, x: x2, pmy: {} });
+
+            __jn_stacks.add_task(this, g_stack, my_nice, this.throttle);
+
+            
+        };
+        var t_id = setInterval(run_code, millisec);
+        this.timeouts[t_id]=null; // TODO: clean out timeouts! (somehow??)
+        if(this.timeouts.length > 5000) {
+            this.ErrorConsole.log("timeouts cache overflow; restart required!!");
+            for(ob in this.timeouts) { delete this.timeouts[ob]; break; }
+        }
+        return t_id;
+    },
+    
+    clearInterval: function (id) {
+        
+        if(id in this.timeouts)
+            clearInterval(id);
+    },
+    
+        
+    load : function ( url ) {
+        
+        // remove RETURN exception from stack; set v0 as the 'result' to the stack
+        this.cur_stack.EXCEPTION = false;
+        this.cur_stack.my.v0 = undefined;
+        
+        // set up a stop execution flag
+        var _mystop = __jn_stacks.newId();
+        this.cur_stack.STOP = _mystop;
+        var __cs = this.cur_stack;
+        
+        
+        var exec_f = function (data, obj) {
+            // like evaluate, but push!
+            if( __cs.STOP != _mystop ) // means TIMEOUT already fired. Also, if it is != false then a serious programming error may be in place!!
+                    return;
+            
+            try {
+                var _p = parse(data, url, 0);
+                __cs.push(S_EXEC, {n: _p, x: __cs.exc, pmy: {}}); // append it to the 'end' of execution stack
+            } catch (e) {
+                __cs.EXCEPTION = THROW;
+                __cs.exc.result = e;// TEST THIS!!
+            }
+            
+            __cs.STOP = false;
+            //this.step_next(__cs);
+            __jn_stacks.start(__cs.pid);
+        };
+        
+                    
+        var timeout_f = function () {
+            if( __cs.STOP != _mystop ) { // it should NEVER appear to place a STOP flag on the same stack twice
+                // if not false -> this.ErrorConsole.log("VM: load: internal programming error!");
+                return;
+            }
+            // XXX XXX TODO WARNING! LOAD may fail in releasing the stack WITH CONTROL FLOW CATCHUP!!
+            // XXX TODO set onfinish to the currently running steck to continue it!!                
+            __cs.EXCEPTION = THROW;
+            var ex = new this.global.InternalError("load( '"+url+"' ): fetch failed with timeout");// TEST THIS!!
+            ex.status = "timeout";
+            __cs.exc.result = ex;
+
+            __cs.STOP = false;
+            //this.step_next(__cs);
+            __jn_stacks.start(__cs.pid);
+        };
+        
+        // set the timeout watchguard
+        setTimeout(timeout_f, this.AJAX_TIMEOUT);
+        
+        // fire the ajax load component
+        var dr = new DataRequestor();
+        dr.onload = exec_f;
+        dr.onfail = function (status, txt) {
+            if( __cs.STOP != _mystop ) // means TIMEOUT already fired
+                    return;
+
+            __cs.EXCEPTION = THROW;
+            var ex = new this.global.InternalError("load('"+url+"') failed with status: "+status);
+            ex.status = status;
+            __cs.exc.result = ex;
+
+            __cs.STOP = false;
+            //this.step_next(__cs);  
+            __jn_stacks.start(__cs.pid);              
+        };
+        dr.getURL( url );
+    },
+    
+        
+    fetchUrl: function (url, args, callback, mode) {
+        // remove RETURN exception from stack; set v0 as the 'result' to the stack
+        this.cur_stack.my.v0 = undefined;
+        
+        // set up a stop execution flag
+        var __cs = this.cur_stack;
+        var x2 = __cs.my.x2;
+        if(typeof(mode) == 'undefined') mode = _POST; 
+        if( (typeof(callback) == "undefined") || callback == null || !(callback instanceof this.FunctionObject) )  { 
+            
+            this.cur_stack.EXCEPTION = false;
+            var _mystop = __jn_stacks.newId();
+            this.cur_stack.STOP = _mystop;
+
+            var timeout_f = function () {
+                if( __cs.STOP != _mystop ) { // it should NEVER appear to place a STOP flag on the same stack twice
+                    // if not false -> this.ErrorConsole.log("VM: load: internal programming error!");
+                    return;
+                }
+                
+                
+                __cs.EXCEPTION = THROW;
+                var ex = new this.global.InternalError("url fetch ("+url+") failed with timeout");// TEST THIS!!
+                ex.status = "timeout";
+                __cs.exc.result = ex;
+
+                
+                __cs.STOP = false;
+                //this.step_next(__cs);
+                __jn_stacks.start(__cs.pid);
+            };
+            var tmg=setTimeout(timeout_f, this.AJAX_TIMEOUT);
+
+            var exec_f = function (data, obj) {
+                // like evaluate, but push!
+                clearTimeout(tmg);
+                if( __cs.STOP != _mystop ) // means TIMEOUT already fired. Also, if it is != false then a serious programming error may be in place!!
+                        return;
+                // __cs.exc.result = data;
+                x2.result = data; // XXX this shit is because thats how CALL: gets the result :-(
+                __cs.EXCEPTION = RETURN;
+                __cs.STOP = false;
+                //this.step_next(__cs);
+                //__cs.push(S_EXEC, {n: {type:TRUE}, x: {}, Nodes: {}, Context: __cs.exc, NodeNum: 0, pmy: __cs.my.myObj});
+                __jn_stacks.start(__cs.pid);
+            };
+
+            
+            
+            var fail_f = function (status, txt) {
+                clearTimeout(tmg);
+                if( __cs.STOP != _mystop ) // means TIMEOUT already fired
+                        return;
+                
+                __cs.EXCEPTION = THROW;
+                var ex = new this.global.InternalError("url fetch ("+url+") failed with status: "+status);
+                ex.status = status;
+                __cs.exc.result = ex;
+
+                __cs.STOP = false;
+                //this.step_next(__cs);  
+                __jn_stacks.start(__cs.pid);              
+            };
+
+        } else {
+            // run in non-blocking mode
+            // set the callback exec_f
+            // and the log-only timeout method (or call the callback with error?)
+            
+            // set the timeout watchguard
+            
+            var timeout_f = function () {
+                this.ErrorConsole.log("url fetch ("+url+") failed with timeout");// TEST THIS!!
+            };
+            
+            var tmg = setTimeout(timeout_f, this.AJAX_TIMEOUT);
+        
+
+            var exec_f = function (data, obj) {
+                // like evaluate, but push!
+                // execute the callback with arguments
+                clearTimeout(tmg);
+                this.global.start_new_thread(callback, [data]);
+
+                
+            };
+
+            
+            
+            var fail_f = function (status, txt) {
+                this.ErrorConsole.log("url fetch ("+url+") failed with status: "+status);
+                clearTimeout(tmg);
+                this.global.start_new_thread(callback, [null, status, txt]);
+            };
+
+        }
+        
+                    
+        
+        
+        // fire the ajax load component
+        var dr = new DataRequestor();
+        var arg; // haha not sure it's required?? haha
+        if(typeof(args) != "undefined") { // ANY argument but for URL may be omitted
+            for(arg in args) {
+                //if( (arg != "__defineProperty__") && (arg.substr(0,3) != "___")) dr.addArg(mode, arg, args[arg]); // document to never use __defineProperty__
+                if( (arg.substr(0,3) != "___")) dr.addArg(mode, arg, args[arg]); 
+            }
+        }
+        dr.onload = exec_f;
+        dr.onfail = fail_f;
+        
+        dr.getURL( url );
+    },
+    
+    nice: function (val) {
+        if(typeof(val) == "undefined") {
+            return __jn_stacks.__nice(this.cur_stack.pid);
+        } 
+        val = parseInt(val);
+        if(isNaN(val)) throw (new this.global.InternalError("nice() argument must be a number"));
+        
+        if(val < 0 && !this.GRANTED) throw (new this.global.SecurityError("setting negative nice increment is not allowed"));
+        var cur_nice = __jn_stacks.__nice(this.cur_stack.pid);
+        
+        __jn_stacks.__nice(this.cur_stack.pid, cur_nice + val);
+    },
+    
+    throttle: function (val) {
+        if(typeof(val) == "undefined") {
+            return __jn_stacks.__throttle(this.cur_stack.pid);
+        } 
+        val = parseFloat(val);
+        if(isNaN(val)) throw (new this.global.InternalError("throttle() argument must be a number"));
+        
+        if(val > 1 && !this.GRANTED) throw (new this.global.SecurityError("setting process throttle > 1 is not allowed"));
+        
+        __jn_stacks.__throttle(this.cur_stack.pid, val);
+    }
+};
+
+LOCK_PROTOTYPE = {
+    acquire : function (vm, blocking) {
+        blocking = blocking || true;
+        if(this.goflag > 0) { 
+            --this.goflag;
+            return true;
+        }
+        else { // block...
+            if(blocking) {
+                var _mystop = __jn_stacks.newId();
+                vm.cur_stack.STOP = _mystop;
+                var __cs = vm.cur_stack;
+                __cs.EXCEPTION = false; // do not return till we finish...
+                
+                this.___wait_queue.push({cs: __cs, stop: _mystop}); // DOC the kernel lock should push itself manually
+            } else {
+                return false;
+            }
+            
+        }
+        // not reached by running stack; return does not matter
+    },
+    
+    release : function (vm, f) {
+        if(!f && this.goflag > 0) {
+            // set exception
+            vm.cur_stack.EXCEPTION = THROW;
+            vm.cur_stack.exc.result = (new vm.global.Error("release unlocked lock"));
+        }
+        //++this.goflag; // is like someone may have requested a lock again, dont release it!
+        var desc = this.___wait_queue.shift();
+        
+        if(!desc) {
+            this.goflag = 1; // just leave unlocked
+            return;
+        }
+        
+        if(desc.cs) { // release first who waits
+            if( desc.cs.STOP != desc.stop ) { // ASSERT should never happen
+                vm.ErrorConsole.log("Lock: ASSERT! tried to release stack with foregin block!");
+                return;
+            }
+            
+            desc.cs.STOP = false;
+            desc.cs.EXCEPTION = RETURN;
+            desc.cs.my.x2.result = true;
+            __jn_stacks.start(desc.cs.pid);
+        }
+        if(desc.callback) { // for hardware locks
+            desc.callback(); // DOC WARNING! the hardware lock should call release() manually
+        }
+        // no return value
+    },
+    
+    check : function () {
+        if(this.goflag > 0) {
+            return false;
+        }
+        return true;
+    }
+};
+
+FUNCTIONOBJECT_PROTOTYPE = {
+
+    _call: function (vm, t, a, x, stack) {
+        var x2 = new vm.ExecutionContext(FUNCTION_CODE);
+        x2.thisObject = t || vm.global;
+        x2.caller = x;
+        x2.callee = this;
+        //a.__defineProperty__('callee', this, false, false, true);
+        a.callee = this;
+        var f = this.node;
+        
+        //console.log("Normal call working...");
+        
+        x2.scope = {object: new Activation(f, a), parent: this.scope};
+
+        vm.ExecutionContext.current = x2;
+        
+        
+        
+        
+
+        stack.my.oldx = x;
+        stack.my.x2 = x2;
+        stack.push(S_EXEC, {v: "v0", n: f.body, x: x2, oldx: x, pmy: stack.my.myObj});
+        return undefined;
+    },
+
+    construct: function (a, x, stack) {
+        var o = new Object;
+        var p = this.prototype;
+        if (isObject(p))
+            o.__proto__ = p;
+        // else o.__proto__ defaulted to Object.prototype
+        stack.my.o = o;
+        //console.log("calling constructor with a="+a);
+        var v = this.___call___(o, a, x, stack);
+        
+        // the following will be ignored by step executor anyways
+        // (does not inspect return)
+        //if (isObject(v))
+        //    return v;
+        //return o;
+    },
+    
+    hasInstance: function (v) {
+        if (isPrimitive(v))
+            return false;
+        var p = this.prototype;
+        if (isPrimitive(p)) {
+            var _err = new TypeError("'prototype' property is not an object",
+                                this.node.filename, this.node.lineno);
+            _err.___jeneric_err = true;
+            throw _err;
+        }
+        var o;
+        while ((o = v.__proto__)) {
+            if (o == p)
+                return true;
+            v = o;
+        }
+        return false;
+    },
+    
+    apply: function (vm, t, a) {
+        // Curse ECMA again!
+        if (typeof this.___call___ != "function") {
+            var _err = new TypeError("Function.prototype.apply called on" +
+                                " uncallable object");
+            _err.___jeneric_err = true;
+            throw _err;
+        }
+        
+        /////////////////////////////
+        /*
+        var _s = "";
+        for(var o in t) {
+            _s  = _s + o + "; ";
+        }
+        console.log("CALLING APPLY t: "+t+" - "+ _s +" a: " +a);
+        */
+        //console.log("CALLING APPLY t: "+t+" - "+ _s +" a: " +a);
+        ///////////////////////////////
+
+        
+        if (t === undefined || t === null)
+            t = vm.global;
+        else if (typeof t != "object")
+            t = vm.toObject(t, t);
+
+        if (a === undefined || a === null) {
+            a = {};
+            //a.__defineProperty__('length', 0, false, false, true);
+            a.length = 0;
+        } else if (a instanceof Array) {
+            var v = {};
+            for (var i = 0, j = a.length; i < j; i++)
+                //v.__defineProperty__(i, a[i], false, false, true);
+                v[i] = a[i];
+            //v.__defineProperty__('length', i, false, false, true);
+            v.length = i;
+            a = v;
+        } else if (!(a instanceof Object)) {
+            // XXX check for a non-arguments object
+            var _err = new TypeError("Second argument to Function.prototype.apply" +
+                                " must be an array or arguments object",
+                                this.node.filename, this.node.lineno);
+            _err.___jeneric_err = true;
+            throw _err;
+        }
+
+        /*
+        var _s = "";
+        for(var o in t) {
+            _s  = _s + o + "; ";
+        }
+        console.log("INVOKING CALL t: "+t+" - "+ _s +" a: " +a);
+        */
+        // if we've been called with cur_stack.EXCEPTION = means we're called out of native call-wrapper
+        // then, remove the exception since we're likely to add another ;-)
+                    
+        if(vm.cur_stack.EXCEPTION && vm.cur_stack.EXCEPTION==RETURN) delete vm.cur_stack.EXCEPTION;
+        return this.___call___(t, a, vm.ExecutionContext.current, vm.cur_stack);
+    },
+};
+
 function Jnaric() {
     this.STEP_TIMEOUT = 1; // 1 ms ;-)
     this.STACKSIZE = 10000; // very much recursion ;-)
@@ -715,46 +1322,6 @@ function Jnaric() {
         
         // Value properties.
         NaN: NaN, Infinity: Infinity, undefined: undefined,
-
-        eval: function eval(s) {
-            //console.log("data passed to eval: "+s);
-            if (typeof s != "string") {
-                __tihs.cur_stack.my.v0 = s;
-                __tihs.ExecutionContext.current.result = s;
-                return s;
-            }
-            var xx = __tihs.ExecutionContext.current;
-            var xx2 = new __tihs.ExecutionContext(EVAL_CODE);
-            xx2.thisObject = xx.thisObject;
-            xx2.caller = xx.caller;
-            xx2.callee = xx.callee;
-            xx2.scope = xx.scope; // x x2
-            __tihs.ExecutionContext.current = xx2;    // switch context to one of eval
-            var my_cur_stack = __tihs.cur_stack;
-            
-            var dexecf = function () {
-                //console.log("doneeval swapping results: "+xx.result+" to "+xx2.result);
-                xx.result = xx2.result;                // pass return value further...
-                __tihs.ExecutionContext.current = xx; // switch context back
-                //my_cur_stack.my.v0 = xx2.result;
-            };
-            
-            var texecf = function () {
-                //console.log("throweval swapping results: "+xx.result+" to "+xx2.result);
-                xx.result = xx2.result;                // but before that, switch context results!
-                __tihs.ExecutionContext.current = xx; // switch context back ??????????????
-                //my_cur_stack.my.v0 = xx2.result;
-            };
-            
-            // WARNING: ONLY ONE OF done_exec or finally_exec IS ALLOWED!!!
-            //__tihs.cur_stack.my.finally_exec = dexecf;
-            //__tihs.cur_stack.my.t_hrow_exec = texecf;
-            //if(DEBUG > 4) __tihs.ErrorConsole.log("pushing to stack from eval()");
-            __tihs.cur_stack.push(S_EXEC, {v: "v0", n: parse(s), x: xx2, pmy: __tihs.cur_stack.my.myObj, finally_exec: dexecf, throw_exec: texecf }); 
-            xx.result = undefined;
-            __tihs.cur_stack.my.v0 = undefined; // in case eval is called on a zero statements.
-        },
-        
         
         parseInt: parseInt, parseFloat: parseFloat,
         isNaN: isNaN, isFinite: isFinite,
@@ -831,7 +1398,7 @@ function Jnaric() {
 
         // Other properties.
         // TODO: check if other props expose the same behaviour!
-        // BUG MOZ 192226
+        // BUG MOZ 192226 - Math should be 'with' statement operable!
         Math: { LN2: Math.LN2, 
             E: Math.E,
             LN2: Math.LN2,
@@ -871,378 +1438,59 @@ function Jnaric() {
             this.___wait_queue = [];
         },
         
-        sleep: function ( milliseconds ) {
-            // sleep will suspend current thread execution until timer event is received (event == interrupt here)
+        // Closured methods:
+        // TODO: move to object/prototype concept!
+        //      (may require some interpreter tweaking but not nessessarily)
 
-            // set up a stop execution flag
-            var _mystop = __jn_stacks.newId();
-            __tihs.cur_stack.STOP = _mystop;
-            var __cs = __tihs.cur_stack;
-            
-            var cont_f = function () {
-                if( __cs.STOP != _mystop ) { // what does that mean???
-                     // if not false -> __tihs.ErrorConsole.log("VM: sleep: internal programming error!");
-                     return;
-                }
-                __cs.STOP = false;
-                //__tihs.step_next(__cs);
-
-                __jn_stacks.start(__cs.pid);
-            }
-            
-            // set up a sleep timer
-            setTimeout(cont_f, milliseconds);
-            
-            // set up a backup timeout timer
-            //   (not required here) 903 295 02 49
+        eval: function eval(s) {
+            return GLOBAL_METHODS.eval.call(__tihs, s);
         },
         
-        setTimeout: function ( fun, millisec, args ) {
-            // NOTE: this is a threaded version of setTimeout!!
-            // it may result in serious race conditions if used improperly
-            
-            var x2 = new __tihs.ExecutionContext(FUNCTION_CODE);
-                
-            x2.thisObject = __tihs.global;
-            x2.caller = null;
-            x2.callee = fun;
-            
-            if(typeof(args) != "undefined" ) {
-                var a = Array.prototype.splice.call(args, 0, args.length);
-                a.__defineProperty__('callee', fun, false, false, true);
-            } else {
-                var a = [];
-                a.__defineProperty__('callee', fun, false, false, true);
-            }
-            var f = fun.node;
-            
-            //console.log("Normal call working...");
-            
-            x2.scope = {object: new Activation(f, a), parent: fun.scope};
-            
-            var g_stack = new __Stack(x2);
-            g_stack.push(S_EXEC, { n: f.body, x: x2, pmy: {} });
-            
-            var my_nice = __jn_stacks.__nice(__tihs.cur_stack.pid);
-            
-            var run_code = function () {
-                // create a new execution context
-                //__tihs.step_next(g_stack);
-                __jn_stacks.add_task(__tihs, g_stack, my_nice, __tihs.throttle);
-
-                
-            };
-            var t_id = setTimeout(run_code, millisec);
-            __tihs.timeouts[t_id] = null; // TODO: clean out timeouts! (somehow??)
-            if(__tihs.timeouts.length > 5000) {
-                __tihs.ErrorConsole.log("timeouts cache overflow; restart required!!");
-                for(ob in __tihs.timeouts) { delete __tihs.timeouts[ob]; break; }
-            }
-            return t_id;
+        sleep: function sleep(milliseconds) {
+            return GLOBAL_METHODS.sleep.call(__tihs, milliseconds);
         },
         
-        start_new_thread: function ( fun, args ) { // DOC; args is optional Array
-            
-            var x2 = new __tihs.ExecutionContext(FUNCTION_CODE);
-                
-            x2.thisObject = __tihs.global;
-            x2.caller = null;
-            x2.callee = fun;
-            
-            if(typeof(args) != "undefined" ) {
-                var a = Array.prototype.splice.call(args, 0, args.length);
-                a.__defineProperty__('callee', fun, false, false, true);
-            } else {
-                a = [];
-                a.__defineProperty__('callee', fun, false, false, true);
-            }
-            var f = fun.node;
-            
-            //console.log("Normal call working...");
-            
-            x2.scope = {object: new Activation(f, a), parent: fun.scope};
-            
-            var g_stack = new __Stack(x2);
-            g_stack.push(S_EXEC, { n: f.body, x: x2, pmy: {} });
-            
-            var my_nice = __jn_stacks.__nice(__tihs.cur_stack.pid);
-
-            var pid = __jn_stacks.add_task(__tihs, g_stack, my_nice, __tihs.throttle);
-            //console.log("running task in thread... "+a.length+ " pid:" + pid);
-            return pid;
+        setTimeout: function setTimeout( fun, millisec, args ) {
+            return GLOBAL_METHODS.setTimeout.call(__tihs, fun, millisec, args);
         },
+
+        start_new_thread: function start_new_thread(fun, args) {
+            return GLOBAL_METHODS.start_new_thread.call(__tihs, fun, args);
+        },        
+
+        clearTimeout: function clearTimeout(id) {
+            return GLOBAL_METHODS.clearTimeout.call(__tihs, id);
+        },        
         
-        clearTimeout: function (id) {
-
-            if(id in __tihs.timeouts) {
-
-                clearTimeout(parseInt(id)); // ECMA... need to parse object to Int for setTimeout to work; this is changed behaviour
-            }
-        },
-
-
-        setInterval: function ( fun, millisec, args ) {
-            // NOTE: this is a threaded version of setTimeout!!
-            // it may result in serious race conditions if used improperly
-            
-            var x2 = new __tihs.ExecutionContext(FUNCTION_CODE);
-                
-            x2.thisObject = __tihs.global;
-            x2.caller = null;
-            x2.callee = fun;
-            
-            var f = fun.node;
-            
-            //console.log("Normal call working...");
-            
-            
-            var my_nice = __jn_stacks.__nice(__tihs.cur_stack.pid);
-            
-            var run_code = function () {
-                // create a new execution context
-                //__tihs.step_next(g_stack);
-
-                if(typeof(args) != "undefined" ) {
-                    var a = Array.prototype.splice.call(args, 0, args.length);
-                } else {
-                    a = [];
-                }
-                a.__defineProperty__('callee', fun, false, false, true);
-
-
-                x2.scope = {object: new Activation(f, a), parent: fun.scope};
-            
-                var g_stack = new __Stack(x2);
-                g_stack.push(S_EXEC, { n: f.body, x: x2, pmy: {} });
-
-                __jn_stacks.add_task(__tihs, g_stack, my_nice, __tihs.throttle);
-
-                
-            };
-            var t_id = setInterval(run_code, millisec);
-            __tihs.timeouts[t_id]=null; // TODO: clean out timeouts! (somehow??)
-            if(__tihs.timeouts.length > 5000) {
-                __tihs.ErrorConsole.log("timeouts cache overflow; restart required!!");
-                for(ob in __tihs.timeouts) { delete __tihs.timeouts[ob]; break; }
-            }
-            return t_id;
-        },
         
-        clearInterval: function (id) {
-            
-            if(id in __tihs.timeouts)
-                clearInterval(id);
+        setInterval: function setInterval(fun, millisec, args) {
+            return GLOBAL_METHODS.setInterval.call(__tihs, fun, millisec, args);
         },
-
 
         
-        load : function ( url ) {
-            
-            // remove RETURN exception from stack; set v0 as the 'result' to the stack
-            __tihs.cur_stack.EXCEPTION = false;
-            __tihs.cur_stack.my.v0 = undefined;
-            
-            // set up a stop execution flag
-            var _mystop = __jn_stacks.newId();
-            __tihs.cur_stack.STOP = _mystop;
-            var __cs = __tihs.cur_stack;
-            
-            
-            var exec_f = function (data, obj) {
-                // like evaluate, but push!
-                if( __cs.STOP != _mystop ) // means TIMEOUT already fired. Also, if it is != false then a serious programming error may be in place!!
-                        return;
-                
-                try {
-                    var _p = parse(data, url, 0);
-                    __cs.push(S_EXEC, {n: _p, x: __cs.exc, pmy: {}}); // append it to the 'end' of execution stack
-                } catch (e) {
-                    __cs.EXCEPTION = THROW;
-                    __cs.exc.result = e;// TEST THIS!!
-                }
-                
-                __cs.STOP = false;
-                //__tihs.step_next(__cs);
-                __jn_stacks.start(__cs.pid);
-            };
-            
-                        
-            var timeout_f = function () {
-                if( __cs.STOP != _mystop ) { // it should NEVER appear to place a STOP flag on the same stack twice
-                    // if not false -> __tihs.ErrorConsole.log("VM: load: internal programming error!");
-                    return;
-                }
-                // XXX XXX TODO WARNING! LOAD may fail in releasing the stack WITH CONTROL FLOW CATCHUP!!
-                // XXX TODO set onfinish to the currently running steck to continue it!!                
-                __cs.EXCEPTION = THROW;
-                var ex = new __tihs.global.InternalError("load( '"+url+"' ): fetch failed with timeout");// TEST THIS!!
-                ex.status = "timeout";
-                __cs.exc.result = ex;
-
-                __cs.STOP = false;
-                //__tihs.step_next(__cs);
-                __jn_stacks.start(__cs.pid);
-            };
-            
-            // set the timeout watchguard
-            setTimeout(timeout_f, __tihs.AJAX_TIMEOUT);
-            
-            // fire the ajax load component
-            var dr = new DataRequestor();
-            dr.onload = exec_f;
-            dr.onfail = function (status, txt) {
-                if( __cs.STOP != _mystop ) // means TIMEOUT already fired
-                        return;
-
-                __cs.EXCEPTION = THROW;
-                var ex = new __tihs.global.InternalError("load('"+url+"') failed with status: "+status);
-                ex.status = status;
-                __cs.exc.result = ex;
-
-                __cs.STOP = false;
-                //__tihs.step_next(__cs);  
-                __jn_stacks.start(__cs.pid);              
-            };
-            dr.getURL( url );
+        clearInterval: function clearInterval(id) {
+            return GLOBAL_METHODS.clearInterval.call(__tihs, id);
         },
         
-        fetchUrl: function (url, args, callback, mode) {
-            // remove RETURN exception from stack; set v0 as the 'result' to the stack
-            __tihs.cur_stack.my.v0 = undefined;
-            
-            // set up a stop execution flag
-            var __cs = __tihs.cur_stack;
-            var x2 = __cs.my.x2;
-            if(typeof(mode) == 'undefined') mode = _POST; 
-            if( (typeof(callback) == "undefined") || callback == null || !callback.node )  {
-                __tihs.cur_stack.EXCEPTION = false;
-                var _mystop = __jn_stacks.newId();
-                __tihs.cur_stack.STOP = _mystop;
+        
+        load: function load(url) {
+            return GLOBAL_METHODS.load.call(__tihs, url);
+        },
 
-                var timeout_f = function () {
-                    if( __cs.STOP != _mystop ) { // it should NEVER appear to place a STOP flag on the same stack twice
-                        // if not false -> __tihs.ErrorConsole.log("VM: load: internal programming error!");
-                        return;
-                    }
-                    
-                    
-                    __cs.EXCEPTION = THROW;
-                    var ex = new __tihs.global.InternalError("url fetch ("+url+") failed with timeout");// TEST THIS!!
-                    ex.status = "timeout";
-                    __cs.exc.result = ex;
 
-                    
-                    __cs.STOP = false;
-                    //__tihs.step_next(__cs);
-                    __jn_stacks.start(__cs.pid);
-                };
-                var tmg=setTimeout(timeout_f, __tihs.AJAX_TIMEOUT);
-
-                var exec_f = function (data, obj) {
-                    // like evaluate, but push!
-                    clearTimeout(tmg);
-                    if( __cs.STOP != _mystop ) // means TIMEOUT already fired. Also, if it is != false then a serious programming error may be in place!!
-                            return;
-                    // __cs.exc.result = data;
-                    x2.result = data; // XXX this shit is because thats how CALL: gets the result :-(
-                    __cs.EXCEPTION = RETURN;
-                    __cs.STOP = false;
-                    //__tihs.step_next(__cs);
-                    __cs.push(S_EXEC, {n: {type:TRUE}, x: {}, Nodes: {}, Context: __cs.exc, NodeNum: 0, pmy: __cs.my.myObj});
-                    __jn_stacks.start(__cs.pid);
-                };
-
-                
-                
-                var fail_f = function (status, txt) {
-                    clearTimeout(tmg);
-                    if( __cs.STOP != _mystop ) // means TIMEOUT already fired
-                            return;
-                    
-                    __cs.EXCEPTION = THROW;
-                    var ex = new __tihs.global.InternalError("url fetch ("+url+") failed with status: "+status);
-                    ex.status = status;
-                    __cs.exc.result = ex;
-
-                    __cs.STOP = false;
-                    //__tihs.step_next(__cs);  
-                    __jn_stacks.start(__cs.pid);              
-                };
-
-            } else {
-                // run in non-blocking mode
-                // set the callback exec_f
-                // and the log-only timeout method (or call the callback with error?)
-                
-                // set the timeout watchguard
-                
-                var timeout_f = function () {
-                    __tihs.ErrorConsole.log("url fetch ("+url+") failed with timeout");// TEST THIS!!
-                };
-                
-                var tmg = setTimeout(timeout_f, __tihs.AJAX_TIMEOUT);
-            
-
-                var exec_f = function (data, obj) {
-                    // like evaluate, but push!
-                    // execute the callback with arguments
-                    clearTimeout(tmg);
-                    __tihs.global.start_new_thread(callback, [data]);
-
-                    
-                };
-
-                
-                
-                var fail_f = function (status, txt) {
-                    __tihs.ErrorConsole.log("url fetch ("+url+") failed with status: "+status);
-                    clearTimeout(tmg);
-                    __tihs.global.start_new_thread(callback, [null, status, txt]);
-                };
-
-            }
-            
-                        
-            
-            
-            // fire the ajax load component
-            var dr = new DataRequestor();
-            var arg; // haha not sure it's required?? haha
-            if(typeof(args) != "undefined") { // ANY argument but for URL may be omitted
-                for(arg in args) {
-                    if( (arg != "__defineProperty__") && (arg.substr(0,3) != "___")) dr.addArg(mode, arg, args[arg]); // document to never use __defineProperty__
-                }
-            }
-            dr.onload = exec_f;
-            dr.onfail = fail_f;
-            
-            dr.getURL( url );
+        fetchUrl: function fetchUrl(url, args, callback, mode) {
+            return GLOBAL_METHODS.fetchUrl.call(__tihs, url, args, callback, mode);
         },
         
-        nice: function (val) {
-            if(typeof(val) == "undefined") {
-                return __jn_stacks.__nice(__tihs.cur_stack.pid);
-            } 
-            val = parseInt(val);
-            if(isNaN(val)) throw (new __tihs.global.InternalError("nice() argument must be a number"));
-            
-            if(val < 0 && !__tihs.GRANTED) throw (new __tihs.global.SecurityError("setting negative nice increment is not allowed"));
-            var cur_nice = __jn_stacks.__nice(__tihs.cur_stack.pid);
-            
-            __jn_stacks.__nice(__tihs.cur_stack.pid, cur_nice + val);
+        nice: function nice(val) {
+            return GLOBAL_METHODS.nice.call(__tihs, val);
         },
         
-        throttle: function (val) {
-            if(typeof(val) == "undefined") {
-                return __jn_stacks.__throttle(__tihs.cur_stack.pid);
-            } 
-            val = parseFloat(val);
-            if(isNaN(val)) throw (new __tihs.global.InternalError("throttle() argument must be a number"));
-            
-            if(val > 1 && !__tihs.GRANTED) throw (new __tihs.global.SecurityError("setting process throttle > 1 is not allowed"));
-            
-            __jn_stacks.__throttle(__tihs.cur_stack.pid, val);
+        throttle: function throttle(val) {
+            return GLOBAL_METHODS.throttle.call(__tihs, val);
         },
+        
+        
         
         // global VM method to get max allowed threads per this particular VM
         __get_max_threads: function () {
@@ -1252,68 +1500,20 @@ function Jnaric() {
         version: __tihs.VERSION
     };
     
+    
+    
     // TODO: move these out of the closure scope!
     this.global.Lock.prototype.acquire = function (blocking) {
-        blocking = blocking || true;
-        if(this.goflag > 0) { 
-            --this.goflag;
-            return true;
-        }
-        else { // block...
-            if(blocking) {
-                var _mystop = __jn_stacks.newId();
-                __tihs.cur_stack.STOP = _mystop;
-                var __cs = __tihs.cur_stack;
-                __cs.EXCEPTION = false; // do not return till we finish...
-                
-                this.___wait_queue.push({cs: __cs, stop: _mystop}); // DOC the kernel lock should push itself manually
-            } else {
-                return false;
-            }
-            
-        }
-        // not reached by running stack; return does not matter
+        return LOCK_PROTOTYPE.acquire.call(this, __tihs, blocking);
     };
     
     this.global.Lock.prototype.release = function (f) {
-        if(!f && this.goflag > 0) {
-            // set exception
-            __tihs.cur_stack.EXCEPTION = THROW;
-            __tihs.cur_stack.exc.result = (new __tihs.global.Error("release unlocked lock"));
-        }
-        //++this.goflag; // is like someone may have requested a lock again, dont release it!
-        var desc = this.___wait_queue.shift();
-        
-        if(!desc) {
-            this.goflag = 1; // just leave unlocked
-            return;
-        }
-        
-        if(desc.cs) { // release first who waits
-            if( desc.cs.STOP != desc.stop ) { // ASSERT should never happen
-                __tihs.ErrorConsole.log("Lock: ASSERT! tried to release stack with foregin block!");
-                return;
-            }
-            
-            desc.cs.STOP = false;
-            desc.cs.EXCEPTION = RETURN;
-            desc.cs.my.x2.result = true;
-            __jn_stacks.start(desc.cs.pid);
-        }
-        if(desc.callback) { // for hardware locks
-            desc.callback(); // DOC WARNING! the hardware lock should call release() manually
-        }
-        // no return value
+        return LOCK_PROTOTYPE.release.call(this, __tihs, f);
     };
 
     this.global.Lock.prototype.check = function () {
-        if(this.goflag > 0) {
-            return false;
-        }
-        return true;
+        return LOCK_PROTOTYPE.check.call(this);
     };
-        
-
 
     
     this.reflectClass('Array', new Array);
@@ -1358,72 +1558,24 @@ function Jnaric() {
     this.FunctionObject = function (node, scope) {
         this.node = node;
         this.scope = scope;
-        this.__defineProperty__('length', node.params.length, true, true, true);
+        //this.__defineProperty__('length', node.params.length, true, true, true);
+        this.length = node.params.length;
         var proto = {};
-        this.__defineProperty__('prototype', proto, true);
-        proto.__defineProperty__('constructor', this, false, false, true);
+        //this.__defineProperty__('prototype', proto, true);
+        this["prototype"] = proto;
+        //proto.__defineProperty__('constructor', this, false, false, true);
+        proto["constructor"] = this;
     }
 
     var FOp = this.FunctionObject.prototype = {
         // Internal methods.
-        __call__: function (t, a, x, stack) {
-            var x2 = new __tihs.ExecutionContext(FUNCTION_CODE);
-            x2.thisObject = t || __tihs.global;
-            x2.caller = x;
-            x2.callee = this;
-            a.__defineProperty__('callee', this, false, false, true);
-            var f = this.node;
-            
-            //console.log("Normal call working...");
-            
-            x2.scope = {object: new Activation(f, a), parent: this.scope};
-
-            __tihs.ExecutionContext.current = x2;
-            
-            
-            
-            
-
-            stack.my.oldx = x;
-            stack.my.x2 = x2;
-            stack.push(S_EXEC, {v: "v0", n: f.body, x: x2, oldx: x, pmy: stack.my.myObj});
-            return undefined;
+        ___call___: function (t, a, x, stack) {
+            return FUNCTIONOBJECT_PROTOTYPE._call.call(this, __tihs, t, a, x, stack);
         },
 
-        __construct__: function (a, x, stack) {
-            //__tihs.ErrorConsole.log("Executing normal __construct__");
-            var o = new Object;
-            var p = this.prototype;
-            if (isObject(p))
-                o.__proto__ = p;
-            // else o.__proto__ defaulted to Object.prototype
-            stack.my.o = o;
-            //console.log("calling constructor with a="+a);
-            var v = this.__call__(o, a, x, stack);
-            
-            // the following will be ignored by step executor anyways
-            // (does not inspect return)
-            //if (isObject(v))
-            //    return v;
-            //return o;
-        },
+        ___construct___: FUNCTIONOBJECT_PROTOTYPE.construct,
 
-        __hasInstance__: function (v) {
-            if (isPrimitive(v))
-                return false;
-            var p = this.prototype;
-            if (isPrimitive(p)) {
-                throw new TypeError("JNARIC: 'prototype' property is not an object",
-                                    this.node.filename, this.node.lineno);
-            }
-            var o;
-            while ((o = v.__proto__)) {
-                if (o == p)
-                    return true;
-                v = o;
-            }
-            return false;
-        },
+        ___hasInstance___: FUNCTIONOBJECT_PROTOTYPE.hasInstance,
 
         // Standard methods.
         toString: function () {
@@ -1431,57 +1583,7 @@ function Jnaric() {
         },
 
         apply: function (t, a) {
-            // Curse ECMA again!
-            if (typeof this.__call__ != "function") {
-                throw new TypeError("JNARIC: Function.prototype.apply called on" +
-                                    " uncallable object");
-            }
-            
-            /////////////////////////////
-            /*
-            var _s = "";
-            for(var o in t) {
-                _s  = _s + o + "; ";
-            }
-            console.log("CALLING APPLY t: "+t+" - "+ _s +" a: " +a);
-            */
-            //console.log("CALLING APPLY t: "+t+" - "+ _s +" a: " +a);
-            ///////////////////////////////
-
-            
-            if (t === undefined || t === null)
-                t = __tihs.global;
-            else if (typeof t != "object")
-                t = __tihs.toObject(t, t);
-
-            if (a === undefined || a === null) {
-                a = {};
-                a.__defineProperty__('length', 0, false, false, true);
-            } else if (a instanceof Array) {
-                var v = {};
-                for (var i = 0, j = a.length; i < j; i++)
-                    v.__defineProperty__(i, a[i], false, false, true);
-                v.__defineProperty__('length', i, false, false, true);
-                a = v;
-            } else if (!(a instanceof Object)) {
-                // XXX check for a non-arguments object
-                throw new TypeError("JNARIC: Second argument to Function.prototype.apply" +
-                                    " must be an array or arguments object",
-                                    this.node.filename, this.node.lineno);
-            }
-
-            /*
-            var _s = "";
-            for(var o in t) {
-                _s  = _s + o + "; ";
-            }
-            console.log("INVOKING CALL t: "+t+" - "+ _s +" a: " +a);
-            */
-            // if we've been called with cur_stack.EXCEPTION = means we're called out of native call-wrapper
-            // then, remove the exception since we're likely to add another ;-)
-                        
-            if(__tihs.cur_stack.EXCEPTION && __tihs.cur_stack.EXCEPTION==RETURN) delete __tihs.cur_stack.EXCEPTION;
-            return this.__call__(t, a, __tihs.ExecutionContext.current, __tihs.cur_stack);
+            return FUNCTIONOBJECT_PROTOTYPE.apply.call(this, __tihs, t, a);
         },
 
         call: function (t) {
@@ -1494,17 +1596,14 @@ function Jnaric() {
     // Connect Function.prototype and Function.prototype.constructor in global.
     this.reflectClass('Function', FOp);
     
-    
-    
-    
-    
-    
 }
 
 Jnaric.prototype.reflectClass = function (name, proto) {
     var gctor = this.global[name];
-    gctor.__defineProperty__('prototype', proto, true, true, true);
-    proto.__defineProperty__('constructor', gctor, false, false, true);
+    //gctor.__defineProperty__('prototype', proto, true, true, true);
+    gctor["prototype"] = proto;
+    //proto.__defineProperty__('constructor', gctor, false, false, true);
+    proto["constructor"] = gctor;
     return proto;
 };
 
@@ -1524,9 +1623,13 @@ Jnaric.prototype.putValue = function (v, w, vn) {
     if (v instanceof Reference) {
         // temporary pseudo-watch mechanism
         //if(v.propertyName == "actual") this.ErrorConsole.log("setting value of actual to "+w);
-        //if(v.base)this.ErrorConsole.log("v.base is: "+v.base + " v.propName is: "+v.propertyName+ " __call__: "+v.base.__call__);
-        if(v.base && v.base.__call__ && (v.propertyName == '__proto__')) throw (new this.global.InternalError("JNARIC: Setting of __proto__ on functionObject is not supported")); // just dont set __proto__ of a function!!!
-        if(v.propertyName.substr(0,3) == "___") throw (new this.global.InternalError("JNARIC: triple underscore is reserved")); 
+        //if(v.base)this.ErrorConsole.log("v.base is: "+v.base + " v.propName is: "+v.propertyName+ " ___call___: "+v.base.___call___);
+        if(v.base && v.base.___call___ && (v.propertyName == '__proto__')) {
+            var _err = new this.global.InternalError("Setting of __proto__ on functionObject is not supported");
+            _err.___jeneric_err = true;
+            throw _err; // just dont set __proto__ of a function!!!
+        }
+        if(v.propertyName.substr(0,3) == "___") throw (new this.global.InternalError("triple underscore is reserved")); 
         
         // TODO HERE: 
         // - implement watchpoints
@@ -1547,7 +1650,9 @@ Jnaric.prototype.putValue = function (v, w, vn) {
         //return r; 
         if(v.base && v.base.___setters && v.base.___setters[v.propertyName]) {
             if(v.base.___setters[v.propertyName] == 1) {
-                throw new TypeError("JNARIC: setting a property that has only a getter", vn.filename, vn.lineno);
+                var _err = new TypeError("setting a property that has only a getter", vn.filename, vn.lineno);
+                _err.___jeneric_err = true;
+                throw _err;
             }
             return v.base.___setters[v.propertyName].apply(v.base, [v.propertyName, w]);
             // r not equalling to value should be treated as failed setter set attempt ? XXX decide on that
@@ -1557,7 +1662,7 @@ Jnaric.prototype.putValue = function (v, w, vn) {
         return (v.base || this.global)[v.propertyName] = w;
         //var vr = w;
         //if(v.base) v.base[v.propertyName] = w;
-        //if(v.base) this.ErrorConsole.log("after assignment: v.base is: "+v.base + " v.propName is: "+v.propertyName + " __call__: "+v.base.__call__);
+        //if(v.base) this.ErrorConsole.log("after assignment: v.base is: "+v.base + " v.propName is: "+v.propertyName + " ___call___: "+v.base.___call___);
         //return vr;
     }
     // TODO: VM SHOULD NEVER THROW!!!!
@@ -1567,7 +1672,9 @@ Jnaric.prototype.putValue = function (v, w, vn) {
     //this.cur_stack.stack[this.cur_stack.stack.length-1].x.result = new ReferenceError("Invalid assignment left-hand side",                             vn.filename, vn.lineno);
     //this.ExecutionContext.current.result = new ReferenceError("Invalid assignment left-hand side",                             vn.filename, vn.lineno);
     ////this.cur_stack.EXCEPTION_OBJ = new ReferenceError("Invalid assignment left-hand side", vn.filename, vn.lineno);
-    throw new ReferenceError("JNARIC: Invalid assignment left-hand side", vn.filename, vn.lineno);
+    var _err = new ReferenceError("Invalid assignment left-hand side", vn.filename, vn.lineno);
+    _err.___jeneric_err = true;
+    throw _err;
     //throw "exception is here!";
 };
 
@@ -1583,10 +1690,12 @@ Jnaric.prototype.getValue = function (v) {
             //this.ExecutionContext.current.result= new ReferenceError(v.propertyName + " is not defined", v.node.filename, v.node.lineno);
             //throw "exception is here!";
             //this.cur_stack.stack.pop(); // ??
-            throw new ReferenceError("JNARIC: " + v.propertyName + " is not defined", v.node.filename, v.node.lineno);
+            var _err = new ReferenceError(v.propertyName + " is not defined", v.node.filename, v.node.lineno);
+            _err.___jeneric_err = true;
+            throw _err;
             return; // return undefined
         }
-        if(v.propertyName.substr(0,3) == "___") throw (new this.global.InternalError("JNARIC: triple underscore is reserved")); 
+        if(v.propertyName.substr(0,3) == "___") throw (new this.global.InternalError("triple underscore is reserved")); 
         // implement hard-coded getter
         if(v.base.___getters && v.base.___getters[v.propertyName]) {
             // return value returned by getter
@@ -1611,9 +1720,11 @@ Jnaric.prototype.toObject = function (v, r, rn) {
         if (v !== null)
             return v;
     }
-    var message = "JNARIC: " + r + " (type " + (typeof v) + ") has no properties";
-    throw rn ? new TypeError(message, rn.filename, rn.lineno)
+    var message = r + " (type " + (typeof v) + ") has no properties";
+    var _err = rn ? new TypeError(message, rn.filename, rn.lineno)
              : new TypeError(message);
+    _err.___jeneric_err = true;
+    throw _err;
 };
 
 // WARNING: it MAY or may not throw exceptions!!!
@@ -1875,6 +1986,7 @@ __Stack = function (exc) {
     this.stack = [];
     this.exc = exc;
     this.e_stack = [];
+    this.object_prototype = {};
 }
 
 __Stack.prototype.push = function (x, o) {
@@ -1942,7 +2054,9 @@ Jnaric.prototype.step_next = function (g_stack) {
         this.ErrorConsole.log(tabl+" Diving in: "+say_type(ex.n.type) + " Executor:"+(ex.Nodes ? say_type(ex.Nodes.type) : "--") + (g_stack.EXCEPTION ? " Exception: " + g_stack.EXCEPTION : "") + ((g_stack.EXCEPTION_OBJ && g_stack.EXCEPTION) ? " obj: " + g_stack.EXCEPTION_OBJ : ""));
     }
     
-    this.ExecutionContext.current = g_stack.exc; // switch context 
+    // switch context
+    this.ExecutionContext.current = g_stack.exc;
+    Object.prototype = g_stack.object_prototype;
     //console.log("Setting exc to "+g_stack.exc);
     this.cur_stack = g_stack; // for eval () method and other context switching
     
@@ -1951,10 +2065,10 @@ Jnaric.prototype.step_next = function (g_stack) {
     try {
         
         v = this.step_execute(ex.n, ex.x, g_stack);
-        //if(ex.x.scope.object.f) this.ErrorConsole.log("f is: "+ex.x.scope.object.f+ " f.__call__ is: "+ex.x.scope.object.f.__call__);
+        //if(ex.x.scope.object.f) this.ErrorConsole.log("f is: "+ex.x.scope.object.f+ " f.___call___ is: "+ex.x.scope.object.f.___call___);
     } catch (e) {
         // TODO: 'allocation size overflow' is not compatible with IE/Opera/v8!!
-        if(e.message && ((e.message.toString().indexOf("JNARIC") >= 0) || e.message.toString() == "allocation size overflow" || (e instanceof this.global.InternalError))) {
+        if((e.message && ((e.message.toString().indexOf("JNARIC") >= 0) || (e.message.toString() == "allocation size overflow"))) || (e instanceof this.global.InternalError) || e.___jeneric_err) {
             // log to the console
             // suggested string: TYPE(name), MESSAGE, STACK_TRACE(how to trace?)
             // TODO: STACK TRACE PRINT!!
@@ -2006,8 +2120,11 @@ Jnaric.prototype.step_next = function (g_stack) {
         }
     }
     
-    g_stack.exc = this.ExecutionContext.current; // switch context back...
+    // switch context back...
+    g_stack.exc = this.ExecutionContext.current; 
+    g_stack.object_prototype = Object.prototype;
 
+    
     if(g_stack.stack.length > this.STACKSIZE) {
         // IE does not have InternalError
         // TODO: implement internalError in global!!!
@@ -2228,14 +2345,16 @@ Jnaric.prototype.step_execute = function (n, x, stack) {
             if (!n.name || n.functionForm == STATEMENT_FORM) {
                 v = new this.FunctionObject(n, x.scope);
                 if (n.functionForm == STATEMENT_FORM)
-                    x.scope.object.__defineProperty__(n.name, v, true);
+                    //x.scope.object.__defineProperty__(n.name, v, true);
+                    x.scope.object[n.name] = v;
                     //this.ErrorConsole.log("STMT: defined "+n.name+" v: "+x.scope.object[n.name] + "/" + v );
             } else {
                 t = new Object;
                 x.scope = {object: t, parent: x.scope};
                 try {
                     v = new this.FunctionObject(n, x.scope);
-                    t.__defineProperty__(n.name, v, true, true);
+                    //t.__defineProperty__(n.name, v, true, true);
+                    t[n.name]= v;
                 } finally {
                     x.scope = x.scope.parent;
                 }
@@ -2251,7 +2370,8 @@ Jnaric.prototype.step_execute = function (n, x, stack) {
             for (i = 0, j = a.length; i < j; i++) {
                 s = a[i].name;
                 f = new this.FunctionObject(a[i], x.scope);
-                stack.my.t.__defineProperty__(s, f, x.type != EVAL_CODE);
+                //stack.my.t.__defineProperty__(s, f, x.type != EVAL_CODE);
+                stack.my.t[s] = f;
             }
             a = n.varDecls;
             for (i = 0, j = a.length; i < j; i++) {
@@ -2264,8 +2384,8 @@ Jnaric.prototype.step_execute = function (n, x, stack) {
                     break;
                 }
                 if (u.readOnly || !hasDirectProperty(stack.my.t, s)) {
-                    stack.my.t.__defineProperty__(s, undefined, x.type != EVAL_CODE,
-                                         u.readOnly);
+                    //stack.my.t.__defineProperty__(s, undefined, x.type != EVAL_CODE, u.readOnly);
+                    stack.my.t[s] = undefined;
                 }
             }
         }
@@ -2529,7 +2649,8 @@ Jnaric.prototype.step_execute = function (n, x, stack) {
         if(!("a" in stack.my)) {
             stack.my.a = [];
             for (i in stack.my.t)
-                if( (i != "__defineProperty__") && (i.substr(0,3) != "___")) stack.my.a.push(i);
+                //if( (i != "__defineProperty__") && (i.substr(0,3) != "___")) stack.my.a.push(i);
+                if( i.substr(0,3) != "___") stack.my.a.push(i);
             
         }
             
@@ -2693,7 +2814,8 @@ Jnaric.prototype.step_execute = function (n, x, stack) {
                         if(this.DEBUG > 3)this.ErrorConsole.log("loop setup ok; scope setup done");
                         if(this.DEBUG > 3){var vvvx = []; for(var ob in stack.my) vvvx.push(ob); this.ErrorConsole.log(vvvx);}
                         x.scope = {object: {}, parent: x.scope};
-                        x.scope.object.__defineProperty__(t.varName, stack.my.e, true);                    
+                        //x.scope.object.__defineProperty__(t.varName, stack.my.e, true);                    
+                        x.scope.object[t.varName]= stack.my.e; 
                     } 
                     
                     if(t.guard && (!stack.my.ex2caught)) {
@@ -3022,7 +3144,8 @@ Jnaric.prototype.step_execute = function (n, x, stack) {
             break;
         } else {
             if (n.type == CONST)
-                stack.my.s.object.__defineProperty__(stack.my.t, stack.my.u, x.type != EVAL_CODE, true);
+                //stack.my.s.object.__defineProperty__(stack.my.t, stack.my.u, x.type != EVAL_CODE, true);
+                stack.my.s.object[stack.my.t]= stack.my.u; // NO CONST SUPPORT REALLY
             else {
                 
                 stack.my.s.object[stack.my.t] = stack.my.u;
@@ -3559,8 +3682,8 @@ Jnaric.prototype.step_execute = function (n, x, stack) {
             break;
         } else {
             
-            if (isObject(stack.my.u) && typeof stack.my.u.__hasInstance__ == "function")
-                v = stack.my.u.__hasInstance__(stack.my.t);
+            if (isObject(stack.my.u) && typeof stack.my.u.___hasInstance___ == "function")
+                v = stack.my.u.___hasInstance___(stack.my.t, this);
             else
                 v = stack.my.t instanceof stack.my.u;
                 
@@ -3659,7 +3782,8 @@ Jnaric.prototype.step_execute = function (n, x, stack) {
         
         if(stack.my.i >= stack.my.j) {
             stack.my.done = true;
-            stack.my.vcc.__defineProperty__('length', stack.my.i, false, false, true);
+            //stack.my.vcc.__defineProperty__('length', stack.my.i, false, false, true);
+            stack.my.vcc['length']= stack.my.i;
             v = stack.my.vcc;
             break;
         }
@@ -3669,7 +3793,8 @@ Jnaric.prototype.step_execute = function (n, x, stack) {
             break;
         } else {
             
-            stack.my.vcc.__defineProperty__(stack.my.i, stack.my.u, false, false, true);
+            //stack.my.vcc.__defineProperty__(stack.my.i, stack.my.u, false, false, true);
+            stack.my.vcc[stack.my.i]= stack.my.u;
             delete stack.my.u
         }
         
@@ -3696,7 +3821,7 @@ Jnaric.prototype.step_execute = function (n, x, stack) {
           
             f = this.getValue(stack.my.r);
             if(stack.EXCEPTION && (x.result instanceof ReferenceError)) return; // check for exception after getValue
-            if (isPrimitive(f) || typeof f.__call__ != "function") {
+            if (isPrimitive(f) || typeof f.___call___ != "function") {
                 stack.EXCEPTION_OBJ = new TypeError(stack.my.r + " is not callable",
                                     n[0].filename, n[0].lineno);
                 stack.EXCEPTION = THROW;
@@ -3724,8 +3849,8 @@ Jnaric.prototype.step_execute = function (n, x, stack) {
                     stack.my.TRY_WAIT = true;
                     break;
                 } else {
-                    //console.log("calling __call__");
-                    f.__call__(t, stack.my.a, x, stack); // this will add 'v0'
+                    //console.log("calling ___call___");
+                    f.___call___(t, stack.my.a, x, stack); // this will add 'v0'
                     stack.my.TRY_WAIT = true;
                     break;
                 }
@@ -3758,7 +3883,7 @@ Jnaric.prototype.step_execute = function (n, x, stack) {
                     break; // the exception propagate further (like throw it again)
                 }
                 
-                this.ErrorConsole.log("JNARIC: strange behaviour at CALL exception");
+                this.ErrorConsole.log("kernel: strange behaviour at CALL exception");
                 
             }
             // else
@@ -3802,7 +3927,8 @@ Jnaric.prototype.step_execute = function (n, x, stack) {
             
             if (n.type == NEW) {
                 stack.my.a = {};
-                stack.my.a.__defineProperty__('length', 0, false, false, true);
+                //stack.my.a.__defineProperty__('length', 0, false, false, true);
+                stack.my.a['length']= 0;
             } else {
             
                 if(!("a" in stack.my)) {
@@ -3813,7 +3939,7 @@ Jnaric.prototype.step_execute = function (n, x, stack) {
                 }
             }
         
-            if (isPrimitive(stack.my.f) || typeof stack.my.f.__construct__ != "function") {
+            if (isPrimitive(stack.my.f) || typeof stack.my.f.___construct___ != "function") {
                 stack.EXCEPTION_OBJ = new TypeError(r + " is not a constructor",
                                     n[0].filename, n[0].lineno);
                 stack.EXCEPTION = THROW;
@@ -3822,7 +3948,7 @@ Jnaric.prototype.step_execute = function (n, x, stack) {
             
             
             if(!("v0" in stack.my) && !stack.EXCEPTION) {
-                stack.my.f.__construct__(stack.my.a, x, stack); // this will add 'v'
+                stack.my.f.___construct___(stack.my.a, x, stack); // this will add 'v'
                 stack.my.TRY_WAIT = true;
                 break;
                 // we should catch RETURN and THROW here
@@ -3833,7 +3959,7 @@ Jnaric.prototype.step_execute = function (n, x, stack) {
                     if(stack.EXCEPTION == RETURN) {
                         v = stack.my.x2.result;
                         if(!isObject(v))
-                          v = stack.my.o; // o is defined at __construct__
+                          v = stack.my.o; // o is defined at ___construct___
                         
 
                         stack.EXCEPTION = false;
@@ -3851,7 +3977,7 @@ Jnaric.prototype.step_execute = function (n, x, stack) {
                 // else
                 v = stack.my.v0;
                 if(!isObject(v))
-                    v = stack.my.o; // o is defined at __construct__
+                    v = stack.my.o; // o is defined at ___construct___
                 this.ExecutionContext.current = stack.my.oldx;
                 stack.my.done = true;
             
@@ -4027,10 +4153,12 @@ if(!onok) this.ErrorConsole.log("WARNING! running execf_thread without onok");
 
     if(typeof(args) != "undefined" ) {
         var a = Array.prototype.splice.call(args, 0, args.length);
-        a.__defineProperty__('callee', func, false, false, true);
+        //a.__defineProperty__('callee', func, false, false, true);
+        a['callee']= func;
     } else {
         a = [];
-        a.__defineProperty__('callee', func, false, false, true);
+        //a.__defineProperty__('callee', func, false, false, true);
+        a['callee']= func;
     }
     
     var f = func.node;
@@ -4088,8 +4216,10 @@ Jnaric.prototype.evaluate = function (s, f, l) {
 
 function Activation(f, a) {
     for (var i = 0, j = f.params.length; i < j; i++)
-        this.__defineProperty__(f.params[i], a[i], true);
-    this.__defineProperty__('arguments', a, true);
+        //this.__defineProperty__(f.params[i], a[i], true);
+        this[f.params[i]]= a[i];
+    //this.__defineProperty__('arguments', a, true);
+    this['arguments']= a;
 }
 
 // Null Activation.prototype's proto slot so that Object.prototype.* does not
@@ -4097,7 +4227,7 @@ function Activation(f, a) {
 // property so that it doesn't pollute function scopes.  But first, we must
 // copy __defineProperty__ down from Object.prototype.
 
-Activation.prototype.__defineProperty__ = Object.prototype.__defineProperty__;
+//Activation.prototype.__defineProperty__ = Object.prototype.__defineProperty__;
 Activation.prototype.__proto__ = null;
 delete Activation.prototype.constructor;
 
@@ -4106,21 +4236,15 @@ delete Activation.prototype.constructor;
 
 
 
-
-
-
-
-// now create the first global-linked vm
-jnaric_vm = new Jnaric();
-
 // Help native and host-scripted functions be like FunctionObjects.
 // TODO: do this for only one 'global-linked' VM
 // other VMs can be or not be 'global-linked' or can be partially global-linked via shared refs in their globals
 var Fp = Function.prototype;
 var REp = RegExp.prototype;
 var __F = function() {};
-if (!('__call__' in Fp)) {
-    Fp.__defineProperty__('__call__', function (t, a, x, stack) {
+if (!('___call___' in Fp)) {
+    //Fp.__defineProperty__('___call___', function (t, a, x, stack) {
+    Fp.___call___ = function (t, a, x, stack) {
         // Curse ECMA yet again!
         
         
@@ -4153,12 +4277,15 @@ if (!('__call__' in Fp)) {
         //stack.EXCEPTION_OBJ = stack.my.x2.result;
         
         // push a fake exec
+        // it is REALLY NEEDED here!
         if(stack.EXCEPTION && stack.EXCEPTION==RETURN) stack.push(S_EXEC, {n: {type:TRUE}, x: {}, Nodes: {}, Context: x, NodeNum: 0, pmy: stack.my.myObj});
         // t_hrow RETURN
         return stack.my.x2.result;
-    }, true, true, true);
+    //}, true, true, true);
+    };
 
-    REp.__defineProperty__('__call__', function (t, a, x, stack) {
+    //REp.__defineProperty__('___call___', function (t, a, x, stack) {
+    REp.___call___ = function (t, a, x, stack) {
         a = Array.prototype.splice.call(a, 0, a.length);
         //return this.exec.apply(this, a);
         stack.my.x2 = {};
@@ -4171,9 +4298,11 @@ if (!('__call__' in Fp)) {
         
         return stack.my.x2.result;
 
-        }, true, true, true);
+        //}, true, true, true);
+        };
 
-    Fp.__defineProperty__('__construct__', function (a, x, stack) {
+    //Fp.__defineProperty__('___construct___', function (a, x, stack) {
+    Fp.___construct___ = function (a, x, stack) {
         args = Array.prototype.splice.call(a, 0, a.length);
         //return new this(a);
         // now a contains an array of parameters
@@ -4220,30 +4349,23 @@ if (!('__call__' in Fp)) {
         //return stack.my.x2.result;
         return stack.my.v0;
 
-        }, true, true, true);
+        //}, true, true, true);
+        };
 
     // Since we use native functions such as Date along with host ones such
     // as global.eval, we want both to be considered instances of the native
     // Function constructor.
-    Fp.__defineProperty__('__hasInstance__', function (v) {
-        //console.log("native hasinstance call: "+v, " i am: "+this);
-        return v instanceof Function || v instanceof jnaric_vm.global.Function || v instanceof this;
-    }, true, true, true);
+    //Fp.__defineProperty__('___hasInstance___', function (v, vm) {
+    Fp.___hasInstance___ = function (v, vm) {
+        // vm is added by INSTANCEOF
+        return v instanceof Function || v instanceof vm.global.Function || v instanceof this;
+    //}, true, true, true);
+    };
 }
 
 
 function thunk(f, x, stack) {
-    return function () { return f.__call__(this, arguments, x, stack); };
+    return function () { return f.___call___(this, arguments, x, stack); };
 }
 
 
-function start_new_thread_dummy(fn) {
-    var fs = fn.toString();
-    //alert(fs);
-    var pat = /function[\s]+([A-Za-z0-9\_]+)[\s]*\(/g;
-    var fnames = pat(fs);
-    if(fnames == null) fnames = pat(fs);
-    //alert(fnames[1]);
-    //this.ErrorConsole.log("fn "+fnames[1]);
-    jnaric_vm.evaluate(fs + fnames[1]+"()");
-}

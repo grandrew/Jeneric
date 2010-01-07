@@ -64,6 +64,18 @@ var opRegExp = new RegExp(opRegExpSrc);
 // A regexp to match floating point literals (but not integer literals).
 var fpRegExp = /^\d+\.\d*(?:[eE][-+]?\d+)?|^\d+(?:\.\d*)?[eE][-+]?\d+|^\.\d+(?:[eE][-+]?\d+)?/;
 
+
+var fpRegExp = /^(?:\d+\.\d*(?:[eE][-+]?\d+)?|\d+(?:\.\d*)?[eE][-+]?\d+|\.\d+(?:[eE][-+]?\d+)?)/;
+// EDIT: by aiming@gmail.com: fast, use with regexp.lastIndex
+var opRegExp2 = new RegExp(opRegExp.source.substr(1), 'g');
+var fpRegExp2 = /(?:\d+\.\d*(?:[eE][-+]?\d+)?|\d+(?:\.\d*)?[eE][-+]?\d+|\.\d+(?:[eE][-+]?\d+)?)/g;
+var qrNumber2 = /(?:0[xX][\da-fA-F]+|0[0-7]*|\d+)/g;
+var qrString2 = /(?:'[^'\\]*(?:\\.[^'\\]*)*'|"[^"\\]*(?:\\.[^"\\]*)*")/g;
+var qrRegExp2 = /\/((?:\\.|[^\/])+)\/([gimy]*)/g;
+var qrComment2 = /\/(?:\*(?:.|\n|\r)*?\*\/|\/.*)/g;   // <- need check \r, in binary read from windows file system.
+var qrIdentifier2 = /[$\w]+/g;
+
+
 // A regexp to match regexp literals.
 var reRegExp = /^\/((?:\\.|\[(?:\\.|[^\]])*\]|[^\/])+)\/([gimy]*)/;
 
@@ -80,15 +92,15 @@ function Tokenizer(s, f, l) {
 }
 
 Tokenizer.prototype = {
-    get input() {
+    input: function () {
         return this.source.substring(this.cursor);
     },
 
-    get done() {
+    done: function () {
         return this.peek() == END;
     },
 
-    get token() {
+    token: function () {
         return this.tokens[this.tokenIndex];
     },
 
@@ -97,9 +109,12 @@ Tokenizer.prototype = {
     },
 
     mustMatch: function (tt) {
-        if (!this.match(tt))
-            throw this.newSyntaxError("JNARIC PARSER: Missing " + tokens[tt].toLowerCase() + " at line "+this.lineno, this.filename, this.lineno);
-        return this.token;
+        if (!this.match(tt)) {
+            var _err = this.newSyntaxError("Missing " + tokens[tt].toLowerCase() + " at line "+this.lineno, this.filename, this.lineno);
+            _err.___jeneric_err = true;
+            throw _err;
+        }
+        return this.token();
     },
 
     peek: function () {
@@ -135,18 +150,25 @@ Tokenizer.prototype = {
         }
 
         for (;;) {
-            var input = this.input;
-            var match = (this.scanNewlines ? /^[ \t]+/ : /^\s+/)(input);
-            if (match) {
-                var spaces = match[0];
-                this.cursor += spaces.length;
-                var newlines = spaces.match(/\n/g);
-                if (newlines)
-                    this.lineno += newlines.length;
-                input = this.input;
+            var input = this.input();
+            
+            var firstChar = input.charCodeAt(0);
+            // EDIT: check first char, then use regex
+            // valid regex whitespace includes char codes: 9 10 11 12 13 32
+            if(firstChar == 32 || (firstChar >= 9 && firstChar <= 13)) {
+                var match = input.match(this.scanNewlines ? /^[ \t]+/ : /^\s+/);
+                if (match) {
+                    var spaces = match[0];
+                    this.cursor += spaces.length;
+                    var newlines = spaces.match(/\n/g);
+                    if (newlines)
+                        this.lineno += newlines.length;
+                    input = this.input();
+                }
             }
 
-            if (!(match = /^\/(?:\*(?:.|\n)*?\*\/|\/.*)/(input)))
+            //if (!(match = /^\/(?:\*(?:.|\n)*?\*\/|\/.*)/(input)))
+            if (input.charCodeAt(0) != 47 || !(match = input.match(/^\/(?:\*(?:.|\n)*?\*\/|\/.*)/)))
                 break;
             var comment = match[0];
             this.cursor += comment.length;
@@ -164,25 +186,47 @@ Tokenizer.prototype = {
             return token.type = END;
 
         try {
-            if ((match = fpRegExp(input))) {
+            //if ((match = fpRegExp(input))) {
+            if ((firstChar == 46 || (firstChar > 47 && firstChar < 58)) && 
+				 (match = input.match(fpRegExp))) { // EDIT: use x-browser regex syntax
                 token.type = NUMBER;
                 token.value = parseFloat(match[0]);
-            } else if ((match = /^0[xX][\da-fA-F]+|^0[0-7]*|^\d+/(input))) {
+            } else if ((match = input.match(/^0[xX][\da-fA-F]+|^0[0-7]*|^\d+/))) {
+            // this is erroneous: '0' becomes identifier and undefined...
+            //} else if ((firstChar > 47 && firstChar < 58) && 
+			//			(match = input.match(/^(?:0[xX][\da-fA-F]+|0[0-7]*|\d+)/))) { // EDIT: change regex structure for OOM perf improvement,
+																					  //       use x-browser regex syntax
                 token.type = NUMBER;
                 token.value = parseInt(match[0]);
-            } else if ((match = /^[$_\w]+/(input))) {       // FIXME no ES3 unicode
+            } else if ((match = input.match(/^[$_\w]+/))) {       // FIXME no ES3 unicode
+            // causes 'missing operand'
+            //} else if (((firstChar > 47 && firstChar < 58)  ||   // EDIT: add guards to check before using regex
+			//			 (firstChar > 64 && firstChar < 91)  || 
+			//			 (firstChar > 96 && firstChar < 123) ||   // EDIT: exclude `
+			//			 (firstChar == 36 || firstChar == 95)) && // EDIT: allow $ + mv _ here
+			//			(match = input.match(/^[$\w]+/))) {       // EDIT: allow $, use x-browser regex syntax
+
                 var id = match[0];
                 token.type = keywords[id] || IDENTIFIER;
                 token.value = id;
-            } else if ((match = /^"(?:\\.|[^"])*"|^'(?:\\.|[^'])*'/(input))) { //"){
+            } else if ((match = input.match(/^"(?:\\.|[^"])*"|^'(?:\\.|[^'])*'/))) { //"){
+            // does not pass: causes 'illegal token'
+            //} else if ((firstChar == 34 || firstChar == 39) && 
+			//			(match = input.match(/^(?:"(?:\\.|[^"])*"|'(?:[^']|\\.)*')/))) { //"){  // EDIT: change regex structure for OOM perf improvement,
+																								//       use x-browser regex syntax
+
                 token.type = STRING;
                 token.value = eval(match[0]);
-            } else if (this.scanOperand && (match = reRegExp(input))) {
+            } else if (this.scanOperand && (match = input.match(reRegExp))) {
+            //} else if (this.scanOperand && firstChar == 47 && // EDIT: improve perf by guarding with first char check
+						////(match = input.match(/^\/((?:\\.|[^\/])+)\/([gi]*)/))) { // EDIT: use x-browser regex syntax
+            //            (match = input.match(reRegExp))) { // EDIT: use x-browser regex syntax
+
                 token.type = REGEXP;
                 token.value = new RegExp(match[1], match[2]);
-            } else if ((match = opRegExp(input))) {
+            } else if ((match = input.match(opRegExp))) {
                 var op = match[0];
-                if (assignOps[op] && input[op.length] == '=') {
+                if (assignOps[op] && input.charAt(op.length) == '=') {
                     token.type = ASSIGN;
                     token.assignOp = GLOBAL[opTypeNames[op]];
                     match[0] += '=';
@@ -195,14 +239,17 @@ Tokenizer.prototype = {
                     token.assignOp = null;
                 }
                 token.value = op;
-            } else if (this.scanNewlines && (match = /^\n/(input))) {
+            } else if (this.scanNewlines && (match = input.match(/^\n/))) {
                 token.type = NEWLINE;
             } else {
-                throw this.newSyntaxError("JNARIC PARSER: Illegal token");
+                var _err = this.newSyntaxError("Illegal token");
+                _err.___jeneric_err = true;
+                    throw _err;
             }
         } catch (e) {
             if (e instanceof SyntaxError) {
-                e.message = "JNARIC PARSER: "+e.message;
+                
+                e.___jeneric_err = true;
                 throw e;
             } else {
                 throw e;
@@ -217,12 +264,17 @@ Tokenizer.prototype = {
     },
 
     unget: function () {
-        if (++this.lookahead == 4) throw "JNARIC PARSER: PANIC: too much lookahead!";
+        if (++this.lookahead == 4) {
+            var _err = new SyntaxError("PANIC: too much lookahead!");
+            _err.___jeneric_err = true;
+            throw _err;
+        }
         this.tokenIndex = (this.tokenIndex - 1) & 3;
     },
 
     newSyntaxError: function (m) {
         var e = new SyntaxError(m, this.filename, this.lineno);
+        e.lineNumber = this.lineno; // EDIT: x-browser exception handling
         e.source = this.source;
         e.cursor = this.cursor;
         return e;
@@ -250,7 +302,7 @@ function Script(t, x) {
 
 // Node extends Array, which we extend slightly with a top-of-stack method.
 
-
+/*
 Array.prototype.__defineProperty__(
     'top',
     function () {
@@ -258,18 +310,14 @@ Array.prototype.__defineProperty__(
     },
     false, false, true
 );
-
-
-/*
-Array.prototype.top = function () {
-    
-        return this.length && this[this.length-1];
-    
-};
 */
 
+Array.prototype.top = function() {
+    return this.length && this[this.length-1];
+}
+
 function Node(t, type) {
-    var token = t.token;
+    var token = t.token();
     if (token) {
         this.type = type || token.type;
         this.value = token.value;
@@ -292,10 +340,12 @@ Np.toSource = Object.prototype.toSource;
 
 // Always use push to add operands to an expression, to update start and end.
 Np.push = function (kid) {
-    if (kid.start < this.start)
-        this.start = kid.start;
-    if (this.end < kid.end)
-        this.end = kid.end;
+    if (kid !== null) {
+        if (kid.start < this.start)
+            this.start = kid.start;
+        if (this.end < kid.end)
+            this.end = kid.end;
+    }
     return Array.prototype.push.call(this, kid);
 }
 
@@ -308,10 +358,23 @@ function tokenstr(tt) {
 
 Np.toString = function () {
     var a = [];
+/*    
     for (var i in this) {
         if (this.hasOwnProperty(i) && i != 'type' && i != 'target')
             a.push({id: i, value: this[i]});
     }
+*/  
+    
+    for (var i in this) {
+     if (this.hasOwnProperty(i) && i != 'type' && i != 'parent' && typeof(this[i]) != 'function') {
+         // EDIT,BUG: add check for 'target' to prevent infinite recursion
+         if(i != 'target')
+             a.push({id: i, value: this[i]});
+         else
+             a.push({id: i, value: "[token: " + this[i].value + "]"});
+     }            
+    }
+  
     a.sort(function (a,b) { return (a.id < b.id) ? -1 : 1; });
     const INDENTATION = "    ";
     var n = ++Node.indentLevel;
@@ -330,6 +393,7 @@ Np.getSource = function () {
 Np.__defineGetter__('filename',
                     function () { return this.tokenizer.filename; });
 
+/*
 String.prototype.__defineProperty__(
     'repeat',
     function (n) {
@@ -340,14 +404,16 @@ String.prototype.__defineProperty__(
     },
     false, false, true
 );
-/*
+*/
+
 String.prototype.repeat = function (n) {
         var s = "", t = this + s;
         while (--n >= 0)
             s += t;
         return s;
     };
-*/
+
+
 // Statement stack and nested statement handler.
 function nest(t, x, node, func, end) {
     x.stmtStack.push(node);
@@ -360,7 +426,7 @@ function nest(t, x, node, func, end) {
 function Statements(t, x) {
     var n = new Node(t, BLOCK);
     x.stmtStack.push(n);
-    while (!t.done && t.peek() != RIGHT_CURLY)
+    while (!t.done() && t.peek() != RIGHT_CURLY)
         n.push(Statement(t, x));
     x.stmtStack.pop();
     return n;
@@ -413,8 +479,11 @@ function Statement(t, x) {
         while ((tt = t.get()) != RIGHT_CURLY) {
             switch (tt) {
               case DEFAULT:
-                if (n.defaultIndex >= 0)
-                    throw t.newSyntaxError("JNARIC PARSER: More than one switch default");
+                if (n.defaultIndex >= 0) {
+                    var _err = t.newSyntaxError("More than one switch default");
+                    _err.___jeneric_err = true;
+                    throw _err;
+                    }
                 // FALL THROUGH
               case CASE:
                 n2 = new Node(t);
@@ -424,7 +493,9 @@ function Statement(t, x) {
                     n2.caseLabel = Expression(t, x, COLON);
                 break;
               default:
-                throw t.newSyntaxError("JNARIC PARSER: Invalid switch case");
+                var _err = t.newSyntaxError("Invalid switch case");
+                _err.___jeneric_err = true;
+                throw _err;
             }
             t.mustMatch(COLON);
             n2.statements = new Node(t, BLOCK);
@@ -453,8 +524,10 @@ function Statement(t, x) {
             n.type = FOR_IN;
             if (n2.type == VAR) {
                 if (n2.length != 1) {
-                    throw new SyntaxError("JNARIC PARSER: Invalid for..in left-hand side",
+                    var _err = new SyntaxError("Invalid for..in left-hand side",
                                           t.filename, n2.lineno);
+                    _err.___jeneric_err = true;
+                    throw _err;
                 }
 
                 // NB: n2[0].type == IDENTIFIER and n2[0].value == n2[0].name.
@@ -502,22 +575,27 @@ function Statement(t, x) {
         n = new Node(t);
         if (t.peekOnSameLine() == IDENTIFIER) {
             t.get();
-            n.label = t.token.value;
+            n.label = t.token().value;
         }
         ss = x.stmtStack;
         i = ss.length;
         label = n.label;
         if (label) {
             do {
-                if (--i < 0)
-                    throw t.newSyntaxError("JNARIC PARSER: Label not found");
+                if (--i < 0) {
+                    var _err = t.newSyntaxError("Label not found");
+                    _err.___jeneric_err = true;
+                    throw _err;
+                    }
             } while (ss[i].label != label);
         } else {
             do {
                 if (--i < 0) {
-                    throw t.newSyntaxError("JNARIC PARSER: Invalid " + ((tt == BREAK)
+                    var _err = t.newSyntaxError("Invalid " + ((tt == BREAK)
                                                          ? "break"
                                                          : "continue"));
+                    _err.___jeneric_err = true;
+                    throw _err;
                 }
             } while (!ss[i].isLoop && (tt != BREAK || ss[i].type != SWITCH));
         }
@@ -533,10 +611,16 @@ function Statement(t, x) {
             t.mustMatch(LEFT_PAREN);
             n2.varName = t.mustMatch(IDENTIFIER).value;
             if (t.match(IF)) {
-                if (x.ecmaStrictMode)
-                    throw t.newSyntaxError("JNARIC PARSER: Illegal catch guard");
-                if (n.catchClauses.length && !n.catchClauses.top().guard)
-                    throw t.newSyntaxError("JNARIC PARSER: Guarded catch after unguarded");
+                if (x.ecmaStrictMode) {
+                    var _err= t.newSyntaxError("Illegal catch guard");
+                    _err.___jeneric_err = true;
+                    throw _err;
+                }
+                if (n.catchClauses.length && !n.catchClauses.top().guard) {
+                    var _err = t.newSyntaxError("Guarded catch after unguarded");
+                    _err.___jeneric_err = true;
+                    throw _err;
+                }
                 n2.guard = Expression(t, x);
             } else {
                 n2.guard = null;
@@ -547,13 +631,18 @@ function Statement(t, x) {
         }
         if (t.match(FINALLY))
             n.finallyBlock = Block(t, x);
-        if (!n.catchClauses.length && !n.finallyBlock)
-            throw t.newSyntaxError("JNARIC PARSER: Invalid try statement");
+        if (!n.catchClauses.length && !n.finallyBlock) {
+            var _err = t.newSyntaxError("Invalid try statement");
+            _err.___jeneric_err = true;
+            throw _err;
+        }
         return n;
 
       case CATCH:
       case FINALLY:
-        throw t.newSyntaxError("JNARIC PARSER: " + tokens[tt] + " without preceding try");
+        var _err = t.newSyntaxError(tokens[tt] + " without preceding try");
+        _err.___jeneric_err = true;
+        throw _err;
 
       case THROW:
         n = new Node(t);
@@ -561,8 +650,11 @@ function Statement(t, x) {
         break;
 
       case RETURN:
-        if (!x.inFunction)
-            throw t.newSyntaxError("JNARIC PARSER: Invalid return");
+        if (!x.inFunction) {
+            var _err = t.newSyntaxError("Invalid return");
+            _err.___jeneric_err = true;
+            throw _err;
+        }
         n = new Node(t);
         tt = t.peekOnSameLine();
         if (tt != END && tt != NEWLINE && tt != SEMICOLON && tt != RIGHT_CURLY)
@@ -596,11 +688,14 @@ function Statement(t, x) {
             tt = t.peek();
             t.scanOperand = true;
             if (tt == COLON) {
-                label = t.token.value;
+                label = t.token().value;
                 ss = x.stmtStack;
                 for (i = ss.length-1; i >= 0; --i) {
-                    if (ss[i].label == label)
-                        throw t.newSyntaxError("JNARIC PARSER: Duplicate label");
+                    if (ss[i].label == label) {
+                        var _err = t.newSyntaxError("Duplicate label");
+                        _err.___jeneric_err = true;
+                        throw _err;
+                    }
                 }
                 t.get();
                 n = new Node(t, LABEL);
@@ -617,10 +712,13 @@ function Statement(t, x) {
         break;
     }
 
-    if (t.lineno == t.token.lineno) {
+    if (t.lineno == t.token().lineno) {
         tt = t.peekOnSameLine();
-        if (tt != END && tt != NEWLINE && tt != SEMICOLON && tt != RIGHT_CURLY)
-            throw t.newSyntaxError("JNARIC PARSER: Missing ; before statement");
+        if (tt != END && tt != NEWLINE && tt != SEMICOLON && tt != RIGHT_CURLY) {
+            var _err = t.newSyntaxError("Missing ; before statement");
+            _err.___jeneric_err = true;
+            throw _err;
+        }
     }
     t.match(SEMICOLON);
     return n;
@@ -631,17 +729,23 @@ function FunctionDefinition(t, x, requireName, functionForm) {
     if (f.type != FUNCTION)
         f.type = (f.value == "get") ? GETTER : SETTER;
     if (t.match(IDENTIFIER))
-        f.name = t.token.value;
-    else if (requireName)
-        throw t.newSyntaxError("JNARIC PARSER: Missing function identifier");
+        f.name = t.token().value;
+    else if (requireName) {
+        var _err = t.newSyntaxError("Missing function identifier");
+        _err.___jeneric_err = true;
+        throw _err;
+    }
 
     t.mustMatch(LEFT_PAREN);
     f.params = [];
     var tt;
     while ((tt = t.get()) != RIGHT_PAREN) {
-        if (tt != IDENTIFIER)
-            throw t.newSyntaxError("JNARIC PARSER: Missing formal parameter");
-        f.params.push(t.token.value);
+        if (tt != IDENTIFIER) {
+            var _err = t.newSyntaxError("Missing formal parameter");
+            _err.___jeneric_err = true;
+            throw _err;
+        }
+        f.params.push(t.token().value);
         if (t.peek() != RIGHT_PAREN)
             t.mustMatch(COMMA);
     }
@@ -650,7 +754,7 @@ function FunctionDefinition(t, x, requireName, functionForm) {
     var x2 = new CompilerContext(true);
     f.body = Script(t, x2);
     t.mustMatch(RIGHT_CURLY);
-    f.end = t.token.end;
+    f.end = t.token().end;
 
     f.functionForm = functionForm;
     if (functionForm == DECLARED_FORM)
@@ -665,8 +769,11 @@ function Variables(t, x) {
         var n2 = new Node(t);
         n2.name = n2.value;
         if (t.match(ASSIGN)) {
-            if (t.token.assignOp)
-                throw t.newSyntaxError("JNARIC PARSER: Invalid variable initialization");
+            if (t.token().assignOp) {
+                var _err= t.newSyntaxError("Invalid variable initialization");
+                _err.___jeneric_err = true;
+                throw _err;
+            }
             n2.initializer = Expression(t, x, COMMA);
         }
         n2.readOnly = (n.type == CONST);
@@ -706,8 +813,21 @@ var opPrecedence = {
 };
 
 // Map operator type code to precedence.
+/*
 for (i in opPrecedence)
     opPrecedence[GLOBAL[i]] = opPrecedence[i];
+*/
+	 // Map operator type code to precedence.
+	 // EDIT: slurp opPrecence items into array first, because IE includes
+	 //       modified hash items in iterator when modified during iteration
+	 var opPrecedenceItems = [];
+	 for (i in opPrecedence) 
+		opPrecedenceItems.push(i);
+	 
+	 for (var i = 0; i < opPrecedenceItems.length; i++) {
+		var item = opPrecedenceItems[i];
+		opPrecedence[eval(item)] = opPrecedence[item];
+	 }
 
 var opArity = {
     COMMA: -2,
@@ -730,10 +850,23 @@ var opArity = {
     ARRAY_INIT: 1, OBJECT_INIT: 1, GROUP: 1
 };
 
+/*
 // Map operator type code to arity.
 for (i in opArity)
     opArity[GLOBAL[i]] = opArity[i];
+*/
 
+	 // Map operator type code to arity.
+	 // EDIT: same as above
+	 var opArityItems = [];
+	 for (i in opArity)
+		opArityItems.push(i);
+	 
+	 for (var i = 0; i < opArityItems.length; i++) {
+		var item = opArityItems[i];
+		opArity[eval(item)] = opArity[item];
+	 }
+	 
 function Expression(t, x, stop) {
     var n, id, tt, operators = [], operands = [];
     var bl = x.bracketLevel, cl = x.curlyLevel, pl = x.parenLevel,
@@ -754,14 +887,18 @@ function Expression(t, x, stop) {
             arity = 2;
         }
 
+        
         // Always use push to add operands to n, to update start and end.
-        var a = operands.splice(operands.length - arity);
+			 // EDIT: provide second argument to splice or IE won't work.
+			 var index = operands.length - arity;
+			 var a = operands.splice(index, operands.length - index);
+        //var a = operands.splice(operands.length - arity);
         for (var i = 0; i < arity; i++)
             n.push(a[i]);
 
         // Include closing bracket or postfix operator in [start,end).
-        if (n.end < t.token.end)
-            n.end = t.token.end;
+        if (n.end < t.token().end)
+            n.end = t.token().end;
 
         operands.push(n);
         return n;
@@ -793,13 +930,16 @@ loop:
             }
             if (tt == COLON) {
                 n = operators.top();
-                if (n.type != HOOK)
-                    throw t.newSyntaxError("JNARIC PARSER: Invalid label");
+                if (n.type != HOOK) {
+                    var _err= t.newSyntaxError("Invalid label");
+                    _err.___jeneric_err = true;
+                    throw _err;
+                }
                 --x.hookLevel;
             } else {
                 operators.push(new Node(t));
                 if (tt == ASSIGN)
-                    operands.top().assignOp = t.token.assignOp;
+                    operands.top().assignOp = t.token().assignOp;
                 else
                     ++x.hookLevel;      // tt == HOOK
             }
@@ -931,10 +1071,13 @@ loop:
             if (!t.match(RIGHT_CURLY)) {
                 do {
                     tt = t.get();
-                    if ((t.token.value == "get" || t.token.value == "set") &&
+                    if ((t.token().value == "get" || t.token().value == "set") &&
                         t.peek() == IDENTIFIER) {
-                        if (x.ecmaStrictMode)
-                            throw t.newSyntaxError("JNARIC PARSER: Illegal property accessor");
+                        if (x.ecmaStrictMode) {
+                            var _err = t.newSyntaxError("Illegal property accessor");
+                            _err.___jeneric_err = true;
+                            throw _err;
+                        }
                         n.push(FunctionDefinition(t, x, true, EXPRESSED_FORM));
                     } else {
                         switch (tt) {
@@ -944,11 +1087,16 @@ loop:
                             id = new Node(t);
                             break;
                           case RIGHT_CURLY:
-                            if (x.ecmaStrictMode)
-                                throw t.newSyntaxError("JNARIC PARSER: Illegal trailing ,");
+                            if (x.ecmaStrictMode) {
+                                var _err= t.newSyntaxError("Illegal trailing ,");
+                                _err.___jeneric_err = true;
+                                throw _err;
+                            }
                             break object_init;
                           default:
-                            throw t.newSyntaxError("JNARIC PARSER: Invalid property name");
+                            var _err= t.newSyntaxError("Invalid property name");
+                            _err.___jeneric_err = true;
+                            throw _err;
                         }
                         t.mustMatch(COLON);
                         n.push(new Node(t, PROPERTY_INIT, id,
@@ -963,8 +1111,11 @@ loop:
             break;
 
           case RIGHT_CURLY:
-            if (!t.scanOperand && x.curlyLevel != cl)
-                throw "JNARIC PARSER: PANIC: right curly botch";
+            if (!t.scanOperand && x.curlyLevel != cl) {
+                var _err = new SyntaxError("PANIC: right curly botch");
+                _err.___jeneric_err = true;
+                throw _err;
+            }
             break loop;
 
           case LEFT_PAREN:
@@ -1024,14 +1175,27 @@ loop:
         }
     }
 
-    if (x.hookLevel != hl)
-        throw t.newSyntaxError("JNARIC PARSER: Missing : after ?");
-    if (x.parenLevel != pl)
-        throw t.newSyntaxError("JNARIC PARSER: Missing ) in parenthetical");
-    if (x.bracketLevel != bl)
-        throw t.newSyntaxError("JNARIC PARSER: Missing ] in index expression");
-    if (t.scanOperand)
-        throw t.newSyntaxError("JNARIC PARSER: Missing operand");
+    if (x.hookLevel != hl) {
+        var _err = t.newSyntaxError("Missing : after ?");
+        _err.___jeneric_err = true;
+                    throw _err;
+    }
+    if (x.parenLevel != pl) {
+        var _err = t.newSyntaxError("Missing ) in parenthetical");
+        _err.___jeneric_err = true;
+                    throw _err;
+        
+    }
+    if (x.bracketLevel != bl) {
+        var _err = t.newSyntaxError("Missing ] in index expression");
+        _err.___jeneric_err = true;
+                    throw _err;
+    }
+    if (t.scanOperand) {
+        var _err = t.newSyntaxError("Missing operand");
+        _err.___jeneric_err = true;
+                    throw _err;
+    }
 
     // Resume default mode, scanning for operands, not operators.
     t.scanOperand = true;
@@ -1045,7 +1209,10 @@ function parse(s, f, l) {
     var t = new Tokenizer(s, f, l);
     var x = new CompilerContext(false);
     var n = Script(t, x);
-    if (!t.done)
-        throw t.newSyntaxError("JNARIC PARSER: Syntax error");
+    if (!t.done()) {
+        var _err= t.newSyntaxError("Syntax error");
+        _err.___jeneric_err = true;
+                    throw _err;
+    }
     return n;
 }

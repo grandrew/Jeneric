@@ -915,26 +915,6 @@ DOMElement.prototype.addEventListener = function ( type, listener, useCapture ) 
     
     if(!(listener.node && listener.scope)) throw (new vm.global.TypeError("JNARIC: addEventListener second argument must be a function"));
 
-    /*
-    var x2 = new vm.ExecutionContext(FUNCTION_CODE);
-        
-    x2.thisObject = vm.global;
-    x2.caller = null;
-    x2.callee = listener;
-    
-    var a = []; // args
-    a.__defineProperty__('callee', listener, false, false, true);
-    var f = listener.node;
-    
-    //console.log("Normal call working...");
-    
-    x2.scope = {object: new Activation(f, a), parent: listener.scope};
-    
-    var g_stack = new __Stack(x2);
-    g_stack.push(S_EXEC, { n: f.body, x: x2, pmy: {} });
-    
-    var my_nice = __jn_stacks.__nice(vm.cur_stack.pid);
-    */
     
     var evt = function (e) {
         /*

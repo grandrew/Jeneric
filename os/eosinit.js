@@ -27,6 +27,7 @@ RQ_RESEND_INTERVAL = 10000; // milliseconds to wait before request send retries
 ACK_TIMEOUT = 60000; // milliseconds before give up resending
 MAX_WINDOW_SIZE = 60000; // ms. max window size for ACKs to remember
 KEY_LENGTH = 80; // bytes stringkey length
+PING_INTERVAL = 90000;
 // GENERAL INIT part
 KCONFIG = {
   terminal_id: "~", // init as unknown, will be set later at terminal object instance
@@ -333,6 +334,7 @@ hubConnection = {
     stomp: new STOMPClient(),
     rqe: {},
     acks: {},
+    last_sent_time: 0,
     announce: function () {
         // TODO: announce ourself with credentials so server says we're the one we need
         //       i.e. send terminal authentication data
@@ -471,7 +473,7 @@ hubConnection = {
     send_real: function () {
         var ct = (new Date()).getTime();
         for(var i in this.rqe) {
-            if(i == "__defineProperty__") continue; // XXX FUCK!!
+            //if(i == "__defineProperty__") continue; // XXX FUCK!!
             
             if(ct - this.rqe[i]["t"] > ACK_TIMEOUT) {
                 // XXX only for requests??
@@ -503,10 +505,8 @@ hubConnection = {
                 try {
                     //this.stomp.send(JSON.stringify(this.rqe[i]["r"], replacer), HUB_PATH);
                     var jsn = JSON.stringify(this.rqe[i]["r"], replacer);
-                    
-                    
-                    
                     this.stomp.send(jsn, HUB_PATH);
+                    this.last_sent_time = (new Date()).getTime();
                 } catch (e) {
 
                     this.rqe[i]["r"]["status"] = "EEXCP"; // DOC document this too
@@ -520,7 +520,7 @@ hubConnection = {
         // cleanup ACKs window
         
         for(var i in this.acks) {
-            if(i == "__defineProperty__") continue; // XXX FUCK!!
+            //if(i == "__defineProperty__") continue; // XXX FUCK!!
             if(ct - this.acks[i] > MAX_WINDOW_SIZE) {
                 delete this.acks[i];
             }
@@ -547,7 +547,9 @@ hubConnection = {
 };
 
 // start the pinger
-setInterval((function() {hubConnection.send({id: __jn_stacks.newId(), uri: "/", method: "ping", args: []});}), 90000)
+setInterval((function() {
+    if((new Date()).getTime() - hubConnection.last_sent_time > PING_INTERVAL ) hubConnection.send({id: __jn_stacks.newId(), uri: "/", method: "ping", args: []});
+}), PING_INTERVAL/2);
 
 hubConnection.init();
 hubConnection.receive = eos_rcvEvent; // XXX this interconnects with jsobject.js in an ugly way...

@@ -705,7 +705,7 @@ Jnaric.prototype.execIPC = function (rq, cbOK, cbERR) {
 
 
             if(ipcm) self.execf_thread(self.global.object.ipc[rq.method], [rq].concat(rq.args), cbo2, cbe2); 
-            else self.execf_thread(self.security[rq.method], [].concat(rq.args), cbo2, cbe2); 
+            else self.execf_thread(self.security[rq.method], [].concat(rq.args), cbo2, cbe2, undefined, self.security); 
         
         } else {
             if(self.DEBUG) self.ErrorConsole.log("method IPC call failed with NO SUCH METHOD"); // for debug only
@@ -1189,13 +1189,16 @@ function eos_createObject(vm, name, type_src, sec_src, parentURI, typeURI, secUR
     
     obj.onerror = function (ex) {
         // DOC this! 
-        vm.global.ErrorConsole.log("created child (URI "+obj.uri+") main thread died with exception: "+ex+". Removing dead object."); 
+        vm.global.ErrorConsole.log("created child (URI "+obj.uri+") main thread died with exception: "+ex);//+". Removing dead object."); 
         
-        // now delete the object
-        if(obj.swapout() != 0) {
-            obj.clean_stacks();
-            delete __eos_objects[obj.uri];
-        }
+        // now delete the object ???
+        //if(obj.swapout() != 0) { // new child to swap out with error??
+        //obj.serID = -1; // prevent from saving changes
+        //eos_deleteChild(); // WARNING! 
+        //obj.clean_stacks();
+        //delete __eos_objects[obj.uri];
+        
+        //}
     };
     
     obj.evaluate(sec_src, secURI); // the single threaded nature here ensures we're not going to receive onfinish not in time
@@ -1215,7 +1218,7 @@ Jnaric.prototype.getChildList = function () {
     var r = {};
     var good = true; // XXX good will be unused from now on...
     for (ob in this.childList) {
-        if(ob == "__defineProperty__") continue; // XXX FUCK!!!!!!!! XXX XXX XXX
+        //if(ob == "__defineProperty__") continue; // XXX FUCK!!!!!!!! XXX XXX XXX
         if(typeof this.childList[ob] == "number" || typeof this.childList[ob] == "string") {
             r[ob] = this.childList[ob];
         } else { // XXX this does not nessesarily indicate there is a non-serialized object; this may indicate a programming error instead!
@@ -1538,6 +1541,60 @@ Jnaric.prototype.serialize = function (onfinish, onerror) {
 }
 
 eos_om = {
+
+    openFiles: function (vm, options, callback) {
+        vm.cur_stack.my.v0 = undefined;
+        var __cs = vm.cur_stack;
+        var x2 = __cs.my.x2;
+        if(typeof(options) == 'undefined') options = {};
+        
+        if( (typeof(callback) == "undefined") || callback == null || !(callback instanceof this.FunctionObject) )  { 
+            
+            vm.cur_stack.EXCEPTION = false;
+            var _mystop = __jn_stacks.newId();
+            vm.cur_stack.STOP = _mystop;
+
+            var exec_f = function (data) {
+                if( __cs.STOP != _mystop ) // means TIMEOUT already fired. Also, if it is != false then a serious programming error may be in place!!
+                        return;
+                
+                // now prepare wrapped data
+                var wrapped_data = [];
+                var btemp;
+                for(var i=0;i<data.length;i++) {
+                    btemp = new BlobObject();
+                    btemp.___blob = data[i].blob;
+                    wrapped_data[i] = { name: data[i].name, blob: btemp };
+                }
+                
+                x2.result = wrapped_data; // XXX this shit is because thats how CALL: gets the result :-(
+                __cs.EXCEPTION = RETURN;
+                __cs.STOP = false;
+                __jn_stacks.start(__cs.pid);
+            };
+        } else {
+            // run in non-blocking mode
+            var exec_f = function (data) {
+                // now prepare wrapped data
+                var wrapped_data = [];
+                var btemp;
+                for(var i=0;i<data.length;i++) {
+                    btemp = new BlobObject();
+                    btemp.___blob = data[i].blob;
+                    wrapped_data[i] = { name: data[i].name, blob: btemp };
+                }
+                // TODO: use vm.execf_thread instead of start_new_thread defined at global :-\
+                vm.global.start_new_thread(callback, [wrapped_data]);
+            };
+
+        }
+        
+        desktop = google.gears.factory.create('beta.desktop');
+        desktop.openFiles(exec_f, options);
+    },
+
+
+
     release: function (__tihs, setit) {
         // first, search if we're in the list?
         if(typeof(setit) == 'undefined') setit = true;
@@ -1911,7 +1968,7 @@ function eos_deleteChild(vm, name) {
     // now, ch has been found, we may continue to recursively deleting
     // XXX this is a heavy RECURSIVE algorithm: may OOM if a large subtree is deleted!!! need a more accurate deletion
     for(var cch in ch.childList) {
-        if(cch == "__defineProperty__") continue; // FUCK XXX FUCK FUCK
+        //if(cch == "__defineProperty__") continue; // FUCK XXX FUCK FUCK
         eos_deleteChild(ch, cch); 
     }
 
@@ -1975,6 +2032,7 @@ Jnaric.prototype.bind_om = function () {
     
     this.global.object = {name: this.name, version: this.VERSION};
     this.global._object = this.global.object; // backup object...
+    this.global.Object = this.global.object; // backup object...
     this.global.object.ipc = {};
     this.global.object.data = {}; // the TQLW
     
@@ -2030,7 +2088,8 @@ Jnaric.prototype.bind_om = function () {
         //var x2 = __tihs.cur_stack.my.x2;
         var r = [];
         for(ob in __tihs.childList) {
-            if(ob != "__defineProperty__") r.push(ob);
+            //if(ob != "__defineProperty__") r.push(ob);
+            r.push(ob);
         }
         //x2.result = r;
         return r;
@@ -2104,6 +2163,20 @@ Jnaric.prototype.bind_om = function () {
     // protos...
     this.global.BlobBuilder.prototype.getAsBlob = BlobBuilder.prototype.getAsBlob;    
     this.global.BlobBuilder.prototype.append = BlobBuilder.prototype.append;
+    
+    this.global.JSON = {
+        stringify: function (value, replacer, space) {
+            // firefox 3.5 bug workaround
+            if(typeof(replacer)==="function") return JSON.stringify(value, replacer, space);
+            else { 
+                if(JSON.native_stringify) return JSON.native_stringify(value, replacer, space);
+                else return JSON.stringify(value, replacer, space);
+            }
+        },
+        parse: function (text, reviver) {
+            return JSON.parse(text, reviver);
+        }
+    };
     
     this.bind_storage(); // always try to bind storage
     
@@ -2184,7 +2257,7 @@ object.FixedStorage class
    string        getObjectUrl(string fname) : return the URL of stored object, otherwise fail.
 */
 
-    if(!window.google || !google.gears) {
+    if(!window.google || !google.gears) { // see below
         return;
     }
     
@@ -2196,6 +2269,13 @@ object.FixedStorage class
     inject_proto(this.global.object.FixedStorage, FixedStorage);
     
 
+    // WARNING: the following should not be here!
+    // but since we use Gears check it is OKAY here for now...
+    
+    this.global.object.openFiles = function (options, callback) {
+        eos_om.openFiles(self, options, callback);
+    };
+    
 };
 
 Jnaric.prototype.bind_terminal = function () {

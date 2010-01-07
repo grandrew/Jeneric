@@ -43,9 +43,11 @@
  * done by SpiderMonkey.
  */
 const GLOBAL = this;
+/*
 Object.prototype.__defineProperty__ = function(property, value) {
         this[property] = value;
 } 
+*/
 var tokens = [
     // End of source.
     "END",
@@ -93,7 +95,7 @@ var tokens = [
     "switch",
     "this", "throw", "true", "try", "typeof",
     "var", "void",
-    "while", "with",
+    "while", "with"
 ];
 
 // Operator and punctuator mapping from token to tree node type name.
