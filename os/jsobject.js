@@ -906,6 +906,7 @@ function kIPC(vm, uri, method, args, onok, onerr, timeout) {
                 // validate response, if appropriate
                 // TODO: these are currently unusable for in-stack execution; need to set SecurityError instead
                 //       maybe do not validate response here??
+                
                 var cbo = function (vr) {
                     if(vr) {
                         //TIMEOUT_OK.v = true;
@@ -1200,7 +1201,7 @@ function eos_createObject(vm, name, type_src, sec_src, parentURI, typeURI, secUR
         
         //}
     };
-    
+    //console.log("evaluating securoty code!: "+ secURI +" : "+sec_src);
     obj.evaluate(sec_src, secURI); // the single threaded nature here ensures we're not going to receive onfinish not in time
     obj.evaluate(type_src, typeURI);
 
@@ -1811,7 +1812,7 @@ eos_om = {
         ch.kconfig_w = kconfig_w;
     },
     
-    import: function (__tihs, src_uri) {
+    "import": function (__tihs, src_uri) { // safari bug
         // TODO: DOC: XXX: should an import timeout or not??
         __tihs.cur_stack.EXCEPTION = false;
         __tihs.cur_stack.my.v0 = undefined;
@@ -2141,11 +2142,11 @@ Jnaric.prototype.bind_om = function () {
         return eos_om.kconfig(__tihs, p, v);
     };
     
-    this.global.object.import = function (srcURI) {
+    this.global.object["import"] = function (srcURI) { // safari bug
         // kernel extension to import code into current stack and scope
-        return eos_om.import(__tihs, srcURI);
+        return eos_om["import"].call(this, __tihs, srcURI);
     };
-    this.global.import = this.global.object.import;
+    this.global["import"] = this.global.object["import"];
     
     // getMethodList ?? describeObject ?? or is it security code??
     

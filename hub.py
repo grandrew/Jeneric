@@ -181,8 +181,12 @@ class Hub(StompClientFactory):
             dest = self.static_servers[dest];
         self.rqe[str(rq["id"])] = {"d": dest, "r": rq, "tm": time.time() };
         #self.timer(); # just does not fucking work...
-        self.timer.stop()
-        self.timer.start(RQ_RESEND_INTERVAL)
+        try:
+            self.timer.stop()
+            self.timer.start(RQ_RESEND_INTERVAL)
+        except:
+            print "Error!!! timer was DEAD, trying to re-run"
+            self.timer.start(RQ_RESEND_INTERVAL)
         
 
     def send_real(self):
@@ -203,7 +207,11 @@ class Hub(StompClientFactory):
                         nt=""
                         continue
                 else: # request failed
-                    nt = self.rqe[i]["r"]["terminal_id"]
+                    try:
+                        nt = self.rqe[i]["r"]["terminal_id"]
+                    except:
+                        print "Error!: no terminal_id in request available!:", repr(self.rqe[i]["r"])
+                        continue
                     
                 # notify silently
                 self.rqe[i]["r"]["status"] = "EDROP" # DOC document this too
@@ -506,7 +514,11 @@ class Hub(StompClientFactory):
                 self.ack_rcv(rq["ack"])
                 return
             
-            msg["headers"]["session"] = rq["session"]
+            try:
+                msg["headers"]["session"] = rq["session"]
+            except KeyError:
+                print "REQUEST FORMAT ERROR: no session supplied. Request dump:", repr(rq)
+                return
             touch_session(rq["session"])
             del rq["session"]
             

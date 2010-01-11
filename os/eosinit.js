@@ -37,6 +37,16 @@ KCONFIG = {
   saveinterval: 10000 // interval of object serialization turnaround in ms.
 }
 
+
+//////////////////////////////////////////////////////////////////////////////
+// browser compatibility section
+_isFF = ((navigator.product === "Gecko") && (navigator.userAgent.toLowerCase().indexOf("firefox") > -1) );
+if(window.opera && opera.postError) console = { log: opera.postError };
+
+
+//////////////////////////////////////////////////////////////////////////////
+// terminal & system objects init section
+
 _terminal_vm = new Jnaric();
 
 _terminal_vm.name = "~"; // "terminal"+(new Date()).getTime(); // TODO! get real terminal name!!! (somehow??)
@@ -508,12 +518,18 @@ hubConnection = {
                     this.stomp.send(jsn, HUB_PATH);
                     this.last_sent_time = (new Date()).getTime();
                 } catch (e) {
-
+                    if(e.message === "Invalid readyState"){
+                        // try again later
+                        //hubConnection.connect(); // hope this works
+                        if(window.console) console.log("STOMP SEND Error occured: "+e);
+                        hubConnection.stomp.reset(); // hope this works
+                    }
                     this.rqe[i]["r"]["status"] = "EEXCP"; // DOC document this too
                     this.rqe[i]["r"]["result"] = "Could not parse JSON to send: "+e; // DOC document this too
                     this.receive(this.rqe[i]["r"]);
                     delete this.rqe[i]; // XXX TODO how will it interact with property-iteration?
-                    if(window.console) console.log("STOMP SEND Error occured: "+e);
+                    
+                    
                 }
             }
         }

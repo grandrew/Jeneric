@@ -1,13 +1,4 @@
-// eos-init.js
-// main jEOS3 initialization routine;
-// it is a terminal object code
 
-// we assume that we're attached to a DOM node
-
-// the main terminal method, should never be called directly
-// since it passes on the request object's properties
-// anyways none of the IPC methods are intended for running from inside the vm....
-// XXX this is shit and is used just as a temporary 'fast solution'
 function _ipc_createObject(rq, name, typeURI, secURI, DOMElement) {
     // TODO TODO: security here - watch for rq - only sys rq is allowed!
     // now, do get the code
@@ -25,9 +16,7 @@ function ipc_listChildren(rq) {
 }
 object.ipc["listChildren"] = ipc_listChildren;
 
-
 // now methods for child object creation
-
 function ipc_addAsChild(rq, name, uri) {
     // add as child the object of uri URI named name
     object.linkChild(name, uri);
@@ -53,40 +42,19 @@ function ipc_hubConnectionChanged(rq, name) {
 }
 object.ipc["hubConnectionChanged"] = ipc_hubConnectionChanged;
 
+
+function ipc_authterminal(rq, name, key) {
+    execURI("/", "auth", [ name, key ], 20000);
+    // all went ok..
+    object.kconfig("terminal_id", name);
+    object.kconfig("terminal_key", key);
+}
+object.ipc["auth"] = ipc_authterminal;
+
+
+
 initIPCLock.release();// = false;
 
-// get some server data anonymously (luckily we know the location ;-)
-// TODO: a native method for this shit... 
-// LATER
-// eval(execURI("jeos3/bin/basic_auth", "read", [])); // will load "eos_authenticate" method
-
-
-// some required global variables for a terminal
-//my_terminal = "Test/Alpha";
-
-// TODO: rewrite eos_authenticate inline!
-//my_username = eos_authenticate(my_terminal); // wait for input in blocking mode (?!?! raw_input method -- see below)
-                    // NEED routines to create blocking methods out of non-blocking (??easy: sleep until a value received)
-                    //      this involves elementary semaphores I think... (waitTrue ?? or alike)
-                    // this will create editable field in document.body and attach to keyPress (13) event
-                    // then issue to enter login (or leave blank to register new user)
-                    // then do some auth AJAX to server, then (if auth succeeds) set our credentials (XXX HOW???)
-                    // also establish server 'Comet' connection
-
-//my_terminalURI = comet_connect(); // connect to default comet HUB port; issuing our terminal name (unique username)
-                 // the HUB is able to change our name (assign username#N) in case we're connected via several terminals
-                 // XXX note that "#" SHOULD NOT BE ALLOWED FOR username in this case !!!
-                 // XXX comet connection is mandatory for EOS so this call will just GET the new terminal name
-                 //     in case it has been altered to support several logins
-
-//execURI("/jeos3/home/"+my_username+"/terminal", "regAsChild", [my_(terminal)_name, my_uri]); // register caller object as a child...
-
-// directly load a console into a new object (the user must authenticate first)
-
-
-// run ic# - a multi-call binary
-//ErrorConsole.log("sleeping 5 secs...");
-//sleep(5000);
 ErrorConsole.log("creating dom DIV");
 document.body.appendChild(document.createTextNode("starting..."));
 xd = document.createElement("DIV");
@@ -125,10 +93,6 @@ try {
     }
 }
 
-if(object.serializeURI) {
-    ErrorConsole.log("Serialization available!");
-}
-
 if(ok) {
     // XXX maybe bind terminal to init?
     object.kbind("init", ["bind_serial"], ["autorestore", "saveinterval", "autoswapout"], ["autorestore", "autoswapout"]);
@@ -139,7 +103,3 @@ if(ok) {
 
 // TODO: do announce with new credentials if the hubConnectionChanged hook is received
 //       this is rather a terminal issue!
-
-// now register our terminal methods
-// (no methods 
-

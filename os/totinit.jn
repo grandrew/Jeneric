@@ -35,25 +35,14 @@ function s_agent() {
     ErrorConsole.log("Starting s_agent");
     var suri, i;
     while(true) {
-
         // swapout is done automatically... so we only need to periodically serialize
-        
         // TODO: watch for fails
         // TODO: 'release' priorititzation
         // rename the conventions: 'weak' is object to be released, 'save' is object to be serialized
-
-        // TODO: hardware semaphore AKA IRQ interrupt on serialization object availability
-        //       ... just an lIPC event may be registered via STD hooking!
-
-        //ErrorConsole.log("sleeping... for "+object.kconfig("saveinterval")+" and "+object.kconfig("autorestore"));
-         
         if(!s_working) do_serialize_all();
         sleep(object.kconfig("saveinterval")); // 5-second interval?
-        //sleep(100000);
     }
 }
-
-
 
 // now run init tasks from /sys/init ramdir
 objs = execURI(object.getMyTypeURI(), "listChildren", []);
@@ -80,7 +69,6 @@ if(i == 0) {
     object.createChild("console", "~/sys/ic", "~/sys/anarchic", xd); 
 }
 // and finally create init folder and this init at /sys/init location (folder-store!!)
-
 
 // first, set autorestore to true
 function start_s_agent ( rq ) {

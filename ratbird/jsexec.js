@@ -1633,8 +1633,8 @@ Jnaric.prototype.putValue = function (v, w, vn) {
         
         // TODO HERE: 
         // - implement watchpoints
-        // - implement protected access
-        // - implement getters/setters
+        // + implement protected access
+        // + implement getters/setters
         
         //var r = (v.base || this.global)[v.propertyName] = w;
         /*
@@ -1701,6 +1701,14 @@ Jnaric.prototype.getValue = function (v) {
             // return value returned by getter
             return v.base.___getters[v.propertyName].apply(v.base, [v.propertyName]);
         }
+        /*
+        if(v.propertyName == "length") {
+            console.log("length request! returning \"+v.base[v.propertyName]+\" of "+typeof(v.base)+" real: "+v.base.toString().length);
+            console.log("Native length:" + v.base.length +  "instanceof: "+(v.base instanceof String));
+            AAA = v.base;
+            //for(var to in v.base) { console.log(to); console.log(v.base[to]); }
+        }
+        */
         return v.base[v.propertyName];
     }
     return v;
@@ -1713,7 +1721,14 @@ Jnaric.prototype.toObject = function (v, r, rn) {
       case "number":
         return new this.global.Number(v);
       case "string":
-        return new this.global.String(v);
+        if(_isFF) return new this.global.String(v);
+        // need a slightly longer init if we're not firefox
+        var cur = new this.global.String(v);
+        var sys = new String(v);
+        for (var o in cur) {
+            sys[o] = cur[o];
+        }
+        return sys;
       case "function":
         return v;
       case "object":
@@ -2035,6 +2050,7 @@ Jnaric.prototype.step_next = function (g_stack) {
                     g_stack.onfinish(ex.x.result); // main thread stack exhausted, run 'onfinish'
                 } catch (e) {
                     this.ErrorConsole.log("stack .onfinish event failed to execute with exception: "+e);
+                    
                 }
             
             }
@@ -2302,6 +2318,9 @@ Jnaric.prototype.step_next = function (g_stack) {
                     g_stack.onfinish(ex.x.result); // main thread stack exhausted, run 'onfinish'
                 } catch (e) {
                     this.ErrorConsole.log("stack .onfinish event failed to execute with exception: "+e);
+                    // opera debug
+                    
+                    for(var oo in e) console.log(oo + " : " + e[oo]);
                 }
             }
         }

@@ -50,8 +50,6 @@ Java plugin) который сможет кушать Gears Blobs либо на�
 блобов, и сможет методами модификации отведенной ему части DOM-дерева, "запускать" тот самый Java-код, и кормить 
 его данными самостоятельно. Будет счастье :)
 
-  - maybe think of Sun microsystems cooperation to support this shit??
-
 
 
 GENERAL JENERIC TODOLIST
@@ -198,38 +196,56 @@ URGENT:
 + dead objects are not removed (see IC issue -> run ~/var/UNIT/fetchurl_e.jn)
 ? connection init slow
 + ping important improvement: only if last send was more than PINGINTERVAL/2 ago
-- gears adapter for file pickup
++ gears adapter for file pickup
+? T clean_timeout bug: tries to clean nonexistent session and KeyError's 
+? T invalid readyState 
 - database access methods
     (or kernel driver object?? - terminal security model that allows for native code "RING0" injection)
-- reauth for terminal when connection drops (acquire temporary key or do a real reauth when hubConnectionChanged or a kernel method to store AUTH info temporarily)
-- move auth to terminal.jn responcibility
-- clean terminal.jn, ic.jn, etc. for ultra-fast init, and remove unneeded commands from IC
++ T reauth for terminal when connection drops (acquire temporary key or do a real reauth when hubConnectionChanged or a kernel method to store AUTH info temporarily)
++ T move auth to terminal.jn responsibility
+- clean +terminal.jn, ic.jn, etc. for ultra-fast init, and remove unneeded commands from IC
+- //x.innerHTML = "&nbsp;"; -> DOMerror 12 -> Syntax error ?!?!
 - prettify IC: 
     - good input
     - auto-focus
     - cwd
     - history (at least for session, save upon hard-coded info)
     - completion
+- fix array.sort and JSON.stringify(replacer/reviver) (maybe others??) string.repeat
 - make sure 'move' call really exists for the object tree (
   - and document all tree calls)
   - more zope-like and objectDB-like interface (full object DB): get child, set child via child links 
     they won't get GC'ed until freed. May even deleteChild() return object reference that may be used for addAsChild!?!
 - cross browser code
-- gears dnd adapter for file drop [difficult issue]
+- implement floating window and 100k instead of 20k (or + somehow detect conn spd first)
 - jeneric in 'prefix mode' - for easier integration: prefix="/hub.php" -> all requests go through "mysite.com/hub.php?q=/tcp/...", "mysite.com/hub.php?q=/os/ramstore.jn", etc. 
   - pass jeneric kernel parameters in integration-friendly mode
 - do eosinit, etc. via callable init() routine for integration
 - CSS support & testing
 - highlighting editor (codepress?)
+- change security model of an object??
 - security model
+- html templating support
+- object description protocol (at least for storage objects + naming)
+- objbects manipulating toolkit
+- stabilize init procedure
+- gears dnd adapter for file drop [difficult issue]
+- 'trusted' application checking via ic# and general interface
+  - or executioner?? JS alert window!? - exec checking LATER!
 - profile firefox memory leakage; general memory usage
 - start integration proposal
-- html templating support
 - estimate object memory/fixed storage usage
+    - feed this information to security model
+    - also set the limits in VM via parent call
+    - also get the limits in child
+    - control the ability of child creation totally
 - HUB: sessions do not timeout
 
 - industrial database
 
+
+- get rid of STOMP ACKing -- HTTP protocol is already a good transport [need some tight HTTP/STOMP integration]
+- get rid of pinging - use HTTP long-poll session info [STOMP session connection information?]
 
 - automated test suite + test cases
 - introduce debug flag for hub instead of just constantly dumping everything

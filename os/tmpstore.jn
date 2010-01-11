@@ -10,7 +10,9 @@ function read(rq, offset, len) {
     //ErrorConsole.log("ramstore: returning data: "+sdata.substr(offset, len) + " params: "+offset+" l "+len);
     if(!offset) offset = 0;
     if(!len) len = sdata.length;
-    return sdata.substr(offset, len);
+    var r = sdata.substr(offset, len);
+    //ErrorConsole.log(object.getMyURI()+" o/l: "+offset+"/"+len+" real len: "+sdata.length+" real data typeof: "+typeof(sdata)+" ; returning data "+r);
+    return r;
 }
 
 function write(rq, data, offset) {
