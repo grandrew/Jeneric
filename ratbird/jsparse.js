@@ -51,6 +51,8 @@
 */
  
 // Build a regexp that recognizes operators and punctuators (except newline).
+
+
 var opRegExpSrc = "^";
 for (i in opTypeNames) {
     if (i == '\n')
@@ -63,6 +65,46 @@ var opRegExp = new RegExp(opRegExpSrc);
 
 // A regexp to match floating point literals (but not integer literals).
 var fpRegExp = /^\d+\.\d*(?:[eE][-+]?\d+)?|^\d+(?:\.\d*)?[eE][-+]?\d+|^\.\d+(?:[eE][-+]?\d+)?/;
+
+
+
+// var opRegExpSrc = "^";
+// for (i in opTypeNames) {
+    // if (i == '\n')
+        // continue;
+    // if (opRegExpSrc != "^")
+        // opRegExpSrc += "|^";
+    // // EDIT: expand out this regexp for environments that don't support $&
+    // //opRegExpSrc += i.replace(/[?|^&(){}\[\]+\-*\/\.]/g, "\\$&");
+    
+		 // i = i.replace(/\?/g, "\\?");
+		 // i = i.replace(/\|/g, "\\|");
+		 // i = i.replace(/\^/g, "\\^");
+		 // i = i.replace(/\&/g, "\\&");
+		 // i = i.replace(/\(/g, "\\(");
+		 // i = i.replace(/\)/g, "\\)");
+		 // i = i.replace(/\{/g, "\\{");
+		 // i = i.replace(/\}/g, "\\}");
+		 // i = i.replace(/\[/g, "\\[");
+		 // i = i.replace(/\]/g, "\\]");
+		 // i = i.replace(/\+/g, "\\+");
+		 // i = i.replace(/\-/g, "\\-");
+		 // i = i.replace(/\*/g, "\\*");
+		 // i = i.replace(/\//g, "\\/");
+		 // i = i.replace(/\./g, "\\.");
+		 // opRegExpSrc += i;
+    
+// }
+// var opRegExp = new RegExp(opRegExpSrc);
+
+
+
+
+
+
+
+
+
 
 
 var fpRegExp = /^(?:\d+\.\d*(?:[eE][-+]?\d+)?|\d+(?:\.\d*)?[eE][-+]?\d+|\.\d+(?:[eE][-+]?\d+)?)/;
@@ -109,6 +151,18 @@ Tokenizer.prototype = {
     },
 
     mustMatch: function (tt) {
+        // now, dump the values for the sneaky place:
+        /*
+        if(this.lineno == 264 && this.filename == "~/sys/ic") {
+            console.log("TOKEN LENGTH:"+this.tokens.length);
+            var rrrrr = "";
+            for(var it=0; it< this.tokens.length;it++) {
+                rrrrr += "type: "+this.tokens[it].type+"; value"+this.tokens[it].value+"\n";
+            }
+            console.log(rrrrr);
+        }
+        */
+        
         if (!this.match(tt)) {
             var _err = this.newSyntaxError("Missing " + tokens[tt].toLowerCase() + " at line "+this.lineno, this.filename, this.lineno);
             _err.___jeneric_err = true;
@@ -199,6 +253,7 @@ Tokenizer.prototype = {
                 token.type = NUMBER;
                 token.value = parseInt(match[0]);
             } else if ((match = input.match(/^[$_\w]+/))) {       // FIXME no ES3 unicode
+            ////} else if ((match = input.match(/^((\$\w*)|(\w+))/))) { 
             // causes 'missing operand'
             //} else if (((firstChar > 47 && firstChar < 58)  ||   // EDIT: add guards to check before using regex
 			//			 (firstChar > 64 && firstChar < 91)  || 
@@ -207,14 +262,19 @@ Tokenizer.prototype = {
 			//			(match = input.match(/^[$\w]+/))) {       // EDIT: allow $, use x-browser regex syntax
 
                 var id = match[0];
-                token.type = keywords[id] || IDENTIFIER;
+                if(keywords[id]) { 
+                    if(typeof(keywords[id]) == "number") token.type = keywords[id]; // curse ECMA!
+                    else token.type =  IDENTIFIER;
+                } else {
+                    token.type =  IDENTIFIER;
+                }
                 token.value = id;
             } else if ((match = input.match(/^"(?:\\.|[^"])*"|^'(?:\\.|[^'])*'/))) { //"){
             // does not pass: causes 'illegal token'
             //} else if ((firstChar == 34 || firstChar == 39) && 
 			//			(match = input.match(/^(?:"(?:\\.|[^"])*"|'(?:[^']|\\.)*')/))) { //"){  // EDIT: change regex structure for OOM perf improvement,
 																								//       use x-browser regex syntax
-
+// ("""(?:.|\n)*?""")
                 token.type = STRING;
                 token.value = eval(match[0]);
             } else if (this.scanOperand && (match = input.match(reRegExp))) {
@@ -226,7 +286,7 @@ Tokenizer.prototype = {
                 token.value = new RegExp(match[1], match[2]);
             } else if ((match = input.match(opRegExp))) {
                 var op = match[0];
-                if (assignOps[op] && input.charAt(op.length) == '=') {
+                if (assignOps[op] && (input.charAt(op.length) == '=')) {
                     token.type = ASSIGN;
                     token.assignOp = GLOBAL[opTypeNames[op]];
                     match[0] += '=';
@@ -260,6 +320,13 @@ Tokenizer.prototype = {
         this.cursor += match[0].length;
         token.end = this.cursor;
         token.lineno = this.lineno;
+        
+        /*
+        if(this.lineno == 264 && this.filename == "~/sys/ic") {
+            console.log("GET returns: "+token.value+" TYPE: "+token.type);
+        }
+        */
+        
         return token.type;
     },
 
@@ -316,6 +383,7 @@ Array.prototype.top = function() {
     return this.length && this[this.length-1];
 }
 
+/*
 function Node(t, type) {
     var token = t.token();
     if (token) {
@@ -349,6 +417,60 @@ Np.push = function (kid) {
     return Array.prototype.push.call(this, kid);
 }
 
+*/
+
+
+	 
+ function Node(t, type) {
+     // EDIT: "inherit" from Array in an x-browser way.
+     var _this = [];
+     for (var n in Node.prototype)
+        _this[n] = Node.prototype[n];
+
+     _this.constructor = Node;
+
+     var token = t.token();
+     if (token) {
+         _this.type = type || token.type;
+         _this.value = token.value;
+         _this.lineno = token.lineno;
+         _this.start = token.start;
+         _this.end = token.end;
+     } else {
+         _this.type = type;
+         _this.lineno = t.lineno;
+     }
+     _this.tokenizer = t;
+     _this.filename = t.filename;
+ 
+     for (var i = 2; i < arguments.length; i++) 
+        _this.push(arguments[i]);
+    
+     return _this;
+ }
+ 
+ var Np = Node.prototype; // EDIT: don't inherit from array
+ Np.toSource = Object.prototype.toSource;
+    
+ // Always use push to add operands to an expression, to update start and end.
+	 
+     
+Np.push = function (kid) {
+    if (kid !== null) {
+        if (kid.start < this.start)
+          this.start = kid.start;
+        if (this.end < kid.end)
+          this.end = kid.end;
+    }
+    this[this.length] = kid;
+}
+	 
+
+
+
+
+
+
 Node.indentLevel = 0;
 
 function tokenstr(tt) {
@@ -376,11 +498,13 @@ Np.toString = function () {
     }
   
     a.sort(function (a,b) { return (a.id < b.id) ? -1 : 1; });
-    const INDENTATION = "    ";
+    INDENTATION = "    ";
+    //Node.indentLevel++;
     var n = ++Node.indentLevel;
     var s = "{\n" + INDENTATION.repeat(n) + "type: " + tokenstr(this.type);
     for (i = 0; i < a.length; i++)
         s += ",\n" + INDENTATION.repeat(n) + a[i].id + ": " + a[i].value;
+    //Node.indentLevel--;
     n = --Node.indentLevel;
     s += "\n" + INDENTATION.repeat(n) + "}";
     return s;
@@ -390,9 +514,11 @@ Np.getSource = function () {
     return this.tokenizer.source.slice(this.start, this.end);
 };
 
+//Np.filename = function () { return this.tokenizer.filename; };
+/*
 Np.__defineGetter__('filename',
                     function () { return this.tokenizer.filename; });
-
+*/
 /*
 String.prototype.__defineProperty__(
     'repeat',
@@ -424,7 +550,8 @@ function nest(t, x, node, func, end) {
 }
 
 function Statements(t, x) {
-    var n = new Node(t, BLOCK);
+    //var n = new Node(t, BLOCK);
+    var n = Node(t, BLOCK);
     x.stmtStack.push(n);
     while (!t.done() && t.peek() != RIGHT_CURLY)
         n.push(Statement(t, x));
@@ -439,7 +566,7 @@ function Block(t, x) {
     return n;
 }
 
-const DECLARED_FORM = 0, EXPRESSED_FORM = 1, STATEMENT_FORM = 2;
+DECLARED_FORM = 0, EXPRESSED_FORM = 1, STATEMENT_FORM = 2;
 
 function Statement(t, x) {
     var i, label, n, n2, ss, tt = t.get();
@@ -459,7 +586,8 @@ function Statement(t, x) {
         return n;
 
       case IF:
-        n = new Node(t);
+        //n = new Node(t);
+        n = Node(t);
         n.condition = ParenExpression(t, x);
         x.stmtStack.push(n);
         n.thenPart = Statement(t, x);
@@ -468,7 +596,8 @@ function Statement(t, x) {
         return n;
 
       case SWITCH:
-        n = new Node(t);
+        //n = new Node(t);
+        n = Node(t);
         t.mustMatch(LEFT_PAREN);
         n.discriminant = Expression(t, x);
         t.mustMatch(RIGHT_PAREN);
@@ -486,7 +615,8 @@ function Statement(t, x) {
                     }
                 // FALL THROUGH
               case CASE:
-                n2 = new Node(t);
+                //n2 = new Node(t);
+                n2 = Node(t);
                 if (tt == DEFAULT)
                     n.defaultIndex = n.cases.length;
                 else
@@ -498,7 +628,8 @@ function Statement(t, x) {
                 throw _err;
             }
             t.mustMatch(COLON);
-            n2.statements = new Node(t, BLOCK);
+            //n2.statements = new Node(t, BLOCK);
+            n2.statements = Node(t, BLOCK);
             while ((tt=t.peek()) != CASE && tt != DEFAULT && tt != RIGHT_CURLY)
                 n2.statements.push(Statement(t, x));
             n.cases.push(n2);
@@ -507,7 +638,8 @@ function Statement(t, x) {
         return n;
 
       case FOR:
-        n = new Node(t);
+        //n = new Node(t);
+        n = Node(t);
         n.isLoop = true;
         t.mustMatch(LEFT_PAREN);
         if ((tt = t.peek()) != SEMICOLON) {
@@ -550,14 +682,16 @@ function Statement(t, x) {
         return n;
 
       case WHILE:
-        n = new Node(t);
+        //n = new Node(t);
+        n = Node(t);
         n.isLoop = true;
         n.condition = ParenExpression(t, x);
         n.body = nest(t, x, n, Statement);
         return n;
 
       case DO:
-        n = new Node(t);
+        //n = new Node(t);
+        n = Node(t);
         n.isLoop = true;
         n.body = nest(t, x, n, Statement, WHILE);
         n.condition = ParenExpression(t, x);
@@ -572,7 +706,8 @@ function Statement(t, x) {
 
       case BREAK:
       case CONTINUE:
-        n = new Node(t);
+        //n = new Node(t);
+        n = Node(t);
         if (t.peekOnSameLine() == IDENTIFIER) {
             t.get();
             n.label = t.token().value;
@@ -603,11 +738,13 @@ function Statement(t, x) {
         break;
 
       case TRY:
-        n = new Node(t);
+        //n = new Node(t);
+        n = Node(t);
         n.tryBlock = Block(t, x);
         n.catchClauses = [];
         while (t.match(CATCH)) {
-            n2 = new Node(t);
+            //n2 = new Node(t);
+            n2 = Node(t);
             t.mustMatch(LEFT_PAREN);
             n2.varName = t.mustMatch(IDENTIFIER).value;
             if (t.match(IF)) {
@@ -645,7 +782,8 @@ function Statement(t, x) {
         throw _err;
 
       case THROW:
-        n = new Node(t);
+        //n = new Node(t);
+        n = Node(t);
         n.exception = Expression(t, x);
         break;
 
@@ -655,14 +793,16 @@ function Statement(t, x) {
             _err.___jeneric_err = true;
             throw _err;
         }
-        n = new Node(t);
+        //n = new Node(t);
+        n = Node(t);
         tt = t.peekOnSameLine();
         if (tt != END && tt != NEWLINE && tt != SEMICOLON && tt != RIGHT_CURLY)
             n.value = Expression(t, x);
         break;
 
       case WITH:
-        n = new Node(t);
+        //n = new Node(t);
+        n = Node(t);
         n.object = ParenExpression(t, x);
         n.body = nest(t, x, n, Statement);
         return n;
@@ -673,12 +813,14 @@ function Statement(t, x) {
         break;
 
       case DEBUGGER:
-        n = new Node(t);
+        //n = new Node(t);
+        n = Node(t);
         break;
 
       case NEWLINE:
       case SEMICOLON:
-        n = new Node(t, SEMICOLON);
+        //n = new Node(t, SEMICOLON);
+        n = Node(t, SEMICOLON);
         n.expression = null;
         return n;
 
@@ -698,14 +840,16 @@ function Statement(t, x) {
                     }
                 }
                 t.get();
-                n = new Node(t, LABEL);
+                //n = new Node(t, LABEL);
+                n = Node(t, LABEL);
                 n.label = label;
                 n.statement = nest(t, x, n, Statement);
                 return n;
             }
         }
 
-        n = new Node(t, SEMICOLON);
+        //n = new Node(t, SEMICOLON);
+        n = Node(t, SEMICOLON);
         t.unget();
         n.expression = Expression(t, x);
         n.end = n.expression.end;
@@ -725,7 +869,8 @@ function Statement(t, x) {
 }
 
 function FunctionDefinition(t, x, requireName, functionForm) {
-    var f = new Node(t);
+    //var f = new Node(t);
+    var f = Node(t);
     if (f.type != FUNCTION)
         f.type = (f.value == "get") ? GETTER : SETTER;
     if (t.match(IDENTIFIER))
@@ -763,10 +908,12 @@ function FunctionDefinition(t, x, requireName, functionForm) {
 }
 
 function Variables(t, x) {
-    var n = new Node(t);
+    //var n = new Node(t);
+    var n = Node(t);
     do {
         t.mustMatch(IDENTIFIER);
-        var n2 = new Node(t);
+        //var n2 = new Node(t);
+        var n2 = Node(t);
         n2.name = n2.value;
         if (t.match(ASSIGN)) {
             if (t.token().assignOp) {
@@ -937,7 +1084,8 @@ loop:
                 }
                 --x.hookLevel;
             } else {
-                operators.push(new Node(t));
+                //operators.push(new Node(t));
+                operators.push(Node(t));
                 if (tt == ASSIGN)
                     operands.top().assignOp = t.token().assignOp;
                 else
@@ -977,9 +1125,11 @@ loop:
                 reduce();
             if (tt == DOT) {
                 t.mustMatch(IDENTIFIER);
-                operands.push(new Node(t, DOT, operands.pop(), new Node(t)));
+                //operands.push(new Node(t, DOT, operands.pop(), new Node(t)));
+                operands.push(Node(t, DOT, operands.pop(), Node(t)));
             } else {
-                operators.push(new Node(t));
+                //operators.push(new Node(t));
+                operators.push(Node(t));
                 t.scanOperand = true;
             }
             break;
@@ -989,12 +1139,14 @@ loop:
           case NEW:
             if (!t.scanOperand)
                 break loop;
-            operators.push(new Node(t));
+            //operators.push(new Node(t));
+            operators.push(Node(t));
             break;
 
           case INCREMENT: case DECREMENT:
             if (t.scanOperand) {
-                operators.push(new Node(t));  // prefix increment or decrement
+                //operators.push(new Node(t));  // prefix increment or decrement
+                operators.push(Node(t));  // prefix increment or decrement
             } else {
                 // Don't cross a line boundary for postfix {in,de}crement.
                 if (t.tokens[(t.tokenIndex + t.lookahead - 1) & 3].lineno !=
@@ -1005,7 +1157,8 @@ loop:
                 // Use >, not >=, so postfix has higher precedence than prefix.
                 while (opPrecedence[operators.top().type] > opPrecedence[tt])
                     reduce();
-                n = new Node(t, tt, operands.pop());
+                //n = new Node(t, tt, operands.pop());
+                n = Node(t, tt, operands.pop());
                 n.postfix = true;
                 operands.push(n);
             }
@@ -1022,7 +1175,8 @@ loop:
           case IDENTIFIER: case NUMBER: case STRING: case REGEXP:
             if (!t.scanOperand)
                 break loop;
-            operands.push(new Node(t));
+            //operands.push(new Node(t));
+            operands.push(Node(t));
             t.scanOperand = false;
             break;
 
@@ -1030,7 +1184,8 @@ loop:
             if (t.scanOperand) {
                 // Array initialiser.  Parse using recursive descent, as the
                 // sub-grammar here is not an operator grammar.
-                n = new Node(t, ARRAY_INIT);
+                //n = new Node(t, ARRAY_INIT);
+                n = Node(t, ARRAY_INIT);
                 while ((tt = t.peek()) != RIGHT_BRACKET) {
                     if (tt == COMMA) {
                         t.get();
@@ -1046,7 +1201,8 @@ loop:
                 t.scanOperand = false;
             } else {
                 // Property indexing operator.
-                operators.push(new Node(t, INDEX));
+                //operators.push(new Node(t, INDEX));
+                operators.push(Node(t, INDEX));
                 t.scanOperand = true;
                 ++x.bracketLevel;
             }
@@ -1066,7 +1222,8 @@ loop:
             // Object initialiser.  As for array initialisers (see above),
             // parse using recursive descent.
             ++x.curlyLevel;
-            n = new Node(t, OBJECT_INIT);
+            //n = new Node(t, OBJECT_INIT);
+            n = Node(t, OBJECT_INIT);
           object_init:
             if (!t.match(RIGHT_CURLY)) {
                 do {
@@ -1084,7 +1241,8 @@ loop:
                           case IDENTIFIER:
                           case NUMBER:
                           case STRING:
-                            id = new Node(t);
+                            //id = new Node(t);
+                            id = Node(t);
                             break;
                           case RIGHT_CURLY:
                             if (x.ecmaStrictMode) {
@@ -1099,7 +1257,9 @@ loop:
                             throw _err;
                         }
                         t.mustMatch(COLON);
-                        n.push(new Node(t, PROPERTY_INIT, id,
+                        //n.push(new Node(t, PROPERTY_INIT, id,
+                        //                Expression(t, x, COMMA)));
+                        n.push(Node(t, PROPERTY_INIT, id,
                                         Expression(t, x, COMMA)));
                     }
                 } while (t.match(COMMA));
@@ -1120,7 +1280,8 @@ loop:
 
           case LEFT_PAREN:
             if (t.scanOperand) {
-                operators.push(new Node(t, GROUP));
+                //operators.push(new Node(t, GROUP));
+                operators.push(Node(t, GROUP));
             } else {
                 while (opPrecedence[operators.top().type] > opPrecedence[NEW])
                     reduce();
@@ -1135,8 +1296,10 @@ loop:
                         --operators.length;
                         n.push(operands.pop());
                     } else {
-                        n = new Node(t, CALL, operands.pop(),
-                                     new Node(t, LIST));
+                        //n = new Node(t, CALL, operands.pop(),
+                        //             new Node(t, LIST));
+                        n = Node(t, CALL, operands.pop(),
+                                     Node(t, LIST));
                     }
                     operands.push(n);
                     t.scanOperand = false;
@@ -1145,7 +1308,8 @@ loop:
                 if (n.type == NEW)
                     n.type = NEW_WITH_ARGS;
                 else
-                    operators.push(new Node(t, CALL));
+                    //operators.push(new Node(t, CALL));
+                    operators.push(Node(t, CALL));
             }
             ++x.parenLevel;
             break;
@@ -1160,7 +1324,8 @@ loop:
             if (tt != GROUP) {
                 n = operands.top();
                 if (n[1].type != COMMA)
-                    n[1] = new Node(t, LIST, n[1]);
+                    //n[1] = new Node(t, LIST, n[1]);
+                    n[1] = Node(t, LIST, n[1]);
                 else
                     n[1].type = LIST;
             }
@@ -1216,3 +1381,4 @@ function parse(s, f, l) {
     }
     return n;
 }
+

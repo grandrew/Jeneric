@@ -204,7 +204,8 @@ URGENT:
 + T reauth for terminal when connection drops (acquire temporary key or do a real reauth when hubConnectionChanged or a kernel method to store AUTH info temporarily)
 + T move auth to terminal.jn responsibility
 - clean +terminal.jn, ic.jn, etc. for ultra-fast init, and remove unneeded commands from IC
-- //x.innerHTML = "&nbsp;"; -> DOMerror 12 -> Syntax error ?!?!
++ //x.innerHTML = "&nbsp;"; -> DOMerror 12 -> Syntax error ?!?!
+- re-check all unclosured methods for 'this' mess!
 - prettify IC: 
     - good input
     - auto-focus

@@ -675,7 +675,7 @@ __ErrorConsole.prototype.read = function () {
 };
 
 
-const GLOBAL_CODE = 0, EVAL_CODE = 1, FUNCTION_CODE = 2, S_EXEC = 3;
+GLOBAL_CODE = 0, EVAL_CODE = 1, FUNCTION_CODE = 2, S_EXEC = 3;
 
 __MAXARLEN = Math.pow(2,16)+1;
 
@@ -964,6 +964,7 @@ GLOBAL_METHODS = {
         // set up a stop execution flag
         var __cs = this.cur_stack;
         var x2 = __cs.my.x2;
+        var self=this;
         if(typeof(mode) == 'undefined') mode = _POST; 
         if( (typeof(callback) == "undefined") || callback == null || !(callback instanceof this.FunctionObject) )  { 
             
@@ -979,7 +980,7 @@ GLOBAL_METHODS = {
                 
                 
                 __cs.EXCEPTION = THROW;
-                var ex = new this.global.InternalError("url fetch ("+url+") failed with timeout");// TEST THIS!!
+                var ex = new self.global.InternalError("url fetch ("+url+") failed with timeout");// TEST THIS!!
                 ex.status = "timeout";
                 __cs.exc.result = ex;
 
@@ -996,6 +997,7 @@ GLOBAL_METHODS = {
                 if( __cs.STOP != _mystop ) // means TIMEOUT already fired. Also, if it is != false then a serious programming error may be in place!!
                         return;
                 // __cs.exc.result = data;
+                
                 x2.result = data; // XXX this shit is because thats how CALL: gets the result :-(
                 __cs.EXCEPTION = RETURN;
                 __cs.STOP = false;
@@ -1012,7 +1014,7 @@ GLOBAL_METHODS = {
                         return;
                 
                 __cs.EXCEPTION = THROW;
-                var ex = new this.global.InternalError("url fetch ("+url+") failed with status: "+status);
+                var ex = new self.global.InternalError("url fetch ("+url+") failed with status: "+status);
                 ex.status = status;
                 __cs.exc.result = ex;
 
@@ -1282,7 +1284,7 @@ FUNCTIONOBJECT_PROTOTYPE = {
                     
         if(vm.cur_stack.EXCEPTION && vm.cur_stack.EXCEPTION==RETURN) delete vm.cur_stack.EXCEPTION;
         return this.___call___(t, a, vm.ExecutionContext.current, vm.cur_stack);
-    },
+    }
 };
 
 function Jnaric() {
@@ -1658,7 +1660,7 @@ Jnaric.prototype.putValue = function (v, w, vn) {
             // r not equalling to value should be treated as failed setter set attempt ? XXX decide on that
             // currently, a setter is not allowed to fail
         }
-
+        
         return (v.base || this.global)[v.propertyName] = w;
         //var vr = w;
         //if(v.base) v.base[v.propertyName] = w;
@@ -1768,7 +1770,7 @@ Jnaric.prototype.__load_next = function () {
             _tihs.evaluate(data, url); // TODO: evaluate - use source name!
         } catch (e) {
             // TODO: rewrite this to set exception on main thread stack???
-            _tihs.ErrorConsole.log("Parse of file "+url+" failed: "+e);
+            _tihs.ErrorConsole.log("Parse of file "+url+" failed: "+e+" Line: "+e.lineNumber+" File: "+e.fileName);
             try {
                 _tihs.onerror && _tihs.onerror(e);
             } catch (e) {
@@ -2317,10 +2319,10 @@ Jnaric.prototype.step_next = function (g_stack) {
                 try {
                     g_stack.onfinish(ex.x.result); // main thread stack exhausted, run 'onfinish'
                 } catch (e) {
-                    this.ErrorConsole.log("stack .onfinish event failed to execute with exception: "+e);
+                    this.ErrorConsole.log("stack .onfinish event failed to execute with exception: "+e+" Message: "+e.message+" file: "+e.fileName);
                     // opera debug
                     
-                    for(var oo in e) console.log(oo + " : " + e[oo]);
+                    //for(var oo in e) console.log(oo + " : " + e[oo]);
                 }
             }
         }

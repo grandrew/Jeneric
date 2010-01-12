@@ -166,7 +166,7 @@ function __htmldom_get_direct(name) {
 }
 
 function __htmldom_getter_this(name) {
-    this["get"+name.charAt(0).toUpperCase() + name.substr(1)]();
+    return this["get"+name.charAt(0).toUpperCase() + name.substr(1)]();
 }
 
 
@@ -335,8 +335,32 @@ ___DOMHTMLGetters = {
     action : __htmldom_get_direct,
     enctype : __htmldom_get_direct,
     encoding : __htmldom_get_direct,
-    method : __htmldom_get_direct
+    method : __htmldom_get_direct,
     
+    // input
+    
+    accessKey : __htmldom_get_direct,
+    //align : __htmldom_get_direct,
+    alt : __htmldom_get_direct,
+    checked : __htmldom_get_direct,
+    defaultValue : __htmldom_get_direct,
+    defaultChecked : __htmldom_get_direct,
+    disabled : __htmldom_get_direct,
+    //files Requires Gecko 1.9 	list of selected files 	Readonly FileList 	All
+    //form 	containing form element 	Readonly HTMLFormElement 	All
+    maxLength : __htmldom_get_direct,
+    //multiple Requires Gecko 1.9.2 	more than one value possible (e.g. multiple files) 	Boolean 	All
+    name : __htmldom_get_direct,
+    readOnly : __htmldom_get_direct,
+    selectionEnd : __htmldom_get_direct,
+    selectionStart : __htmldom_get_direct,
+    size : __htmldom_get_direct,
+    src : __htmldom_get_direct,
+    tabIndex : __htmldom_get_direct,
+    textLength : 1,
+    type : 1,
+    useMap : __htmldom_get_direct,
+    value : __htmldom_get_direct
     
 };
 
@@ -465,7 +489,33 @@ ___DOMHTMLSetters = {
     action : __htmldom_set_direct,
     enctype : __htmldom_set_direct,
     encoding : __htmldom_set_direct,
-    method : __htmldom_set_direct
+    method : __htmldom_set_direct,
+    
+    
+    // input
+    accept : __htmldom_set_direct,
+    accessKey : __htmldom_set_direct,
+    //align : __htmldom_set_direct,
+    alt : __htmldom_set_direct,
+    checked : __htmldom_set_direct,
+    defaultValue : __htmldom_set_direct,
+    defaultChecked : __htmldom_set_direct,
+    disabled : __htmldom_set_direct,
+    //files Requires Gecko 1.9 	list of selected files 	Readonly FileList 	All
+    //form 	containing form element 	Readonly HTMLFormElement 	All
+    maxLength : __htmldom_set_direct,
+    //multiple Requires Gecko 1.9.2 	more than one value possible (e.g. multiple files) 	Boolean 	All
+    name : __htmldom_set_direct,
+    readOnly : __htmldom_set_direct,
+    selectionEnd : __htmldom_set_direct,
+    selectionStart : __htmldom_set_direct,
+    size : __htmldom_set_direct,
+    src : __htmldom_set_direct,
+    tabIndex : __htmldom_set_direct,
+    textLength : 1,
+    type : 1,
+    useMap : __htmldom_set_direct,
+    value : __htmldom_set_direct
 };
 
 

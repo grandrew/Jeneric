@@ -42,7 +42,7 @@
  * separately to take advantage of the simple switch-case constant propagation
  * done by SpiderMonkey.
  */
-const GLOBAL = this;
+GLOBAL = this;
 /*
 Object.prototype.__defineProperty__ = function(property, value) {
         this[property] = value;
@@ -60,20 +60,20 @@ var tokens = [
     "?", ":", "CONDITIONAL",
     "||",
     "&&",
-    "|",
+    "|",  // 10
     "^",
     "&",
     "==", "!=", "===", "!==",
-    "<", "<=", ">=", ">",
+    "<", "<=", ">=", ">", // 20
     "<<", ">>", ">>>",
     "+", "-",
     "*", "/", "%",
-    "!", "~", "UNARY_PLUS", "UNARY_MINUS",
+    "!", "~", "UNARY_PLUS", "UNARY_MINUS", // 29 30 31 32
     "++", "--",
-    ".",
+    ".", // 35 = DOT
     "[", "]",
     "{", "}",
-    "(", ")",
+    "(", ")", // 40 41
 
     // Nonterminal tree node type codes.
     "SCRIPT", "BLOCK", "LABEL", "FOR_IN", "CALL", "NEW_WITH_ARGS", "INDEX",
@@ -81,10 +81,10 @@ var tokens = [
     "GROUP", "LIST",
 
     // Terminals.
-    "IDENTIFIER", "NUMBER", "STRING", "REGEXP",
+    "IDENTIFIER", "NUMBER", "STRING", "REGEXP", // 56 57 58 ..
 
     // Keywords.
-    "break",
+    "break", // 60
     "case", "catch", "const", "continue",
     "debugger", "default", "delete", "do",
     "else", "enum",
@@ -148,7 +148,7 @@ var opTypeNames = {
 var keywords = {__proto__: null};
 
 // Define const END, etc., based on the token names.  Also map name to index.
-var consts = "const ";
+var consts = "var ";
 for (var i = 0, j = tokens.length; i < j; i++) {
     if (i > 0)
         consts += ", ";

@@ -7,6 +7,18 @@ object.ipc["write"] = function(rq, data) {
     }
 }
 
+function CommandHistory() {
+    this.ch = [];
+    this.MAXLEN = 100;
+}
+CommandHistory.prototype.add = function (cmd) {
+    this.ch.push(cmd);
+    if(this.ch.length > this.MAXLEN) this.ch.shift();
+};
+CommandHistory.prototype.get = function (indx) {
+    return this.ch[this.ch.length-(1+indx)];
+};
+CH = new CommandHistory();
 
 object.ipc["listChildren"] = function (rq) {
     return object.enumerateChildren(); // will return an Array object
@@ -39,25 +51,38 @@ function brDOM() {
 
 
 function inputDOM() {
-    var x = document.createElement("DIV");
+    //var x = document.createElement("DIV");
+    var x = document.createElement("INPUT");
     x.style.display = "inline";
     x.style.fontFamily = "courier";
-    x.style.width = "100%";
-    //x.setAttr("contentEditable", true);
-    x.contentEditable = true;
-    var t = document.createTextNode("");
-    x.appendChild(t);
+    x.style.width = "60%";
+    x.style.border = "none";
+    
+    //x.contentEditable = true;
+    //var t = document.createTextNode("");
+    //x.appendChild(t);
     document.body.appendChild(x);
-    //x.innerHTML = "nbsp";
+    //x.innerHTML = "&nbsp;";
     x.focus();
     do {
         e = x.waitEvent("keypress", 0, "keyCode", 13); // will temporarily bind an event to the node and wait for it (bind_dom method)
                                      // this should be used with caution: there is no event queue for the object and it may miss some events
     } while (e.keyCode != 13)
-    //x.setAttr("contentEditable", false);
-    x.contentEditable = false;
-    //return x.getAttr("innerHTML");
-    return x.innerHTML;
+    
+    //x.contentEditable = false;
+    x.readOnly=true;
+    var x2 = document.createElement("DIV");
+    x2.style.display = "inline";
+    x2.style.fontFamily = "courier";
+    var v = x.value;
+    var t = document.createTextNode(v);
+    x2.appendChild(t);
+    x.parentNode.replaceChild(x2,x);
+    //CH.add(v);
+    
+    //return x.innerHTML;
+    brDOM();
+    return v;
 }
 
 
@@ -100,7 +125,7 @@ function execChild(childPath, progPath, argv) {
 
 brDOM();
 brDOM();
-printDOM("Welcome to ic# - an Interactive Core commandline. Type 'help' for help. Click-TAB to reactivate input (if lost).");
+printDOM("Welcome to ic# - an Interactive Core commandline. Type 'help' for help.");
 brDOM();
 // TODO: write Google Gears hint - if not detected
 if(!object.FixedStorage)
