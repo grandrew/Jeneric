@@ -206,6 +206,7 @@ URGENT:
 - clean +terminal.jn, ic.jn, etc. for ultra-fast init, and remove unneeded commands from IC
 + //x.innerHTML = "&nbsp;"; -> DOMerror 12 -> Syntax error ?!?!
 - re-check all unclosured methods for 'this' mess!
+- push TRUE: HAS NOT gone aWAY!!
 - prettify IC: 
     - good input
     - auto-focus

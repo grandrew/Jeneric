@@ -687,6 +687,7 @@ GLOBAL_METHODS = {
             this.ExecutionContext.current.result = s;
             return s;
         }
+        var self = this;
         var xx = this.ExecutionContext.current;
         var xx2 = new this.ExecutionContext(EVAL_CODE);
         xx2.thisObject = xx.thisObject;
@@ -699,14 +700,14 @@ GLOBAL_METHODS = {
         var dexecf = function () {
             //console.log("doneeval swapping results: "+xx.result+" to "+xx2.result);
             xx.result = xx2.result;                // pass return value further...
-            this.ExecutionContext.current = xx; // switch context back
+            self.ExecutionContext.current = xx; // switch context back
             //my_cur_stack.my.v0 = xx2.result;
         };
         
         var texecf = function () {
             //console.log("throweval swapping results: "+xx.result+" to "+xx2.result);
             xx.result = xx2.result;                // but before that, switch context results!
-            this.ExecutionContext.current = xx; // switch context back ??????????????
+            self.ExecutionContext.current = xx; // switch context back ??????????????
             //my_cur_stack.my.v0 = xx2.result;
         };
         
@@ -754,6 +755,7 @@ GLOBAL_METHODS = {
         x2.thisObject = this.global;
         x2.caller = null;
         x2.callee = fun;
+        var self = this;
         
         if(typeof(args) != "undefined" ) {
             var a = Array.prototype.splice.call(args, 0, args.length);
@@ -778,7 +780,7 @@ GLOBAL_METHODS = {
         var run_code = function () {
             // create a new execution context
             //this.step_next(g_stack);
-            __jn_stacks.add_task(this, g_stack, my_nice, this.throttle);
+            __jn_stacks.add_task(self, g_stack, my_nice, self.throttle);
 
             
         };
@@ -842,6 +844,7 @@ GLOBAL_METHODS = {
         x2.callee = fun;
         
         var f = fun.node;
+        var self = this;
         
         //console.log("Normal call working...");
         
@@ -866,7 +869,7 @@ GLOBAL_METHODS = {
             var g_stack = new __Stack(x2);
             g_stack.push(S_EXEC, { n: f.body, x: x2, pmy: {} });
 
-            __jn_stacks.add_task(this, g_stack, my_nice, this.throttle);
+            __jn_stacks.add_task(self, g_stack, my_nice, self.throttle);
 
             
         };
@@ -896,7 +899,7 @@ GLOBAL_METHODS = {
         var _mystop = __jn_stacks.newId();
         this.cur_stack.STOP = _mystop;
         var __cs = this.cur_stack;
-        
+        var self = this;
         
         var exec_f = function (data, obj) {
             // like evaluate, but push!
@@ -925,7 +928,7 @@ GLOBAL_METHODS = {
             // XXX XXX TODO WARNING! LOAD may fail in releasing the stack WITH CONTROL FLOW CATCHUP!!
             // XXX TODO set onfinish to the currently running steck to continue it!!                
             __cs.EXCEPTION = THROW;
-            var ex = new this.global.InternalError("load( '"+url+"' ): fetch failed with timeout");// TEST THIS!!
+            var ex = new self.global.InternalError("load( '"+url+"' ): fetch failed with timeout");// TEST THIS!!
             ex.status = "timeout";
             __cs.exc.result = ex;
 
@@ -945,7 +948,7 @@ GLOBAL_METHODS = {
                     return;
 
             __cs.EXCEPTION = THROW;
-            var ex = new this.global.InternalError("load('"+url+"') failed with status: "+status);
+            var ex = new self.global.InternalError("load('"+url+"') failed with status: "+status);
             ex.status = status;
             __cs.exc.result = ex;
 
@@ -1002,7 +1005,7 @@ GLOBAL_METHODS = {
                 __cs.EXCEPTION = RETURN;
                 __cs.STOP = false;
                 //this.step_next(__cs);
-                //__cs.push(S_EXEC, {n: {type:TRUE}, x: {}, Nodes: {}, Context: __cs.exc, NodeNum: 0, pmy: __cs.my.myObj});
+                
                 __jn_stacks.start(__cs.pid);
             };
 
@@ -1190,13 +1193,27 @@ FUNCTIONOBJECT_PROTOTYPE = {
     },
 
     construct: function (a, x, stack) {
+        
+        /*
+        // old __proto__ mechanism
         var o = new Object;
         var p = this.prototype;
-        if (isObject(p))
+        if (isObject(p)) {
             o.__proto__ = p;
+        }
         // else o.__proto__ defaulted to Object.prototype
+        */
+        var p = this.prototype;
+        if (isObject(p)) {
+            __F.prototype = this.prototype;
+            var o = new __F();
+        } else {
+            var o = new Object;
+        }
+        
         stack.my.o = o;
         //console.log("calling constructor with a="+a);
+        
         var v = this.___call___(o, a, x, stack);
         
         // the following will be ignored by step executor anyways
@@ -3886,7 +3903,15 @@ Jnaric.prototype.step_execute = function (n, x, stack) {
                     v = stack.my.x2.result;
                     
                     stack.EXCEPTION = false;
-                  
+                    // remove fake stack push
+                    /*
+                    if(stack.stack[stack.stack.length-2].n.type==TRUE) {
+                        stack.stack.pop();
+                        console.log("deleting true");
+                    } else {
+                        console.log("stacktype: "+stack.stack[stack.stack.length-2].n.type+" true "+TRUE);
+                    }
+                    */
                     this.ExecutionContext.current = stack.my.oldxx;
                   
                     stack.my.done = true;
@@ -4249,6 +4274,8 @@ function Activation(f, a) {
 // copy __defineProperty__ down from Object.prototype.
 
 //Activation.prototype.__defineProperty__ = Object.prototype.__defineProperty__;
+
+// WARNING!! this is gonna be a problem!
 Activation.prototype.__proto__ = null;
 delete Activation.prototype.constructor;
 

@@ -78,7 +78,7 @@ function inputDOM() {
     var t = document.createTextNode(v);
     x2.appendChild(t);
     x.parentNode.replaceChild(x2,x);
-    //CH.add(v);
+    CH.add(v);
     
     //return x.innerHTML;
     brDOM();
