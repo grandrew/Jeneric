@@ -8,15 +8,32 @@ object.ipc["write"] = function(rq, data) {
 }
 
 function CommandHistory() {
-    this.ch = [];
+    this.ch = [""];
     this.MAXLEN = 100;
+    this.index = 0;
 }
 CommandHistory.prototype.add = function (cmd) {
+    this.ch.pop();
     this.ch.push(cmd);
+    this.ch.push("");
     if(this.ch.length > this.MAXLEN) this.ch.shift();
+    this.index = 0;
 };
-CommandHistory.prototype.get = function (indx) {
+CommandHistory.prototype.get = function (indx) { // safe get
+    if(typeof(indx) == "undefined") {
+        if(this.index >= this.ch.length) this.index=this.ch.length-1;
+        if(this.index < 0) this.index=0;
+        indx = this.index;
+    }
     return this.ch[this.ch.length-(1+indx)];
+};
+CommandHistory.prototype.set = function (value, index) { // safe get
+    if(typeof(index) == "undefined") {
+        if(this.index >= this.ch.length) this.index=this.ch.length-1;
+        if(this.index < 0) this.index=0;
+        index = this.index;
+    }
+    this.ch[this.ch.length-(1+index)] = value;
 };
 CH = new CommandHistory();
 
@@ -49,6 +66,15 @@ function brDOM() {
     window.scrollTo(0,1000000);
 }
 
+function insertCurrent(el, txt) {
+    var x = document.createElement("DIV");
+    //x.style.display = "inline";
+    x.style.fontFamily = "courier";
+    var t = document.createTextNode(txt);
+    x.appendChild(t);
+    el.parentNode.insertBefore(x, el);
+    window.scrollTo(0,1000000);
+}
 
 function inputDOM() {
     //var x = document.createElement("DIV");
@@ -64,10 +90,60 @@ function inputDOM() {
     document.body.appendChild(x);
     //x.innerHTML = "&nbsp;";
     x.focus();
-    do {
-        e = x.waitEvent("keypress", 0, "keyCode", 13); // will temporarily bind an event to the node and wait for it (bind_dom method)
+    
+    // now history part...
+    var history_back = function history_back (e) {
+        if(e.keyCode == 38) { // up
+            CH.set(x.value);
+            CH.index++;
+            x.value = CH.get();
+        } else if (e.keyCode == 40) { // down            
+            CH.set(x.value);
+            CH.index--;
+            x.value = CH.get();
+        } else if (e.keyCode == 9) { // tab
+            e.preventDefault(); // will do nothing...
+            var v=x.value.split(" ").pop();
+            if(v.charAt(0) == "/" || v.charAt(0) == "~") {
+                // now get data
+                var lURI=v.split("/");
+                var oname = lURI.pop();
+                var oparent = lURI.join("/");
+                x.style.backgroundColor="#e6e6e6";
+                try {
+                    var ldata = execURI(oparent, "listChildren", [], 2000);
+                    var ss = ldata.join("\n");
+                    if(oname.length > 0) {
+                        var re = new RegExp("("+oname+".+)", "g");
+                        var m = ss.match(re);
+                        if(m.length == 1) {
+                            x.value = x.value.replace(v, oparent+"/"+m[0]);
+                        } else if (m.length > 1) {
+                            insertCurrent(x, m.join(" "));
+                        } else {
+                            insertCurrent(x, ss);
+                        }
+                    } else {
+                        insertCurrent(x, ss);
+                    }
+                } catch (e) {
+                    ErrorConsole.log(e); // todo remove this
+                }
+                x.style.backgroundColor="white"; // TBD: "normal" color?
+            }
+        }
+    };
+    x.addEventListener("keydown", history_back, false, true);
+    
+    // ----
+    
+    
+    do { // the loop is entirely unnesessary here
+        e = x.waitEvent("keypress", 0, {"keyCode": [13, 9]}, true); // will temporarily bind an event to the node and wait for it (bind_dom method)
                                      // this should be used with caution: there is no event queue for the object and it may miss some events
     } while (e.keyCode != 13)
+    
+    x.removeEventListener("keydown", history_back);
     
     //x.contentEditable = false;
     x.readOnly=true;

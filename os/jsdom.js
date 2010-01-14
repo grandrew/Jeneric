@@ -954,9 +954,9 @@ IMPLEMENTED_ALL->>
 
 function fake() {};
 
-
-DOMElement.prototype.addEventListener = function ( type, listener, useCapture ) {
-    // XXX DOC currently useCapture always et to false to behave exactly as IE
+// DOC all these parameters
+DOMElement.prototype.addEventListener = function ( type, listener, useCapture, skip, preventDefault) {
+    // XXX DOC currently useCapture always set to false to behave exactly as IE
     // it only works when real DOM rendering is available so our task simplifies much
     if(!this.___link) return;
     
@@ -965,31 +965,45 @@ DOMElement.prototype.addEventListener = function ( type, listener, useCapture ) 
     
     if(!(listener.node && listener.scope)) throw (new vm.global.TypeError("JNARIC: addEventListener second argument must be a function"));
 
+    var cstack = undefined;
     
     var evt = function (e) {
         /*
         __jn_stacks.add_task(vm, g_stack, my_nice, vm.throttle);
         */
         // var e = window.event ? window.event : aEvent;
+        
         var e = new __Event(vm, e); // create an event based on real event
+
+        if(preventDefault) e.preventDefault();
+        
         // TODO: more verbosity here
         var evt_fakeerr = function ( err ) { vm.ErrorConsole.log("Error executing event handler: "+err); };
-        vm.execf_thread(listener, [e], fake, evt_fakeerr, undefined, e.target); 
+        if(cstack && cstack.stack.length > 0) {
+            if(skip) return; // just skip event // DOC this!
+            if(cstack.stack.length > 1000) return; //force skip: DOC and TODO some meaningful value
+            vm.execf_stack(cstack, listener, [e], e.target); 
+        } else { // new thread
+            cstack = vm.execf_thread(listener, [e], fake, evt_fakeerr, undefined, e.target); 
+        }
+        // we need to append to thread stack - if it exists - and do not append if stack is too full
+        // (thus skipping events)
     };
     
     // now register event
     // DOC WARNING!: currently does not support user-defined events due to IE direct link
     // DOC: currently do not support capture to behave as IE
-    if(this.___link.addEventListener) this.___link.addEventListener(type, evt, false);
-    else this.___link.attachEvent("on"+type, evt); // IE    
+    if(this.___link.attachEvent) this.___link.attachEvent("on"+type, evt); // IE    
+    else this.___link.addEventListener(type, evt, false);
+     
     
     if(!this.___listeners) this.___listeners = {};
     if(!this.___listeners[type]) this.___listeners[type] = {};
     this.___listeners[type][listener] = evt;
 };
 
-DOMDocument.prototype.addEventListener = function ( type, listener, useCapture ) {
-    this.documentElement.addEventListener( type, listener, useCapture );
+DOMDocument.prototype.addEventListener = function ( type, listener, useCapture , skip, preventDefault) {
+    this.documentElement.addEventListener( type, listener, useCapture , skip, preventDefault);
 };
 
 DOMDocument.prototype.removeEventListener = function ( type, listener, useCapture ) {
@@ -1007,8 +1021,12 @@ DOMElement.prototype.removeEventListener = function ( type, listener, useCapture
     
     if(listener in this.___listeners[type]) {
         var evt = this.___listeners[type][listener];
-        if(elmt.___link.addEventListener) elmt.___link.removeEventListener(type, evt, false);
-        else elmt.___link.detachEvent("on"+type, evt); // IE
+        //if(this.___link.addEventListener) this.___link.removeEventListener(type, evt, false);
+        //else this.___link.detachEvent("on"+type, evt); // IE
+        if(this.___link.attachEvent) this.___link.detachEvent("on"+type, evt); // IE    
+        else this.___link.removeEventListener(type, evt, false);
+        
+        
         delete this.___listeners[type][listener];
     }
 };
@@ -1036,8 +1054,8 @@ DOMElement.prototype.dispatchEvent = function ( event ) { // (IE: .fireEvent())
 /* TODO: 
 - DOC ument everything here
 */
-DOMElement.prototype.waitEvent = function ( eType, timeout, propertyName, propertyValue ) {
-    // DOC: watch for propertyName of event to equal propertyValue, else ignore it 
+DOMElement.prototype.waitEvent = function ( eType, timeout, propertyComp, preventDefault ) {
+    // DOC: watch for propertyName of event to equal propertyValue, else ignore it  propertyComp!
     //  and continue blocking execution
     //  timeout = 0 -> infinite
     
@@ -1059,12 +1077,24 @@ DOMElement.prototype.waitEvent = function ( eType, timeout, propertyName, proper
             return; // bypass // and check if everything works (like cache)
         }
         
-        if(propertyName && propertyValue) {
-            if(e[propertyName] != propertyValue) {
-                //console.log("PROPERTY FAILURE");
-                return;
+        if(propertyComp) {
+            var m=false;
+            for(var propertyName in propertyComp) {
+                if(propertyComp[propertyName] instanceof Array) {
+                    for(var i=0;i< propertyComp[propertyName].length;i++) {
+                        if(propertyComp[propertyName][i] == e[propertyName]) m=true;
+                    }
+                    if(!m) return;
+                } else {
+                    if(e[propertyName] != propertyComp[propertyName]) {
+                        //console.log("PROPERTY FAILURE for "+propertyName);
+                        return;
+                    }
+                }
             }
         }
+        
+        if(preventDefault) e.preventDefault();
         //console.log("FIRING EVENT");
 
         // now unregister event

@@ -43,6 +43,7 @@
 # test redir
 # test security??
 
+DEBUG  = 1
 
 
 from stompservice import StompClientFactory
@@ -112,7 +113,7 @@ def touch_session(s):
         if sessions[terminals[s]]["tm"] < tm: # touch only outdated
             sessions[terminals[s]]["tm"] = tm
     except KeyError:
-        print "No session to touch"
+        if DEBUG > 2: print "No session to touch"
         
     
 def clean_timeout():
@@ -176,7 +177,7 @@ class Hub(StompClientFactory):
     
     def deliver(self, dest, rq): # will become self.send after init, and send->dummy_send!!! XXX ABI glitch
         # XXX this is extremely high-level mess that overbloats the transport layer because of STOMP simplification
-        print "Will deliver", rq, "to", dest
+        if DEBUG > 3: print "Will deliver", rq, "to", dest
         if dest in self.static_servers:
             dest = self.static_servers[dest];
         self.rqe[str(rq["id"])] = {"d": dest, "r": rq, "tm": time.time() };
@@ -237,7 +238,7 @@ class Hub(StompClientFactory):
             else:
                 # XXX: send without "hub_oid" ?? -> less traffic
                 deref = self.rqe[i]["d"];
-                print "Sending", self.rqe[i]["r"], "to", deref
+                if DEBUG > 3: print "Sending", self.rqe[i]["r"], "to", deref
                 #self.dummy_send(self.rqe[i]["d"], json.encode(self.rqe[i]["r"]) )
                 if type(deref) == type(""): self.dummy_send(deref, simplejson.dumps(self.rqe[i]["r"]) )
                 else: 
@@ -452,10 +453,10 @@ class Hub(StompClientFactory):
         self.recv_message(msg)
     
     def recv_message(self,msg):
-        print "Received", repr(msg)
+        if DEBUG > 3: print "Received", repr(msg)
         if msg["headers"]["destination"] == ANNOUNCE_PATH:
             # the client wants another session, give it
-            print "Caught announce!"
+            if DEBUG > 3: print "Caught announce!"
             
             #rq = json.decode(msg["body"])
             rq = simplejson.loads(msg["body"])
@@ -525,7 +526,7 @@ class Hub(StompClientFactory):
             try:
                 terminal = get_terminal_by_session(msg["headers"]["session"])
             except KeyError:
-                print "Issuing nosession!"
+                if DEBUG > 2: print "Issuing nosession!"
                 #self.dummy_send(msg["headers"]["session"], json.encode({"error": "NOSESSION"})) # DOC document here . & ->
                 self.dummy_send(msg["headers"]["session"], simplejson.dumps({"error": "NOSESSION"})) # DOC document here . & ->
                 return; # and DO NOT send ACK - so the client could re-establish a conection and resend the request!

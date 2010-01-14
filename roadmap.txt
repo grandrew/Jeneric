@@ -199,56 +199,82 @@ URGENT:
 + gears adapter for file pickup
 ? T clean_timeout bug: tries to clean nonexistent session and KeyError's 
 ? T invalid readyState 
-- database access methods
-    (or kernel driver object?? - terminal security model that allows for native code "RING0" injection)
 + T reauth for terminal when connection drops (acquire temporary key or do a real reauth when hubConnectionChanged or a kernel method to store AUTH info temporarily)
 + T move auth to terminal.jn responsibility
-- clean +terminal.jn, ic.jn, etc. for ultra-fast init, and remove unneeded commands from IC
 + //x.innerHTML = "&nbsp;"; -> DOMerror 12 -> Syntax error ?!?!
-- re-check all unclosured methods for 'this' mess!
-- push TRUE: HAS NOT gone aWAY!!
++ re-check all unclosured methods for 'this' mess!
++ cross browser code
++ clean +terminal.jn, ic.jn, etc. for ultra-fast init, 
 - prettify IC: 
-    - good input
-    - auto-focus
-    - cwd
-    - history (at least for session, save upon hard-coded info)
-    - completion
-- fix array.sort and JSON.stringify(replacer/reviver) (maybe others??) string.repeat
+    + good input
+    ? auto-focus
+    + history (at least for session, save upon hard-coded info)
+    - cd/pwd
+    + completion/hinting via TAB (join completion candidates into a string, then regex inside it for variants)
+        - Saf,Chrome: no preventDefault
+        - IE: not work at all
+    - PATH (feed IC with PATH, PATH set up command)
+    - deleteChild ipc command
+    - clear&delete framewindow
+    - better typeto: doesnt work with WebKit
+    - typeto: doesnt fire events in IE8 & Opera-linux (cannto Ctrl-Enter to sav?)
+    - opera behaves BAD with contentEditable :-\
+- event: IE8 does not work with ctrlKey ??
+- IE8 exceptions problem!
++ addEventListener thread flood problem! (queue events? skip events after queue exhaust?)
+- fix array.sort and JSON.stringify(replacer/reviver) (maybe others??)
+- implement floating window for DATA PIPE and 100k instead of 20k (or + somehow detect conn spd first)
+- do eosinit, etc. via callable init() routine for integration
+- html FROM, OBJECT & applet/flash security
+- CSS support & testing
+- highlighting editor (codepress?)
+- how to change security model of an object?? - only a super-puper user may do that; or the security code itself
+- security model
+- security to return optional "reason" value: true or text that will be set to "deny reason" for EPERM, etc.
+    - modify EPERM error transfer
+- html templating support
+- object description protocol (at least for storage objects + naming) type, length, content-type
+- objects manipulating toolkit
+- stabilize init procedure (to look for init in /var or something?)
+- database access methods
+    (or kernel driver object?? - terminal security model that allows for native code "RING0" injection)
+- start integration proposal
+- write standard tools: mv(?), rm, mkdir, rmdir, cp, cr - create object of certain type/sec, ul - upload something, cl - copy local (gears get)
+- remove unneeded commands from IC
+- industrial database
+    - stress-test what if we use FF/Chrome storage
+    - think through how to build a standalone storage (maybe using full JN protocol + security model?)
+    - use either solution
+- a descriptive Google Gears security field
+- test jquery & something
+- write SvoyaSet panel?? or make SS entirely AJAX (see some Elgg tutorial to AJAXify it)
+- International version yrmarkt.com, yourmarkt.com, corpoware.com, webnotware.com, warenot.com, warebs.com, 
+
+
+
 - make sure 'move' call really exists for the object tree (
   - and document all tree calls)
   - more zope-like and objectDB-like interface (full object DB): get child, set child via child links 
     they won't get GC'ed until freed. May even deleteChild() return object reference that may be used for addAsChild!?!
-- cross browser code
-- implement floating window and 100k instead of 20k (or + somehow detect conn spd first)
-- jeneric in 'prefix mode' - for easier integration: prefix="/hub.php" -> all requests go through "mysite.com/hub.php?q=/tcp/...", "mysite.com/hub.php?q=/os/ramstore.jn", etc. 
-  - pass jeneric kernel parameters in integration-friendly mode
-- do eosinit, etc. via callable init() routine for integration
-- CSS support & testing
-- highlighting editor (codepress?)
-- change security model of an object??
-- security model
-- html templating support
-- object description protocol (at least for storage objects + naming)
-- objbects manipulating toolkit
-- stabilize init procedure
 - gears dnd adapter for file drop [difficult issue]
 - 'trusted' application checking via ic# and general interface
   - or executioner?? JS alert window!? - exec checking LATER!
 - profile firefox memory leakage; general memory usage
-- start integration proposal
 - estimate object memory/fixed storage usage
     - feed this information to security model
     - also set the limits in VM via parent call
     - also get the limits in child
     - control the ability of child creation totally
 - HUB: sessions do not timeout
-
-- industrial database
+- push TRUE: HAS NOT gone aWAY!! [at least for exception cases] [seems to be an exceptions problem only]
+- jeneric in 'prefix mode' - for easier integration: prefix="/hub.php" -> all requests go through "mysite.com/hub.php?q=/tcp/...", "mysite.com/hub.php?q=/os/ramstore.jn", etc. 
+  - pass jeneric kernel parameters in integration-friendly mode
 
 
 - get rid of STOMP ACKing -- HTTP protocol is already a good transport [need some tight HTTP/STOMP integration]
 - get rid of pinging - use HTTP long-poll session info [STOMP session connection information?]
-
+- invent kernel blocking I/O ABI like: var sk = stack_ackquire(); var st=stack_stop_ackquire(); sk.setResult(value); stack_stop_release(st); 
+- ABI methods namimg conventions?? like use set_result or setResult?
 - automated test suite + test cases
 - introduce debug flag for hub instead of just constantly dumping everything
 - ??? absolute path resolution improvement: watch for LIPC requests defined as WIPC; do not send through HUB
@@ -262,7 +288,7 @@ URGENT:
 - DOM wrapper seems to need a substantial rewrite ???
     (without having the 'local copy'?)
 - // WARNING!! this all may result in exceptions! (DOMException) -> this should not be thrown by VM as errors!
-
+- mouse scroll event DOM enhancement http://markup-javascript.com/2009/05/24/krossbrauzernyj-mousewheel-obrabotka-sobytiya-skrolinga/
 - need to re-announce (or ping) if connection lost 101 ???
 - BlobObject slice poor perf bugfix for Chrome (do not slice if we want full object)
 - totally-rename wrappedString to ___wrppedString for more security

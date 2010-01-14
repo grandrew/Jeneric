@@ -358,11 +358,14 @@ __jn_stacks = {
         // XXX this becomes a very expensive function
         // first, count threads for that particular VM
         var i, counter = 0;
-        for(i=0;i<this.stacks_sleeping.length;i++)
+        for(i=0;i<this.stacks_sleeping.length;i++) {
             if(this.stacks_sleeping[i].vm == vm) counter++;
-        for(i=0;i<this.stacks_running.length;i++)
+            //if(this.stacks_sleeping[i].stack == stack) return this.stacks_sleeping[i].pid;
+        }
+        for(i=0;i<this.stacks_running.length;i++) {
             if(this.stacks_running[i].vm == vm) counter++;
-        
+            //if(this.stacks_running[i].stack == stack) return this.stacks_running[i].pid;
+        } 
         
         if(counter > vm.MAX_THREADS) {
             vm.ErrorConsole.log("KERNEL Error: maximum amount of threads per this VM exceeded ("+counter+"); dropping thread creation");
@@ -4223,6 +4226,38 @@ if(!onok) this.ErrorConsole.log("WARNING! running execf_thread without onok");
     g_stack.onerror = onerr;
     __jn_stacks.add_task(this, g_stack, nice, this.throttle);
     
+    return g_stack;
+
+}
+
+Jnaric.prototype.execf_stack = function (stack, func, args, thisObject) {
+
+    var x2 = new this.ExecutionContext(GLOBAL_CODE);
+    if(typeof(thisObject) == "undefined") x2.thisObject = this.global;
+    else x2.thisObject = thisObject;
+
+
+    if(typeof(args) != "undefined" ) {
+        var a = Array.prototype.splice.call(args, 0, args.length);
+        a['callee']= func;
+    } else {
+        a = [];
+        a['callee']= func;
+    }
+    
+    var f = func.node;
+    var n = f.body;
+    
+    x2.scope = {object: new Activation(f, a), parent: func.scope};
+
+    var g_stack = stack; 
+    
+    g_stack.stack.unshift({n: n, x: x2, pmy: {}}); // append it to the 'end' of execution stack
+    
+    // DOC: only add to a RUNNIG task! or create new and do not use this method...
+    //__jn_stacks.add_task(this, g_stack, nice, this.throttle); // will try to add even if running
+    
+    return g_stack;
 
 }
 
