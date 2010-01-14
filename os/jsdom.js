@@ -957,6 +957,7 @@ function fake() {};
 // DOC all these parameters
 DOMElement.prototype.addEventListener = function ( type, listener, useCapture, skip, preventDefault) {
     // XXX DOC currently useCapture always set to false to behave exactly as IE
+    // XXX DOC skip & preventDefault combination weirdness
     // it only works when real DOM rendering is available so our task simplifies much
     if(!this.___link) return;
     
@@ -988,6 +989,7 @@ DOMElement.prototype.addEventListener = function ( type, listener, useCapture, s
         }
         // we need to append to thread stack - if it exists - and do not append if stack is too full
         // (thus skipping events)
+        if(preventDefault) return false;
     };
     
     // now register event
@@ -1108,6 +1110,7 @@ DOMElement.prototype.waitEvent = function ( eType, timeout, propertyComp, preven
         // cs.push(S_EXEC, {n: {type:TRUE}, x: {}, Nodes: {}, Context: cs.exc, NodeNum: 0, pmy: cs.my.myObj});
         __jn_stacks.start(cs.pid);
         
+        if(preventDefault) return false; //safari...
 
     };
     
@@ -1196,7 +1199,14 @@ __Event.prototype.preventDefault = function () {
     // IE: returnValue property
     if(this.___link) {
         if(this.___link.preventDefault) this.___link.preventDefault();
-        else this.___link.returnValue = false;
+        else {
+            try {
+                this.___link.returnValue = false;
+            } catch (e) {
+                this.___vm.ErrorConsole.log("failed to set .returnValue: check event preemption condition");
+                
+            }
+        }
     }
 };
 

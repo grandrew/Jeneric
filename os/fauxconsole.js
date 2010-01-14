@@ -1,5 +1,5 @@
-﻿/* Faux Console by Chris Heilmann http://wait-till-i.com */ 
-if(!window.console){
+﻿/* Faux Console by Chris Heilmann & others http://wait-till-i.com */ 
+if(!window.console && '\v' == 'v'){
 var console={
     init:function(){
         console.d=document.createElement('div');

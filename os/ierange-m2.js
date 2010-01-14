@@ -501,5 +501,27 @@ window.getSelection = function () {
 window.Range = DOMRange;
 //window.Selection = DOMSelection;
 
+// now more MS wrappers...
+
+if(navigator.userAgent && navigator.userAgent.indexOf("MSIE") > -1) {
+    __error_tostring = function () { return this.name+": "+ (this.message ? this.message: this.description); };
+    Error.prototype.toString = __error_tostring;
+    var define_error = function (errName, errObj) {
+        var d = "Native"+errName+"="+errName+";";
+        eval(d);
+        var e = errName+"= function(m,a,f) { if(typeof a == 'string' || a instanceof String) { var x = new Native"+errName+"(a); x.message=a; x.toString=__error_tostring; return x; } else { var x = new Native"+errName+"(); x.message=m; x.lineno = a; x.filename=f; x.toString=__error_tostring; return x;} };";
+        eval(e);
+    };
+    var __ERRORS = {
+        Error: Error, EvalError: EvalError, RangeError: RangeError,
+        ReferenceError: ReferenceError, SyntaxError: SyntaxError,
+        TypeError: TypeError, URIError: URIError
+    };
+    for (ob in __ERRORS) {
+        define_error(ob, __ERRORS[ob]);
+    }
+
+}
+
 })();
 }

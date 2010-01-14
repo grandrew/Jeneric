@@ -102,7 +102,7 @@ function inputDOM() {
             CH.index--;
             x.value = CH.get();
         } else if (e.keyCode == 9) { // tab
-            e.preventDefault(); // will do nothing...
+            e.preventDefault(); // will do nothing... fails in IE!!??
             var v=x.value.split(" ").pop();
             if(v.charAt(0) == "/" || v.charAt(0) == "~") {
                 // now get data
@@ -139,7 +139,7 @@ function inputDOM() {
     
     
     do { // the loop is entirely unnesessary here
-        e = x.waitEvent("keypress", 0, {"keyCode": [13, 9]}, true); // will temporarily bind an event to the node and wait for it (bind_dom method)
+        e = x.waitEvent("keydown", 0, {"keyCode": [13, 9]}, true); // will temporarily bind an event to the node and wait for it (bind_dom method)
                                      // this should be used with caution: there is no event queue for the object and it may miss some events
     } while (e.keyCode != 13)
     

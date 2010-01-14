@@ -415,6 +415,21 @@ __jn_stacks = {
         }
         // else assume it is running ???
         
+        if(nice < -10) { // run immediately!
+            if (this.stacks_running.length == 2) {
+                if(this.stacks_running[1].rt > this.stacks_running[0].rt) this.stacks_running.reverse();
+            } else if (this.stacks_running.length > 2) { 
+                var bak = Object.prototype.toString;
+                Object.prototype.toString = this.fast_sort_ret;
+                this.stacks_running.sort();
+                Object.prototype.toString = bak;
+            }
+            
+            // set the min_runtime
+            this.min_runtime = this.stacks_running[0].rt;
+            this.tick();
+        }
+        
         return stack.pid;
         
     },

@@ -218,9 +218,15 @@ URGENT:
     - clear&delete framewindow
     - better typeto: doesnt work with WebKit
     - typeto: doesnt fire events in IE8 & Opera-linux (cannto Ctrl-Enter to sav?)
-    - opera behaves BAD with contentEditable :-\
-- event: IE8 does not work with ctrlKey ??
+    - opera behaves BAD with contentEditable (typeto) :-\
 - IE8 exceptions problem!
+- IE8 preventDefault (returnValue) on past event (try/catch?)
+- addEventListener: create a method where scheduler tries to execute as much of the eventListener code as possible
+    without preempting the flow(and immediately preempting current flow not scheduing the task)... 
+    this will make event.preventDefault() usable
+- ??? event: IE8 does not work with ctrlKey ??
+- print traceback() kernel method
+
 + addEventListener thread flood problem! (queue events? skip events after queue exhaust?)
 - fix array.sort and JSON.stringify(replacer/reviver) (maybe others??)
 - implement floating window for DATA PIPE and 100k instead of 20k (or + somehow detect conn spd first)
@@ -249,7 +255,6 @@ URGENT:
 - test jquery & something
 - write SvoyaSet panel?? or make SS entirely AJAX (see some Elgg tutorial to AJAXify it)
 - International version yrmarkt.com, yourmarkt.com, corpoware.com, webnotware.com, warenot.com, warebs.com, 
-
 
 
 - make sure 'move' call really exists for the object tree (
