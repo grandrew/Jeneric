@@ -958,6 +958,7 @@ function fake() {};
 DOMElement.prototype.addEventListener = function ( type, listener, useCapture, skip, preventDefault) {
     // XXX DOC currently useCapture always set to false to behave exactly as IE
     // XXX DOC skip & preventDefault combination weirdness
+    // DOC the preventDefault issue; opera has bug with preventing default not on all handlers...
     // it only works when real DOM rendering is available so our task simplifies much
     if(!this.___link) return;
     
@@ -985,11 +986,14 @@ DOMElement.prototype.addEventListener = function ( type, listener, useCapture, s
             if(cstack.stack.length > 1000) return; //force skip: DOC and TODO some meaningful value
             vm.execf_stack(cstack, listener, [e], e.target); 
         } else { // new thread
-            cstack = vm.execf_thread(listener, [e], fake, evt_fakeerr, undefined, e.target); 
+            cstack = vm.execf_thread(listener, [e], fake, evt_fakeerr, -11, e.target); // -11 nice will preempt task
         }
         // we need to append to thread stack - if it exists - and do not append if stack is too full
         // (thus skipping events)
-        if(preventDefault) return false;
+        
+        //if(preventDefault || e.___preventDefault) {
+        //    return false;
+        //}
     };
     
     // now register event
@@ -1197,6 +1201,8 @@ __Event.prototype.initEvent = function (type, bubbles, cancelable) {
 
 __Event.prototype.preventDefault = function () {
     // IE: returnValue property
+    
+    this.___preventDefault = true;
     if(this.___link) {
         if(this.___link.preventDefault) this.___link.preventDefault();
         else {

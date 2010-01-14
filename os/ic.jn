@@ -93,6 +93,7 @@ function inputDOM() {
     
     // now history part...
     var history_back = function history_back (e) {
+        //if (e.keyCode == 9) e.preventDefault(); // double-check here to avoid preliminary preemption!! (See docs)
         if(e.keyCode == 38) { // up
             CH.set(x.value);
             CH.index++;
@@ -102,7 +103,7 @@ function inputDOM() {
             CH.index--;
             x.value = CH.get();
         } else if (e.keyCode == 9) { // tab
-            e.preventDefault(); // will do nothing... fails in IE!!??
+            //e.preventDefault(); 
             var v=x.value.split(" ").pop();
             if(v.charAt(0) == "/" || v.charAt(0) == "~") {
                 // now get data
