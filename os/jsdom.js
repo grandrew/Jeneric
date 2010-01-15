@@ -780,7 +780,7 @@ DOMDocument.prototype.___get_from_link = function (domElement) {
     if(!domElement) return undefined;
     if(!this.___DOMcache || this.___DOMcache_outdated) this.___rebuild_cache();
     
-    var wt = this.___DOMcache[domElement.___id];
+    var wt = this.___DOMcache[domElement.cached_id];
     if(!wt && window.console) console.log("Cache problem! Element not found");
     return wt;
 };
@@ -791,7 +791,7 @@ DOMDocument.prototype.___rebuild_cache = function () {
     delete this.___DOMcache;
     this.___DOMcache = {};
     for(var i=0; i<all.length; i++) {
-        if( all[i].___link ) this.___DOMcache[all[i].___link.___id] = all[i];
+        if( all[i].___link ) this.___DOMcache[all[i].___link.cached_id] = all[i];
     }
     this.___DOMcache_outdated = false;
 };

@@ -856,6 +856,15 @@ Jnaric.prototype.getChild = function (lURI, r) {
         // this may take a while though... TODO some optimization and prioritization
         // or make this a user-level task
     }
+    
+    if(typeof(trg) == "string") {
+        // now count what is left in lURI
+        if(lURI.length == 1) return trg;
+        lURI.shift();
+        return trg+"/"+lURI.join("/");
+        //console.log("whats left length:"+lURI.length+" 0:"+lURI[0]+"/"+lURI[1]);
+        
+    }
 
 
     if(lURI.length == 1) {
@@ -936,9 +945,11 @@ function kIPC(vm, uri, method, args, onok, onerr, timeout) {
             hubConnection.send(rq); 
         } else {         // TODO: URI caching
             try { // TODO get rid of this.. later
-                var dest = vm.getChild(lURI); // should never fail...
+                // cache
+                if(__eos_objects[uri]) var dest = __eos_objects[uri];
+                else var dest = vm.getChild(lURI); // should never fail...
             } catch (e) {
-                onerr({id: rq.id, status: "EEXCP", result: "FAILED TO EXECUTE GETCHILD"});
+                onerr({id: rq.id, status: "EEXCP", result: "FAILED TO EXECUTE GETCHILD: "+e+" Line:"+e.lineNumber+" File:"+e.fileName});
                 return;
             }
             if(dest == null) {
@@ -948,6 +959,7 @@ function kIPC(vm, uri, method, args, onok, onerr, timeout) {
             }
             if(typeof(dest)=="string") { // means we're redirect 
                 if(vm.DEBUG) vm.ErrorConsole.log("in kIPC... again kIPC!");
+                // TODO optimize this! this will run signRequest at least twice; and pollute heap
                 kIPC(vm, dest, method, args, onok, onerr); // we're taking advantage of the 'GIL' in js engine
             } else { // means it is a VM instance, so execute the request
                 try {
@@ -969,7 +981,6 @@ function kIPC(vm, uri, method, args, onok, onerr, timeout) {
         
     };
 
-    // TODO HERE
     if (vm.security.signRequest) {
         // do somehow validate request
         var onSok = function (res){

@@ -564,7 +564,13 @@ hubConnection = {
 
 // start the pinger
 setInterval((function() {
-    if((new Date()).getTime() - hubConnection.last_sent_time > PING_INTERVAL ) hubConnection.send({id: __jn_stacks.newId(), uri: "/", method: "ping", args: []});
+    if((new Date()).getTime() - hubConnection.last_sent_time > PING_INTERVAL ) {
+        try {
+            hubConnection.send({id: __jn_stacks.newId(), uri: "/", method: "ping", args: []});
+        } catch (e) {
+            // never stop... HTID!
+        }
+    }
 }), PING_INTERVAL/2);
 
 hubConnection.init();

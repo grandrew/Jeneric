@@ -43,7 +43,7 @@
 # test redir
 # test security??
 
-DEBUG  = 1
+DEBUG  = 3
 
 
 from stompservice import StompClientFactory
@@ -127,8 +127,15 @@ def clean_timeout():
         for t in sessions:
             if ct - sessions[t]["tm"] > TIMEOUT_SESSION:
                 # delete session silenlty
-                del terminals[sessions[t]["s"]]
-                del sessions[t]
+                try:
+                    del terminals[sessions[t]["s"]]
+                except KeyError:
+                    if DEBUG: print "consistency failure: Could not clean session", sessions[t]["s"]
+                    
+                try:
+                    del sessions[t]
+                except KeyError:
+                    if DEBUG: print "consistency failure: Could not clean out terminal", t
     except RuntimeError:
         pass;            
 # thread.start_new_thread(clean_timeout, ())

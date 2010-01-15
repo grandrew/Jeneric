@@ -163,18 +163,19 @@ function inputDOM() {
 }
 
 
-function editDOM() {
+function editDOM(txt) {
+    if(typeof txt == "undefined") txt = "";
     var x = document.createElement("DIV");
     x.style.display = "inline";
     x.style.fontFamily = "courier";
     //x.setAttr("contentEditable", true);
     x.contentEditable = true;
-    var t = document.createTextNode("");
+    var t = document.createTextNode(txt);
     x.appendChild(t);
     document.body.appendChild(x);
     x.focus();
     do {
-        e = x.waitEvent("keypress",0,"keyCode", 13); // will temporarily bind an event to the node and wait for it (bind_dom method)
+        e = x.waitEvent("keydown",0, {"keyCode": 13}); // will temporarily bind an event to the node and wait for it (bind_dom method)
                                      // this should be used with caution: there is no event queue for the object and it may miss some events
     } while ( !( e.keyCode == 13 && e.ctrlKey == true) )
     //x.setAttr("contentEditable", false);
@@ -198,6 +199,18 @@ function execChild(childPath, progPath, argv) {
         printDOM(":: "+e); brDOM();
     }
     
+}
+
+function set_param_box (el) {
+    el.style.border="1px solid white";
+}
+
+function param_box_on(e) {
+    this.style.borderColor = "#eeeeee";
+}
+
+function param_box_off(e) {
+    this.style.borderColor = "white";
 }
 
 brDOM();
@@ -332,7 +345,7 @@ while(true) {
         }
 
         printDOM("Input text; type CTRL-Enter to stop:"); brDOM();
-        p2 = editDOM();
+        p2 = editDOM(">");
         brDOM();
  
         try {
@@ -469,6 +482,9 @@ while(true) {
             var xd = document.createElement("DIV");
             xd.style.width="100%";
             xd.style.fontSize="100%";
+            set_param_box(xd);
+            xd.onmouseover = param_box_on;
+            xd.onmouseout = param_box_off;
             document.body.appendChild(xd);    
             object.createChild("p"+pc, c, "~/sys/anarchic", xd); // TODO: use real default security!!
             

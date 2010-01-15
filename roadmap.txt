@@ -209,43 +209,48 @@ URGENT:
     + good input
     ? auto-focus
     + history (at least for session, save upon hard-coded info)
-    - cd/pwd
     + completion/hinting via TAB (join completion candidates into a string, then regex inside it for variants)
-        - Saf,Chrome: no preventDefault
-        - IE: not work at all
-    - PATH (feed IC with PATH, PATH set up command)
+    + better typeto: doesnt work with WebKit
+    + typeto: doesnt fire events in IE8 & Opera-linux (cannto Ctrl-Enter to sav?)
+    - clear&delete, minimize framewindow
+        - set max-height property of the div(and scroller) and overflow-y: auto; overflow-x: hidden
+    - cd/pwd    
     - deleteChild ipc command
-    - clear&delete framewindow
-    - better typeto: doesnt work with WebKit
-    - typeto: doesnt fire events in IE8 & Opera-linux (cannto Ctrl-Enter to sav?)
     - opera behaves BAD with contentEditable (typeto) :-\
-- IE8 exceptions problem!
-- IE8 preventDefault (returnValue) on past event (try/catch?)
-- addEventListener: create a method where scheduler tries to execute as much of the eventListener code as possible
+    - PATH (feed IC with PATH, PATH set up command)
++ IE8 exceptions problem!
++ IE8 preventDefault (returnValue) on past event (try/catch?)
++ addEventListener: create a method where scheduler tries to execute as much of the eventListener code as possible
     without preempting the flow(and immediately preempting current flow not scheduing the task)... 
     this will make event.preventDefault() usable
-- ??? event: IE8 does not work with ctrlKey ??
-- print traceback() kernel method
-
++ terminal session unstable! (FF3.5 frequently acquires new session :-\  maybe pinger sometimes fails? try/catch block it!)
++ working with links is broken (failed to execute getchild?)
+- print_traceback() kernel method
+- cookie session auth
+- store an ummutable? ID object at ~/sys/uuid that holds the machine UUID stored in unexpirable cookie see http://www.broofa.com/Tools/Math.uuid.js
+- localStorage serialization (available on many browsers)
 + addEventListener thread flood problem! (queue events? skip events after queue exhaust?)
 - fix array.sort and JSON.stringify(replacer/reviver) (maybe others??)
 - implement floating window for DATA PIPE and 100k instead of 20k (or + somehow detect conn spd first)
 - do eosinit, etc. via callable init() routine for integration
-- html FROM, OBJECT & applet/flash security
+- html FORM, OBJECT & applet/flash security (write flash mp3 player?)
 - CSS support & testing
 - highlighting editor (codepress?)
+- multi-line string
 - how to change security model of an object?? - only a super-puper user may do that; or the security code itself
 - security model
 - security to return optional "reason" value: true or text that will be set to "deny reason" for EPERM, etc.
     - modify EPERM error transfer
 - html templating support
 - object description protocol (at least for storage objects + naming) type, length, content-type
+    - link should always report type 'link'
 - objects manipulating toolkit
 - stabilize init procedure (to look for init in /var or something?)
 - database access methods
     (or kernel driver object?? - terminal security model that allows for native code "RING0" injection)
 - start integration proposal
 - write standard tools: mv(?), rm, mkdir, rmdir, cp, cr - create object of certain type/sec, ul - upload something, cl - copy local (gears get)
+    - friend group search
 - remove unneeded commands from IC
 - industrial database
     - stress-test what if we use FF/Chrome storage
