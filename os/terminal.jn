@@ -56,12 +56,11 @@ object.ipc["auth"] = ipc_authterminal;
 initIPCLock.release();// = false;
 
 ErrorConsole.log("creating dom DIV");
-document.body.appendChild(document.createTextNode("starting..."));
 xd = document.createElement("DIV");
 xd.style.width="100%";
 xd.style.fontSize="100%";
 document.body.appendChild(xd);
-
+xd.appendChild(document.createTextNode("starting..."));
 
 ErrorConsole.log("running crech");
 
@@ -97,6 +96,7 @@ if(ok) {
     // XXX maybe bind terminal to init?
     object.kbind("init", ["bind_serial"], ["autorestore", "saveinterval", "autoswapout"], ["autorestore", "autoswapout"]);
     object.execURI("./init", "start_s_agent", []);
+    xd.removeChild(xd.firstChild);
 } else {
     ErrorConsole.log("PANIC: could not start init. Try passing init= kernel parameter.");
 }

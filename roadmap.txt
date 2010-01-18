@@ -219,6 +219,7 @@ URGENT:
     - opera behaves BAD with contentEditable (typeto) :-\
     - PATH (feed IC with PATH, PATH set up command)
     - appropriately parse "\ " space escaping
+    - the ability to delete starting...
 + IE8 exceptions problem!
 + IE8 preventDefault (returnValue) on past event (try/catch?)
 + addEventListener: create a method where scheduler tries to execute as much of the eventListener code as possible

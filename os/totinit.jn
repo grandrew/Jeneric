@@ -50,11 +50,13 @@ ErrorConsole.log("Running totinit");
 var i=0;
 for(i=0; i<objs.length; i++) {
     // give DOM or not to give DOM??
+    /*
     xd = document.createElement("DIV");
     xd.style.width="100%";
     xd.style.fontSize="100%";
     document.body.appendChild(xd);
-    object.createChild(objs[i], object.getMyTypeURI()+"/"+objs[i], "~/sys/anarchic", xd);
+    */
+    object.createChild(objs[i], object.getMyTypeURI()+"/"+objs[i], "~/sys/anarchic", document.body);
 }
 
 // the workaround for working init + ic as default init
@@ -62,11 +64,13 @@ if(i == 0) {
     // TODO: IC# should not come in standard distribution; load it dynamically!
     //        either from server or from locally stored object in /var...
     ErrorConsole.log("Running reserved IC#");
+    /*
     xd = document.createElement("DIV");
     xd.style.width="100%";
     xd.style.fontSize="100%";
     document.body.appendChild(xd);    
-    object.createChild("console", "~/sys/ic", "~/sys/anarchic", xd); 
+    */
+    object.createChild("console", "~/sys/ic", "~/sys/anarchic", document.body); 
 }
 // and finally create init folder and this init at /sys/init location (folder-store!!)
 

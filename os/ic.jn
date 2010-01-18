@@ -1,5 +1,6 @@
 // ic.jn
 WRITE_ON = true;
+OutTo = document.body;
 object.ipc["write"] = function(rq, data) {
     // write 
     if(WRITE_ON) {
@@ -47,7 +48,7 @@ function printDOM( txt ) {
     x.style.fontFamily = "courier";
     var t = document.createTextNode(txt);
     x.appendChild(t);
-    document.body.appendChild(x);
+    OutTo.appendChild(x);
     window.scrollTo(0,1000000);
 }
 
@@ -55,14 +56,14 @@ function preDOM( txt ) {
     var x = document.createElement("PRE");
     var t = document.createTextNode(txt);
     x.appendChild(t);
-    document.body.appendChild(x);
+    OutTo.appendChild(x);
     window.scrollTo(0,1000000);
 }
 
 
 function brDOM() {
     var x = document.createElement("DIV");
-    document.body.appendChild(x);
+    OutTo.appendChild(x);
     window.scrollTo(0,1000000);
 }
 
@@ -77,24 +78,17 @@ function insertCurrent(el, txt) {
 }
 
 function inputDOM() {
-    //var x = document.createElement("DIV");
     var x = document.createElement("INPUT");
     x.style.display = "inline";
     x.style.fontFamily = "courier";
+    x.style.fontSize = "100%";
     x.style.width = "60%";
     x.style.border = "0px none"; 
     x.style.outline = "0"; // WebKit fix
-    
-    //x.contentEditable = true;
-    //var t = document.createTextNode("");
-    //x.appendChild(t);
-    document.body.appendChild(x);
-    //x.innerHTML = "&nbsp;";
-    x.focus();
-    
+    OutTo.appendChild(x);
+    x.focus();    
     // now history part...
     var history_back = function history_back (e) {
-        //if (e.keyCode == 9) e.preventDefault(); // double-check here to avoid preliminary preemption!! (See docs)
         if(e.keyCode == 38) { // up
             CH.set(x.value);
             CH.index++;
@@ -104,7 +98,6 @@ function inputDOM() {
             CH.index--;
             x.value = CH.get();
         } else if (e.keyCode == 9) { // tab
-            //e.preventDefault(); 
             var v=x.value.split(" ").pop();
             if(v.charAt(0) == "/" || v.charAt(0) == "~") {
                 // now get data
@@ -146,8 +139,6 @@ function inputDOM() {
     } while (e.keyCode != 13)
     
     x.removeEventListener("keydown", history_back);
-    
-    //x.contentEditable = false;
     x.readOnly=true;
     var x2 = document.createElement("DIV");
     x2.style.display = "inline";
@@ -157,8 +148,6 @@ function inputDOM() {
     x2.appendChild(t);
     x.parentNode.replaceChild(x2,x);
     CH.add(v);
-    
-    //return x.innerHTML;
     brDOM();
     return v;
 }
@@ -169,24 +158,21 @@ function editDOM(txt) {
     var x = document.createElement("DIV");
     x.style.display = "inline";
     x.style.fontFamily = "courier";
-    //x.setAttr("contentEditable", true);
     x.contentEditable = true;
     var t = document.createTextNode(txt);
     x.appendChild(t);
-    document.body.appendChild(x);
+    OutTo.appendChild(x);
     x.focus();
-    do {
-        e = x.waitEvent("keydown",0, {"keyCode": 13}); // will temporarily bind an event to the node and wait for it (bind_dom method)
+    //do {
+        e = x.waitEvent("keydown",0, {"keyCode": 13, "ctrlKey" : true }); // will temporarily bind an event to the node and wait for it (bind_dom method)
                                      // this should be used with caution: there is no event queue for the object and it may miss some events
-    } while ( !( e.keyCode == 13 && e.ctrlKey == true) )
-    //x.setAttr("contentEditable", false);
+    //} while ( !( e.keyCode == 13 && e.ctrlKey == true) )
     x.contentEditable = false;
-    //var s = x.getAttr("innerHTML");
     var s = x.innerHTML;
-    s = s.replace(/<br>/g, "\n"); // no other tags are allowed
+    s = s.replace(/<br>|<\/p>/g, "\n"); // no other tags are allowed
     s = s.replace(/&gt;/g, ">"); // no other special chars allowed
     s = s.replace(/&lt;/g, "<");
-    s = s.replace(/&nbsp;/g, " ");
+    s = s.replace(/&nbsp;|<p>/g, " ");
     s = s.replace(/&amp;/g, "&");
     return s;
 }
@@ -204,6 +190,7 @@ function execChild(childPath, progPath, argv) {
 
 function set_param_box (el) {
     el.style.border="1px dotted white";
+    el.style.width = "100%";
     el.onmouseover = param_box_on;
     el.onmouseout = param_box_off;
     var d = document.createElement("DIV");
@@ -216,21 +203,30 @@ function set_param_box (el) {
     d.style.visibility = "hidden";
     
     d.innerHTML = "x";
-    d.style.border = "1px solid #c0c0c0";
-    d.style.color = "#c0c0c0";
-    d.style.height = "5px";
-    d.style.width = "5px";
-    d.style.lineHeight = "0px";
-    d.style.overflow = "hidden";
     d.style.cursor = "pointer";
+    d.style.fontFamily = "arial";
+    d.style.fontSize = "10px";
+    d.style.paddingRight = "5px";
+    
+    d.onclick = close_click;
     
     el.closeButton = d;
     d.onmouseover = param_box_on;
     d.onmouseout = param_box_off;
 }
-
+function close_click(e) {
+    if(this.parentNode.prog) {
+        try {
+            object.deleteChild(this.prog);
+        } catch (e) {
+            ErrorConsole.log("IC: failed to remove child: "+e);
+        }
+    }
+    //if(this.parentNode.onmouseout)
+        this.parentNode.parentNode.removeChild(this.parentNode);
+}
 function param_box_on(e) {
-    if(this.closeButton) { 
+    if(this.closeButton && this != this.parentNode.lastChild) { 
         this.style.borderColor = "#c0c0c0";
         this.closeButton.style.visibility="visible";
     } 
@@ -246,8 +242,11 @@ function param_box_off(e) {
     } 
 }
 
-brDOM();
-brDOM();
+//document.body.innerHTML = "";
+box = document.createElement("DIV");
+set_param_box(box);
+document.body.appendChild(box);
+OutTo = box;
 printDOM("Welcome to ic# - an Interactive Core commandline. Type 'help' for help.");
 brDOM();
 // TODO: write Google Gears hint - if not detected
@@ -262,6 +261,10 @@ pc = 0;
 initIPCLock.release(); // = false; // ready for IPC...
 var s,c,p1, p2;
 while(true) {
+    box = document.createElement("DIV");
+    set_param_box(box);
+    document.body.appendChild(box);
+    OutTo = box;
     printDOM("ic# ");
     s = inputDOM();
     s = s.split("<br>")[0]; // wipe out system BREAK
@@ -272,6 +275,7 @@ while(true) {
         object.destroyInstance(); // or process.destroy()? XXX renaimng proposed
         break;
       case "help":
+        // TODO: move this to ic.doc or 'ichelp' program
         printDOM("URI locations:");
         brDOM();
         printDOM("  ~ current terminal; . current object; / hub root; .. parent of current object; default /");
@@ -284,39 +288,23 @@ while(true) {
         brDOM();
         printDOM("  typeto <URI> - write() the text typed next, to specified <URI> ramstore object, create if nesessary. You may also type to another ic# console: like typeto /mycomp/console");
         brDOM();
-        
-        
         printDOM("  delete <URI> - call deleteChild on ramstore");
         brDOM();
-
-
         printDOM("  copy <From-URI> <To-URI> - perform a bytecopy of a ramstore");
         brDOM();
-
         printDOM("  link <What-URI> <As-URI> - link an object URI creating a 'link' child at <As-URI>");
         brDOM();
-
         printDOM("  terminal_register <name> <key> <identity info> - register a terminal at HUB");
         brDOM();
-
         printDOM("  terminal_auth <name> <key>  - authenticate a terminal at HUB");
         brDOM();
-
-        
         printDOM("  version - print detailed system version information");
         brDOM();
 
          
         // write() IPC method: used to notify of events; HUB Connected: termname; HUB connection lost
-        // 
-        // ipc - arbitrary ipc method caller
-        // create - arbitrary child object creation
-        // edit - simple <pre> editor 
-        // readlog - show ErrorConsole log
+        // readlog - show ErrorConsole log; ping URI - time the exception callback periodically
         // set ... - set various ic# parameters: write allow, app search PATH
-        // ping URI - time the exception callback; periodically (1s interval)
-
-
         // xedit - highlighting text editor; determine filetype by name/ext or by mimetype, if any returned
         break;
       case "version":
@@ -515,8 +503,8 @@ while(true) {
             var xd = document.createElement("DIV");
             xd.style.width="100%";
             xd.style.fontSize="100%";
-            set_param_box(xd);
-            document.body.appendChild(xd);    
+            OutTo.appendChild(xd);    
+            OutTo.prog = "p"+pc;
             object.createChild("p"+pc, c, "~/sys/anarchic", xd); // TODO: use real default security!!
             
             var pid = start_new_thread(execChild, ["./p"+pc, c, argv]); // use pid??
