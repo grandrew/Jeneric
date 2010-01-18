@@ -82,7 +82,8 @@ function inputDOM() {
     x.style.display = "inline";
     x.style.fontFamily = "courier";
     x.style.width = "60%";
-    x.style.border = "none";
+    x.style.border = "0px none"; 
+    x.style.outline = "0"; // WebKit fix
     
     //x.contentEditable = true;
     //var t = document.createTextNode("");
@@ -202,15 +203,47 @@ function execChild(childPath, progPath, argv) {
 }
 
 function set_param_box (el) {
-    el.style.border="1px solid white";
+    el.style.border="1px dotted white";
+    el.onmouseover = param_box_on;
+    el.onmouseout = param_box_off;
+    var d = document.createElement("DIV");
+    //d.innerHTML = "<button>X</button>";
+    
+    el.appendChild(d);
+    //need more fixes for FF, Opera, others.. for 'float' tag
+    d.style.cssFloat = "right";// TODO: need to fix IE!
+    d.style.styleFloat = "right";// this is IE way! DOC: currenty we dont fix css
+    d.style.visibility = "hidden";
+    
+    d.innerHTML = "x";
+    d.style.border = "1px solid #c0c0c0";
+    d.style.color = "#c0c0c0";
+    d.style.height = "5px";
+    d.style.width = "5px";
+    d.style.lineHeight = "0px";
+    d.style.overflow = "hidden";
+    d.style.cursor = "pointer";
+    
+    el.closeButton = d;
+    d.onmouseover = param_box_on;
+    d.onmouseout = param_box_off;
 }
 
 function param_box_on(e) {
-    this.style.borderColor = "#eeeeee";
+    if(this.closeButton) { 
+        this.style.borderColor = "#c0c0c0";
+        this.closeButton.style.visibility="visible";
+    } 
 }
 
 function param_box_off(e) {
-    this.style.borderColor = "white";
+    if(this.closeButton) { 
+        //if((e.relatedTarget != null) && (e.target != null)) ErrorConsole.log(e.target.compareDocumentPosition(e.relatedTarget));
+        if((e.relatedTarget != null) && (e.target != null) && !(e.target.compareDocumentPosition(e.relatedTarget) & 0x10)) {
+            this.style.borderColor = "white";
+            this.closeButton.style.visibility="hidden";
+        }
+    } 
 }
 
 brDOM();
@@ -483,8 +516,6 @@ while(true) {
             xd.style.width="100%";
             xd.style.fontSize="100%";
             set_param_box(xd);
-            xd.onmouseover = param_box_on;
-            xd.onmouseout = param_box_off;
             document.body.appendChild(xd);    
             object.createChild("p"+pc, c, "~/sys/anarchic", xd); // TODO: use real default security!!
             

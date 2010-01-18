@@ -8,7 +8,7 @@
 # twisted (install...
 #   : twisted-web
 #   : zope-interfcae
-# python-cjson egg [or (install... (python-cjson?)
+# simplejson egg;  this doesnt work/buggy -> python-cjson egg [or (install... (python-cjson?)
 # stompservice egg
 # orbited egg
 # z3c.sharedmimeinfo egg

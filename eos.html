@@ -1,5 +1,6 @@
 <html>
 <head>
+<meta http-equiv="X-UA-Compatible" content="chrome=1"/> <!-- bye bye mr.Ballmer -->
 <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
 <!-- misc util -->
 <script type="text/javascript" src="ratbird/DataRequestor.js"></script>
@@ -34,11 +35,17 @@
 </head>
 
 <body>
-<!-- IE debug -->
-<script type="text/javascript" src="os/fauxconsole.js"></script>
+    
+    <script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/chrome-frame/1/CFInstall.min.js"> </script>
+    <script>
+     if(navigator.userAgent.indexOf("MSIE 8") == -1) CFInstall.check({});
+    </script>
 
-<!-- init system TODO: do this via JS init() method, not directly -->
-<script type="text/javascript" src="os/eosinit.js"></script>
+    <!-- IE debug -->
+    <script type="text/javascript" src="os/fauxconsole.js"></script>
+
+    <!-- init system TODO: do this via JS init() method, not directly -->
+    <script type="text/javascript" src="os/eosinit.js"></script>
 
 </body>
 </html>

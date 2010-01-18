@@ -218,6 +218,7 @@ URGENT:
     - deleteChild ipc command
     - opera behaves BAD with contentEditable (typeto) :-\
     - PATH (feed IC with PATH, PATH set up command)
+    - appropriately parse "\ " space escaping
 + IE8 exceptions problem!
 + IE8 preventDefault (returnValue) on past event (try/catch?)
 + addEventListener: create a method where scheduler tries to execute as much of the eventListener code as possible
@@ -233,6 +234,8 @@ URGENT:
 - fix array.sort and JSON.stringify(replacer/reviver) (maybe others??)
 - implement floating window for DATA PIPE and 100k instead of 20k (or + somehow detect conn spd first)
 - do eosinit, etc. via callable init() routine for integration
+- i've created a temporary session folder for you at /home/(termname)/
+    - make sessions persistent through page reloads (?)
 - html FORM, OBJECT & applet/flash security (write flash mp3 player?)
 - CSS support & testing
 - highlighting editor (codepress?)
@@ -329,6 +332,11 @@ URGENT:
 - cache parsed code for all security models loaded (hmm.. not all.. some, with stack or smth
 
 kernel programming advisory: be careful with methods that stop the stack - report any possible error via try/catch and stack release w/throw
+
+From pwp2:
+    *  Port this to jeneric
+    * read tinyMCE source code to understand getSelection
+Jeneric is a mix of virtualization for the WEB, the Web Operating System, etc...
 
 
 --- PROPOSAL WORK

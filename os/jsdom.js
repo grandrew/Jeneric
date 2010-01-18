@@ -573,6 +573,23 @@ DOMElement.prototype.scrollIntoView = function ( alignWithTop ) {
     }
 };
 
+DOMElement.prototype.compareDocumentPosition = function ( wrappedNode ) {
+    var a = this.___link;
+    var b = wrappedNode.___link;
+    
+    return a.compareDocumentPosition ?
+    a.compareDocumentPosition(b) :
+    a.contains ?
+      (a != b && a.contains(b) && 16) +
+        (a != b && b.contains(a) && 8) +
+        (a.sourceIndex >= 0 && b.sourceIndex >= 0 ?
+          (a.sourceIndex < b.sourceIndex && 4) +
+            (a.sourceIndex > b.sourceIndex && 2) :
+          1) +
+      0 :
+      0;
+};
+
 
 /////////////////////////////////////////////////////////////////////////////////////
 
@@ -780,8 +797,11 @@ DOMDocument.prototype.___get_from_link = function (domElement) {
     if(!domElement) return undefined;
     if(!this.___DOMcache || this.___DOMcache_outdated) this.___rebuild_cache();
     
-    var wt = this.___DOMcache[domElement.cached_id];
-    if(!wt && window.console) console.log("Cache problem! Element not found");
+    var wt = this.___DOMcache[domElement.___id];
+    if(!wt) {
+        //if(window.console)console.log("Cache problem! Element not found");
+        return null;
+    }
     return wt;
 };
 
@@ -791,7 +811,7 @@ DOMDocument.prototype.___rebuild_cache = function () {
     delete this.___DOMcache;
     this.___DOMcache = {};
     for(var i=0; i<all.length; i++) {
-        if( all[i].___link ) this.___DOMcache[all[i].___link.cached_id] = all[i];
+        if( all[i].___link ) this.___DOMcache[all[i].___link.___id] = all[i];
     }
     this.___DOMcache_outdated = false;
 };
@@ -947,7 +967,7 @@ IMPLEMENTED_ALL->>
             Returns the event handling code for the scroll event. 
             
         --- SPECIAL EVENT SETTERS
-
+link /_t167/lib ~/lib  /_t167/var/formtest.jn /dfgdfg/dfgd
         onsubmit
 
 */
@@ -962,6 +982,8 @@ DOMElement.prototype.addEventListener = function ( type, listener, useCapture, s
     // it only works when real DOM rendering is available so our task simplifies much
     if(!this.___link) return;
     
+    
+    
     // assume ___vm is set to this.ownerDocument
     var vm = this.ownerDocument.___vm;
     
@@ -975,7 +997,9 @@ DOMElement.prototype.addEventListener = function ( type, listener, useCapture, s
         */
         // var e = window.event ? window.event : aEvent;
         
+        
         var e = new __Event(vm, e); // create an event based on real event
+        if(e.target == null) return; // DOC: skip events not coming from current VM scope (???)
 
         if(preventDefault) e.preventDefault();
         
@@ -999,10 +1023,10 @@ DOMElement.prototype.addEventListener = function ( type, listener, useCapture, s
     // now register event
     // DOC WARNING!: currently does not support user-defined events due to IE direct link
     // DOC: currently do not support capture to behave as IE
+
     if(this.___link.attachEvent) this.___link.attachEvent("on"+type, evt); // IE    
     else this.___link.addEventListener(type, evt, false);
-     
-    
+        
     if(!this.___listeners) this.___listeners = {};
     if(!this.___listeners[type]) this.___listeners[type] = {};
     this.___listeners[type][listener] = evt;
@@ -1182,11 +1206,11 @@ function __Event(vm, event) { // ABI WARNING!! event objects are attached to a d
     
     // now get the wrapped target from our window document object
     
-    var rtarget = event.srcElement ? event.srcElement : event.target;
-    
-    this.target = event.srcElement ? this.___vm.global.document.___get_from_link(event.srcElement) : this.___vm.global.document.___get_from_link(event.target);
-    this.relatedTarget  = event.srcElement ? this.___vm.global.document.___get_from_link(event.fromElement) : this.___vm.global.document.___get_from_link(event.relatedTarget);// IE: fromElement
-    this.currentTarget = event.srcElement ? this.___vm.global.document.___get_from_link(event.toElement) : this.___vm.global.document.___get_from_link(event.currentTarget); // IE: toElement
+    var rtarget = event.target ? event.target : event.srcElement;
+    this.target = event.target ? this.___vm.global.document.___get_from_link(event.target) : this.___vm.global.document.___get_from_link(event.srcElement);
+    this.relatedTarget  = event.relatedTarget ? this.___vm.global.document.___get_from_link(event.relatedTarget) : this.___vm.global.document.___get_from_link(event.fromElement);// IE: fromElement
+    this.currentTarget = event.currentTarget ? this.___vm.global.document.___get_from_link(event.currentTarget) : this.___vm.global.document.___get_from_link(event.toElement); // IE: toElement
+    if(this.target == this.relatedTarget) this.relatedTarget = this.currentTarget;
 }
 
 __Event.prototype.toString = function () {
@@ -1248,7 +1272,7 @@ function __set_onevent_listener(name, listener) {
         this.removeEventListener(name.slice(2), this["___"+name], false);
     } 
 
-    if(!listener || !listener.node || !listener.scope) {
+    if(!listener || !listener.node || !listener.scope) { // TODO: instanceof functionObject
         // remove listener
         delete this["___"+name];
     } else {

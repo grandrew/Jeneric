@@ -16,22 +16,24 @@ var console={
         if(!document.getElementById(id)){
             console.d.id=id;
         }
-        console.hide();
+        console.show();
     },
     
     hide:function(){
         console.d.style.display='none';
+        console.hidden = true;
     },
     
     show:function(){
         console.d.style.display='block';
+        console.hidden = false;
     },
     
     log:function(o){
+        if(console.hidden) return;
         var t = document.createTextNode(o);
         console.d.innerHTML+='<br/>';
         console.d.appendChild(t);
-        console.show();
     },
     
     clear:function(){

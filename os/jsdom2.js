@@ -343,6 +343,19 @@ DOMImplementation.prototype._parseLoop = function DOMImplementation__parseLoop(d
 
           iNode.setAttributeNode(iAttr);            // attach Attribute to Element
         }
+        
+        // IE8 fix
+        if(iNode.___rewriteNode) {
+            var iefix = document.createElement("SPAN");
+            var inodeHTML = "<"+iNode.tagName+" ";
+            for(var ip =0; ip < iNode.attributes._nodes.length; ip++) {
+                inodeHTML += iNode.attributes._nodes[ip].name + "=\"" + iNode.attributes._nodes[ip].nodeValue + "\" ";
+            }
+            inodeHTML += "/>";
+            iefix.innerHTML = inodeHTML;
+            iNode.___link = iefix.firstChild;
+            iNode.___rewriteNode = false;
+        }
       }
       else {  // Namespace Aware
 
@@ -1095,7 +1108,13 @@ DOMNamedNodeMap.prototype.setNamedItem = function DOMNamedNodeMap_setNamedItem(a
   // GDW
   if(arg.___link && this.___link) {
     // WARNING XXX set ___link to the same as attached DOMElement!!
-    this.___link.setAttributeNode(arg.___link);
+    // XXX this will fail in IE on properties like 'type' (exception & fail) or 'class' (fail to apply)
+    // and will lead to substantial incompatibility with IE
+    try {
+        this.___link.setAttributeNode(arg.___link);
+    } catch (e) {
+        this.___rewriteNode = true;
+    }
   } // TODO: return an error (InternalProgrammingError) if any of two coexist without real link
      
 
@@ -2105,6 +2124,7 @@ DOMNode.prototype.removeChild = function DOMNode_removeChild(oldChild) {
  * @return : DOMNode - The node added
  */
 DOMNode.prototype.appendChild = function DOMNode_appendChild(newChild) {
+
   // test for exceptions
   if (this.ownerDocument.implementation.errorChecking) {
     // throw Exception if Node is readonly
@@ -2135,6 +2155,7 @@ DOMNode.prototype.appendChild = function DOMNode_appendChild(newChild) {
 
     // GDW
     if(newChild.___link && this.___link) this.___link.appendChild(newChild.___link);
+
     this.ownerDocument.___DOMcache_outdated = true;
 
   if (newChild.nodeType == DOMNode.DOCUMENT_FRAGMENT_NODE) {
@@ -2170,6 +2191,7 @@ DOMNode.prototype.appendChild = function DOMNode_appendChild(newChild) {
   }
 
   return newChild;
+
 };
 
 /**
@@ -2301,6 +2323,7 @@ DOMNode.prototype._getElementsByTagNameRecursive = function DOMNode__getElements
 
     // recurse childNodes
     for(var i = 0; i < this.childNodes.length; i++) {
+    // TODO HERE: IE8: may have errors on the next line!
       nodeList = this.childNodes.item(i)._getElementsByTagNameRecursive(tagname, nodeList);
     }
   }
