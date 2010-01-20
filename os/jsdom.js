@@ -1006,10 +1006,17 @@ DOMElement.prototype.addEventListener = function ( type, listener, useCapture, s
         // TODO: more verbosity here
         var evt_fakeerr = function ( err ) { vm.ErrorConsole.log("Error executing event handler: "+err); };
         if(cstack && cstack.stack.length > 0) {
-            if(skip) return; // just skip event // DOC this!
-            if(cstack.stack.length > 1000) return; //force skip: DOC and TODO some meaningful value
+            if(skip) {
+                //console.log("--------------- skip!");
+                return; // just skip event // DOC this!
+            }
+            if(cstack.stack.length > 1000) {
+                if(window.console) console.log("Event handler: stack too deep (pid "+cstack.pid+"); skipping event!");
+                return; //force skip: DOC and TODO some meaningful value
+            }
             vm.execf_stack(cstack, listener, [e], e.target); 
         } else { // new thread
+            //console.log("------------- new thread!");
             cstack = vm.execf_thread(listener, [e], fake, evt_fakeerr, -11, e.target); // -11 nice will preempt task
         }
         // we need to append to thread stack - if it exists - and do not append if stack is too full

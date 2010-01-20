@@ -2049,8 +2049,8 @@ Jnaric.prototype.bind_om = function () {
     this.global.object.data = {}; // the TQLW
     
     // XX timeout is optional -  if the 'timeout' is hit it is not necessary that the method does not get successfully executed on the callee side
-    this.global.execURI = function(sUri, sMethod, oData, timeout) {
-        eos_execURI(__tihs, sUri, sMethod, oData, timeout);
+    this.global.execURI = function(sUri, sMethod, lArgs, iTimeout) {
+        eos_execURI(__tihs, sUri, sMethod, lArgs, iTimeout);
     };
     this.global.object.execURI = this.global.execURI;
     
@@ -2085,7 +2085,7 @@ Jnaric.prototype.bind_om = function () {
     this.global.object.linkChild = function(name, URI) {
         if(name in __tihs.childList) {
             __tihs.cur_stack.EXCEPTION = THROW;
-            __tihs.cur_stack.my.x2.result = "duplicate child name";
+            __tihs.cur_stack.exc.result = "duplicate child name";
             return;
         }
         
@@ -2302,6 +2302,7 @@ Jnaric.prototype.bind_terminal = function () {
     //                                   (name, code, sec,   rq.object_uri, typeURI, secURI, DOMElement)
     
     // TODO: move entirely to object.?
+    // REMOVE THESE -> UNUSED AND DANGEROUS!
     this.global.__createObject = function(name, stype, ssec, parentURI, typeURI, secURI, DOMElement) {
         
         return eos_createObject(__tihs, name, stype, ssec, parentURI, typeURI, secURI, DOMElement);

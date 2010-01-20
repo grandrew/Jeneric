@@ -672,7 +672,7 @@ CONN_TIMEOUT = 100 # seconds
 BLOB_TIMEOUT = 150 # seconds, to be sure all connections already dropped
 PIPE_TIMEOUT = 150 # seconds to transfer a READBYTES chunk
 
-READBYTES = 20000 # 20000 # 20k bytes
+READBYTES = 100000 # 20000 # bytes
 TREAT_AS_BLOB_SIZE = 1000000 # 1 mb to treat as BLOB
 GETPIPE_TERMNAME = "http_request" # name of DataPipe static terminal
 
@@ -953,7 +953,7 @@ class BlobPipe(Resource):
                 b = self.get_blob(None, blobid)
                 if not b is None:
                     print "blobIS there! trying to get", blobid, " POS ", self.pipes[rq["id"]]["pos"]
-                    if self.pipes[rq["id"]]["pos"] == 20000:
+                    if self.pipes[rq["id"]]["pos"] == READBYTES:
                         # get type and set response header
                         ctype = getType(file=cStringIO.StringIO(b))
                         self.pipes[rq["id"]]["request"].setHeader("Content-Type", str(ctype))

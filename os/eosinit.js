@@ -45,104 +45,269 @@ if(window.opera && opera.postError) console = { log: opera.postError };
 
 
 //////////////////////////////////////////////////////////////////////////////
-// terminal & system objects init section
+// JENERIC INIT
 
-_terminal_vm = new Jnaric();
+function jeneric_init(elemt) {
+    //////////////////////////////////////////////////////////////////////////////
+    // terminal & system objects init section
 
-_terminal_vm.name = "~"; // "terminal"+(new Date()).getTime(); // TODO! get real terminal name!!! (somehow??)
-_terminal_vm.TypeURI = "terminal"; // no real tURI
-_terminal_vm.SecurityURI = "terminal"; 
-_terminal_vm.parent = {serID: 0, uri: "/"}; // only for serialization
-_terminal_vm.uri = "~";//_terminal_vm.parent + "/"+name;
-_terminal_vm.serID = -1; // set to real value, if exists
-_terminal_vm.childList = {}; // init the CL later
+    _terminal_vm = new Jnaric();
 
-//_terminal_vm.global.initIPCLock = true; // THIS to be flushed by security validateRequest method init
-//_terminal_vm.global.wakeupIPCLock = false; 
-_terminal_vm.global.initIPCLock = new _terminal_vm.global.Lock(); // THIS to be flushed by security validateRequest method init
-_terminal_vm.global.initIPCLock.goflag = 0; // set the lock
-_terminal_vm.global.wakeupIPCLock = new _terminal_vm.global.Lock(); 
+    _terminal_vm.name = "~"; // "terminal"+(new Date()).getTime(); // TODO! get real terminal name!!! (somehow??)
+    _terminal_vm.TypeURI = "terminal"; // no real tURI
+    _terminal_vm.SecurityURI = "terminal"; 
+    _terminal_vm.parent = {serID: 0, uri: "/"}; // only for serialization
+    _terminal_vm.uri = "~";//_terminal_vm.parent + "/"+name;
+    _terminal_vm.serID = -1; // set to real value, if exists
+    _terminal_vm.childList = {}; // init the CL later
 
-
-// BINDING part
-//var dmb = document.createElement("DIV");
-//dmb.style.width = "100%";
-//document.body.appendChild(dmb);
-
-var d = new DOMImplementation(); // SLOW??
-ddocument = d.loadXML("<div/>"); // SLOW???
-_dmb = ddocument.documentElement;
-//_dmb = new __HTMLElement(_terminal_vm, "DIV" );
-_dmb.___link.style.width = "100%";
-document.body.appendChild(_dmb.___link);
-
-_terminal_vm.bind_dom(_dmb); // TODO bind to fake DOM element since it is currently impossible to serialize DOM-enabled elements
-_terminal_vm.bind_om(); // bind the protected EOS object model
-_terminal_vm.bind_terminal();
+    //_terminal_vm.global.initIPCLock = true; // THIS to be flushed by security validateRequest method init
+    //_terminal_vm.global.wakeupIPCLock = false; 
+    _terminal_vm.global.initIPCLock = new _terminal_vm.global.Lock(); // THIS to be flushed by security validateRequest method init
+    _terminal_vm.global.initIPCLock.goflag = 0; // set the lock
+    _terminal_vm.global.wakeupIPCLock = new _terminal_vm.global.Lock(); 
 
 
-// TWEAKINIT part
+    // BINDING part
+    //var dmb = document.createElement("DIV");
+    //dmb.style.width = "100%";
+    //document.body.appendChild(dmb);
 
-_terminal_vm.load("os/anarchic.jn");
+    var d = new DOMImplementation(); // SLOW??
+    ddocument = d.loadXML("<div/>"); // SLOW???
+    _dmb = ddocument.documentElement;
+    //_dmb = new __HTMLElement(_terminal_vm, "DIV" );
+    _dmb.___link.style.width = "100%";
+    elemt.appendChild(_dmb.___link);
+
+    _terminal_vm.bind_dom(_dmb); // TODO bind to fake DOM element since it is currently impossible to serialize DOM-enabled elements
+    _terminal_vm.bind_om(); // bind the protected EOS object model
+    _terminal_vm.bind_terminal();
+
+
+    // TWEAKINIT part
+
+    _terminal_vm.load("os/anarchic.jn");
 
 
 
-// write the object!
-__eos_objects["terminal"] = _terminal_vm; // conventional... get rid of this later XXX
-__eos_objects["~"] = _terminal_vm;
+    // write the object!
+    __eos_objects["terminal"] = _terminal_vm; // conventional... get rid of this later XXX
+    __eos_objects["~"] = _terminal_vm;
 
 
-// NOW CREATE SYS OBJECT
+    // NOW CREATE SYS OBJECT
 
-_sys_vm = new Jnaric();
+    _sys_vm = new Jnaric();
 
-_sys_vm.name = "sys";
-_sys_vm.TypeURI = "~/sys/ramstore";
-_sys_vm.SecurityURI = "~/sys/anarchic"; // no IPC for terminal at all
-_sys_vm.parent = _terminal_vm; 
+    _sys_vm.name = "sys";
+    _sys_vm.TypeURI = "~/sys/ramstore";
+    _sys_vm.SecurityURI = "~/sys/anarchic"; // no IPC for terminal at all
+    _sys_vm.parent = _terminal_vm; 
+                              
+    _sys_vm.uri = _sys_vm.parent.uri + "/"+_sys_vm.name; 
+                             
+    _sys_vm.serID = -1; // can never be serialized
+    _sys_vm.childList = {}; 
+
+    //_sys_vm.global.initIPCLock = true; // THIS to be flushed by security validateRequest method init
+    //_sys_vm.global.wakeupIPCLock = true; // THIS to be flushed by a call to setSecurityState method
+    _sys_vm.global.initIPCLock = new _sys_vm.global.Lock(); // THIS to be flushed by security validateRequest method init
+    _sys_vm.global.initIPCLock.goflag = 0; // set the lock
+    _sys_vm.global.wakeupIPCLock = new _sys_vm.global.Lock(); 
+    _sys_vm.global.wakeupIPCLock.goflag = 0; // set the lock
+
+    // BINDING part
+    _sys_vm.bind_dom(); // XXX not ever bind DOM???
+    _sys_vm.bind_om(); // bind the protected EOS object model
+
+    // TWEAKINIT part
+
+    _sys_vm.load("os/anarchic.jn");
+    _sys_vm.load("os/tmpstore.jn"); // XXX CHEATING!
+
+
+    // register it
+    _terminal_vm.childList["sys"] = _sys_vm;
+    __eos_objects["~/sys"] = _sys_vm;
+
+
+    _cn = 0;
+    /////////////////////////////////////////////////////////////////////////////////////////
+    /////////////////////// THE tweak part here
+    ffoo = function () { 
+        _cn++; 
+        if(_cn == 6) { // XXX run terminal when 5 objects initialized!
+            _terminal_vm.load("os/terminal.jn"); 
+            hubConnection.connect();
+        }
+    }; 
+
+    _sys_vm.onfinish = function () {
+        _sys_vm.onfinish = ffoo;
+        _sys_vm.evaluate("wakeupIPCLock.release();"); 
+    }; 
+
+
+    // NOW CREATE anarchic OBJECT
+
+
+    // TODO: beautify it ;-)
+    //       1. create a struct {objname: url,} 2. use object count or length in THE tweak part
+    _anarchic_vm = manualRamstoreObject("anarchic", _sys_vm);
+    _anarchic_vm.onfinish = function () {
+        _anarchic_vm.onfinish = ffoo;
+    //    _anarchic_vm.evaluate("sdata = fetchUrl('anarchic.jn');wakeupIPCLock=false;");
+        _anarchic_vm.evaluate("sdata = fetchUrl('os/anarchic.jn');wakeupIPCLock.release();");  
+    }; // WARNING!? XXX precedence test heeded here!!!!!!
+
+    // NOW CREATE ramstore OBJECT
+    _ramstore_vm = manualRamstoreObject("ramstore", _sys_vm);
+    _ramstore_vm.onfinish = function () { 
+        _ramstore_vm.onfinish = ffoo;
+        _ramstore_vm.evaluate("sdata = fetchUrl('os/ramstore.jn');wakeupIPCLock.release();"); 
+    }; // WARNING!? XXX precedence test heeded here!!!!!!
+
+    // NOW CREATE public security model OBJECT
+    _public_vm = manualRamstoreObject("public", _sys_vm);
+    _public_vm.onfinish = function () { 
+        _public_vm.onfinish = ffoo;
+        _public_vm.evaluate("sdata = fetchUrl('os/public.jn');wakeupIPCLock.release();"); 
+    }; 
+
+
+    // create ic.jn object
+    _ic_vm = manualRamstoreObject("ic", _sys_vm);
+    _ic_vm.onfinish = function () {
+        _ic_vm.onfinish = ffoo;
+        _ic_vm.evaluate("sdata = fetchUrl('os/ic.jn');wakeupIPCLock.release();"); 
+    }; 
+
+    // create totinit.jn object
+    _init_vm = manualRamstoreObject("init", _sys_vm);
+    _init_vm.onfinish = function () {
+        _init_vm.onfinish = ffoo;
+        _init_vm.evaluate("sdata = fetchUrl('os/totinit.jn');wakeupIPCLock.release();"); 
+    }; 
+
+
+
+
+
+
+
+
+    ////////////////////////////////////////////////////////////////////////////////////
+    // okay, now deserialize 'var' ramstore object and its childlist!
+
+    _var_vm = new Jnaric();
+
+    _var_vm.name = "var";
+    _var_vm.TypeURI = "~/sys/ramstore";
+    _var_vm.SecurityURI = "~/sys/anarchic"; // no IPC for terminal at all
+    _var_vm.parent = _terminal_vm; 
+                              
+    _var_vm.uri = _var_vm.parent.uri + "/var"; 
                           
-_sys_vm.uri = _sys_vm.parent.uri + "/"+_sys_vm.name; 
-                         
-_sys_vm.serID = -1; // can never be serialized
-_sys_vm.childList = {}; 
+    _var_vm.serID = -1; // can never be serialized
+    _var_vm.childList = {}; 
 
-//_sys_vm.global.initIPCLock = true; // THIS to be flushed by security validateRequest method init
-//_sys_vm.global.wakeupIPCLock = true; // THIS to be flushed by a call to setSecurityState method
-_sys_vm.global.initIPCLock = new _sys_vm.global.Lock(); // THIS to be flushed by security validateRequest method init
-_sys_vm.global.initIPCLock.goflag = 0; // set the lock
-_sys_vm.global.wakeupIPCLock = new _sys_vm.global.Lock(); 
-_sys_vm.global.wakeupIPCLock.goflag = 0; // set the lock
+    //_var_vm.global.initIPCLock = true; // this will be normally unset
+    //_var_vm.global.wakeupIPCLock = true; // this will emulate like we're deserializing and will lock IPC until we explicitly unlock
 
-// BINDING part
-_sys_vm.bind_dom(); // XXX not ever bind DOM???
-_sys_vm.bind_om(); // bind the protected EOS object model
-
-// TWEAKINIT part
-
-_sys_vm.load("os/anarchic.jn");
-_sys_vm.load("os/tmpstore.jn"); // XXX CHEATING!
+    _var_vm.global.initIPCLock = new _var_vm.global.Lock(); // THIS to be flushed by security validateRequest method init
+    _var_vm.global.initIPCLock.goflag = 0; // set the lock
+    _var_vm.global.wakeupIPCLock = new _var_vm.global.Lock(); 
+    _var_vm.global.wakeupIPCLock.goflag = 0; // set the lock
 
 
-// register it
-_terminal_vm.childList["sys"] = _sys_vm;
-__eos_objects["~/sys"] = _sys_vm;
+    // BINDING part
+    _var_vm.bind_dom(); // XXX not ever bind DOM???
+    _var_vm.bind_om(); // bind the protected EOS object model
+
+    // TWEAKINIT part
+
+    _var_vm.load("os/anarchic.jn");
+    _var_vm.load("os/ramstore.jn");
+        
+    _terminal_vm.childList["var"] = _var_vm;
+    __eos_objects[_var_vm.uri] = _var_vm;
+
+    _var_vm.onfinish = function () {
+        _var_vm.onfinish = ffoo;
+        _var_vm.evaluate("wakeupIPCLock.release();"); 
+    }; 
 
 
-_cn = 0;
-/////////////////////////////////////////////////////////////////////////////////////////
-/////////////////////// THE tweak part here
-ffoo = function () { 
-    _cn++; 
-    if(_cn == 6) { // XXX run terminal when 5 objects initialized!
-        _terminal_vm.load("os/terminal.jn"); 
-        hubConnection.connect();
+    _stor = getFixedStorage();
+    if(_stor) {
+        // if fixed storage is accessible
+        var d = _stor.getByURI("~/var");
+        if(d) {
+          _var_vm.ErrorConsole.log("restoring ~/var childList...");
+          _var_vm.childList = JSON.parse(d.ChildList);
+          _var_vm.serID = parseInt(d.rowid);
+        }
+        d = _stor.getByURI("~");
+        if(d) {
+          _terminal_vm.ErrorConsole.log("restoring ~ childList...");
+          // MERGE instead of RESTORE
+          var termcl = JSON.parse(d.ChildList);
+          for(var obc in termcl) {
+              _terminal_vm.childList[obc] = termcl[obc];
+          }
+          _terminal_vm.serID = parseInt(d.rowid); // ok.
+
+        } else {
+            __eos_serial_weak.push(_terminal_vm); // 
+        }
+        _stor.close();
     }
-}; 
+    delete d;
+    delete _stor;
 
-_sys_vm.onfinish = function () {
-    _sys_vm.onfinish = ffoo;
-    _sys_vm.evaluate("wakeupIPCLock.release();"); 
-}; 
+    // parse kernel parameters, use terminal_id and terminal_key as logon credentials
+    // DOC this!
+    (function () {
+    var params = location.href.toString().split('#')[1];
+    var nv;
+    if(params) {
+        var lp = params.split(",");
+        for(var i=0; i<lp.length; i++) {
+            if(lp[i].search("=") > -1) {
+                nv = lp[i].split("=");
+                KCONFIG[nv[0]] = nv[1];
+            }
+        }
+    }
+    })()
+    
+    // start the pinger
+    setInterval((function() {
+        if((new Date()).getTime() - hubConnection.last_sent_time > PING_INTERVAL ) {
+            try {
+                hubConnection.send({id: __jn_stacks.newId(), uri: "/", method: "ping", args: []});
+            } catch (e) {
+                // never stop... HTID!
+            }
+        }
+    }), PING_INTERVAL/2);
+
+    hubConnection.init();
+    hubConnection.receive = eos_rcvEvent; // XXX this interconnects with jsobject.js in an ugly way...
+
+    
+}
+
+
+
+
+
+
+
+
+///////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////
 
 
 function manualRamstoreObject(oname, oparent) {
@@ -181,133 +346,6 @@ function manualRamstoreObject(oname, oparent) {
 
 }
 
-// NOW CREATE anarchic OBJECT
-
-
-// TODO: beautify it ;-)
-//       1. create a struct {objname: url,} 2. use object count or length in THE tweak part
-_anarchic_vm = manualRamstoreObject("anarchic", _sys_vm);
-_anarchic_vm.onfinish = function () {
-    _anarchic_vm.onfinish = ffoo;
-//    _anarchic_vm.evaluate("sdata = fetchUrl('anarchic.jn');wakeupIPCLock=false;");
-    _anarchic_vm.evaluate("sdata = fetchUrl('os/anarchic.jn');wakeupIPCLock.release();");  
-}; // WARNING!? XXX precedence test heeded here!!!!!!
-
-// NOW CREATE ramstore OBJECT
-_ramstore_vm = manualRamstoreObject("ramstore", _sys_vm);
-_ramstore_vm.onfinish = function () { 
-    _ramstore_vm.onfinish = ffoo;
-    _ramstore_vm.evaluate("sdata = fetchUrl('os/ramstore.jn');wakeupIPCLock.release();"); 
-}; // WARNING!? XXX precedence test heeded here!!!!!!
-
-// NOW CREATE public security model OBJECT
-_public_vm = manualRamstoreObject("public", _sys_vm);
-_public_vm.onfinish = function () { 
-    _public_vm.onfinish = ffoo;
-    _public_vm.evaluate("sdata = fetchUrl('os/public.jn');wakeupIPCLock.release();"); 
-}; 
-
-
-// create ic.jn object
-_ic_vm = manualRamstoreObject("ic", _sys_vm);
-_ic_vm.onfinish = function () {
-    _ic_vm.onfinish = ffoo;
-    _ic_vm.evaluate("sdata = fetchUrl('os/ic.jn');wakeupIPCLock.release();"); 
-}; 
-
-// create totinit.jn object
-_init_vm = manualRamstoreObject("init", _sys_vm);
-_init_vm.onfinish = function () {
-    _init_vm.onfinish = ffoo;
-    _init_vm.evaluate("sdata = fetchUrl('os/totinit.jn');wakeupIPCLock.release();"); 
-}; 
-
-
-
-
-
-
-
-
-////////////////////////////////////////////////////////////////////////////////////
-// okay, now deserialize 'var' ramstore object and its childlist!
-
-var _var_vm = new Jnaric();
-
-_var_vm.name = "var";
-_var_vm.TypeURI = "~/sys/ramstore";
-_var_vm.SecurityURI = "~/sys/anarchic"; // no IPC for terminal at all
-_var_vm.parent = _terminal_vm; 
-                          
-_var_vm.uri = _var_vm.parent.uri + "/var"; 
-                      
-_var_vm.serID = -1; // can never be serialized
-_var_vm.childList = {}; 
-
-//_var_vm.global.initIPCLock = true; // this will be normally unset
-//_var_vm.global.wakeupIPCLock = true; // this will emulate like we're deserializing and will lock IPC until we explicitly unlock
-
-_var_vm.global.initIPCLock = new _var_vm.global.Lock(); // THIS to be flushed by security validateRequest method init
-_var_vm.global.initIPCLock.goflag = 0; // set the lock
-_var_vm.global.wakeupIPCLock = new _var_vm.global.Lock(); 
-_var_vm.global.wakeupIPCLock.goflag = 0; // set the lock
-
-
-// BINDING part
-_var_vm.bind_dom(); // XXX not ever bind DOM???
-_var_vm.bind_om(); // bind the protected EOS object model
-
-// TWEAKINIT part
-
-_var_vm.load("os/anarchic.jn");
-_var_vm.load("os/ramstore.jn");
-    
-_terminal_vm.childList["var"] = _var_vm;
-__eos_objects[_var_vm.uri] = _var_vm;
-
-_var_vm.onfinish = function () {
-    _var_vm.onfinish = ffoo;
-    _var_vm.evaluate("wakeupIPCLock.release();"); 
-}; 
-
-
-_stor = getFixedStorage();
-if(_stor) {
-    // if fixed storage is accessible
-    var d = _stor.getByURI("~/var");
-    if(d) {
-      _var_vm.ErrorConsole.log("restoring ~/var childList...");
-      _var_vm.childList = JSON.parse(d.ChildList);
-      _var_vm.serID = parseInt(d.rowid);
-    }
-    d = _stor.getByURI("~");
-    if(d) {
-      _terminal_vm.ErrorConsole.log("restoring ~ childList...");
-      // MERGE instead of RESTORE
-      var termcl = JSON.parse(d.ChildList);
-      for(var obc in termcl) {
-          _terminal_vm.childList[obc] = termcl[obc];
-      }
-      _terminal_vm.serID = parseInt(d.rowid); // ok.
-
-    } else {
-        __eos_serial_weak.push(_terminal_vm); // 
-    }
-    _stor.close();
-}
-delete d;
-delete _stor;
-
-
-
-
-
-
-
-
-
-///////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////////
 
 
 function randomString( string_length ) {
@@ -320,20 +358,7 @@ function randomString( string_length ) {
 	return randomstring;
 }
 
-// TODO: parse kernel parameters, use terminal_id and terminal_key as logon credentials
-(function () {
-var params = location.href.toString().split('#')[1];
-var nv;
-if(params) {
-    var lp = params.split(",");
-    for(var i=0; i<lp.length; i++) {
-        if(lp[i].search("=") > -1) {
-            nv = lp[i].split("=");
-            KCONFIG[nv[0]] = nv[1];
-        }
-    }
-}
-})()
+
 
 // do announce with new credentials if the hubConnectionChanged hook is received
 //       this is rather a terminal issue!
@@ -562,19 +587,6 @@ hubConnection = {
     }
 };
 
-// start the pinger
-setInterval((function() {
-    if((new Date()).getTime() - hubConnection.last_sent_time > PING_INTERVAL ) {
-        try {
-            hubConnection.send({id: __jn_stacks.newId(), uri: "/", method: "ping", args: []});
-        } catch (e) {
-            // never stop... HTID!
-        }
-    }
-}), PING_INTERVAL/2);
-
-hubConnection.init();
-hubConnection.receive = eos_rcvEvent; // XXX this interconnects with jsobject.js in an ugly way...
 
 ////////////////////////////////////////////////////////////////////////////////////
 // Blob transfer methods

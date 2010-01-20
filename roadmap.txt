@@ -170,6 +170,7 @@ ASSORTED TODO ITEMS
 - decouple session from the online presense fact!???
 - kernel improvement: profiler
 - idea: in ErrorConsole.log print time and issuing vm uri, at least for firebug console output
+- jsdom: mousewheel support! see http://markup-javascript.com/2009/05/24/krossbrauzernyj-mousewheel-obrabotka-sobytiya-skrolinga/
 
 - i18n support
 
@@ -212,14 +213,12 @@ URGENT:
     + completion/hinting via TAB (join completion candidates into a string, then regex inside it for variants)
     + better typeto: doesnt work with WebKit
     + typeto: doesnt fire events in IE8 & Opera-linux (cannto Ctrl-Enter to sav?)
-    - clear&delete, minimize framewindow
-        - set max-height property of the div(and scroller) and overflow-y: auto; overflow-x: hidden
+    + clear&delete, minimize framewindow
+    - set max-height property of the div(and scroller) and overflow-y: auto; overflow-x: hidden
     - cd/pwd    
-    - deleteChild ipc command
     - opera behaves BAD with contentEditable (typeto) :-\
     - PATH (feed IC with PATH, PATH set up command)
     - appropriately parse "\ " space escaping
-    - the ability to delete starting...
 + IE8 exceptions problem!
 + IE8 preventDefault (returnValue) on past event (try/catch?)
 + addEventListener: create a method where scheduler tries to execute as much of the eventListener code as possible
@@ -227,45 +226,49 @@ URGENT:
     this will make event.preventDefault() usable
 + terminal session unstable! (FF3.5 frequently acquires new session :-\  maybe pinger sometimes fails? try/catch block it!)
 + working with links is broken (failed to execute getchild?)
-- print_traceback() kernel method
-- cookie session auth
-- store an ummutable? ID object at ~/sys/uuid that holds the machine UUID stored in unexpirable cookie see http://www.broofa.com/Tools/Math.uuid.js
-- localStorage serialization (available on many browsers)
 + addEventListener thread flood problem! (queue events? skip events after queue exhaust?)
-- fix array.sort and JSON.stringify(replacer/reviver) (maybe others??)
-- implement floating window for DATA PIPE and 100k instead of 20k (or + somehow detect conn spd first)
-- do eosinit, etc. via callable init() routine for integration
-- i've created a temporary session folder for you at /home/(termname)/
-    - make sessions persistent through page reloads (?)
-- html FORM, OBJECT & applet/flash security (write flash mp3 player?)
+? implement floating window for DATA PIPE and 100k instead of 20k (or + somehow detect conn spd first)
++ link() call for an already-linked object fails with timeout
++ do eosinit, etc. via callable init() routine for integration
 - CSS support & testing
 - highlighting editor (codepress?)
 - multi-line string
+- cookie session auth
+- i've created a temporary session folder for you at /home/(termname)/
+    - make sessions persistent through page reloads (?)
 - how to change security model of an object?? - only a super-puper user may do that; or the security code itself
+    - terminal has initial security. It must to allow or to disallow the setting of security by object parent (at inittime or runtime)
+    - denote every single kernel feature and allow security code to manage it (we need a wiki page on that)
 - security model
 - security to return optional "reason" value: true or text that will be set to "deny reason" for EPERM, etc.
     - modify EPERM error transfer
-- html templating support
-- object description protocol (at least for storage objects + naming) type, length, content-type
-    - link should always report type 'link'
-- objects manipulating toolkit
 - stabilize init procedure (to look for init in /var or something?)
+- localStorage serialization (available on many browsers)
+- object description protocol (at least for storage objects + naming) type, length, content-type
+    - link should always report type 'link' (kernel feature?)
+- objects manipulating toolkit
+- html templating support via core extension (require STL to get this to work; it will be later replaced by userspace library since userspace will be _as fast as kernel_)
+- html FORM, OBJECT & applet/flash security (write flash mp3 player?)
+- better console library (iclib)
 - database access methods
     (or kernel driver object?? - terminal security model that allows for native code "RING0" injection)
 - start integration proposal
 - write standard tools: mv(?), rm, mkdir, rmdir, cp, cr - create object of certain type/sec, ul - upload something, cl - copy local (gears get)
     - friend group search
-- remove unneeded commands from IC
 - industrial database
     - stress-test what if we use FF/Chrome storage
     - think through how to build a standalone storage (maybe using full JN protocol + security model?)
     - use either solution
-- a descriptive Google Gears security field
+- a descriptive Google Gears ask-for-install field
 - test jquery & something
 - write SvoyaSet panel?? or make SS entirely AJAX (see some Elgg tutorial to AJAXify it)
 - International version yrmarkt.com, yourmarkt.com, corpoware.com, webnotware.com, warenot.com, warebs.com, 
+- remove unneeded commands from IC
 
-
+- process control routines
+- print_traceback() kernel method
+- store an ummutable? ID object at ~/sys/uuid that holds the machine UUID stored in unexpirable cookie see http://www.broofa.com/Tools/Math.uuid.js
+- fix array.sort and JSON.stringify(replacer/reviver) (maybe others??) - WONTFIX for pre-alpha release
 - make sure 'move' call really exists for the object tree (
   - and document all tree calls)
   - more zope-like and objectDB-like interface (full object DB): get child, set child via child links 
@@ -331,6 +334,7 @@ URGENT:
 - compiled code cache? like copy - not parse every time
 - object code parse cache: at least for wakeObject; for createObject too!
 - cache parsed code for all security models loaded (hmm.. not all.. some, with stack or smth
+- better connection speed on-line benchmarking for data pipe floating window
 
 kernel programming advisory: be careful with methods that stop the stack - report any possible error via try/catch and stack release w/throw
 

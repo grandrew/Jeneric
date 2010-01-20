@@ -32,6 +32,7 @@
 </script>
 <script src="static/protocols/stomp/stomp.js"></script>
 
+<script type="text/javascript" src="os/eosinit.js"></script>
 </head>
 
 <body>
@@ -44,8 +45,9 @@
     <!-- IE debug -->
     <script type="text/javascript" src="os/fauxconsole.js"></script>
 
-    <!-- init system TODO: do this via JS init() method, not directly -->
-    <script type="text/javascript" src="os/eosinit.js"></script>
+    <script>
+      jeneric_init(document.body); // init Jeneric with output attached directly to body
+    </script>
 
 </body>
 </html>
