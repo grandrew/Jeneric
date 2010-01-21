@@ -126,7 +126,9 @@ Jnaric.prototype.bind_dom = function (wrapped_domElement) {
     
     if(typeof wrapped_domElement != 'undefined')
             wrapped_domElement.___link.appendChild(this.global.document.body.___link);
-    
+    //TODO here: need to strip special chars from this-uri and replace them by char codes
+    this.uriId = this.uri2id(this.uri);
+    this.global.document.body.___link.id = this.uriId;
     
     this.global.document.___vm = this;
     
@@ -145,11 +147,114 @@ Jnaric.prototype.bind_dom = function (wrapped_domElement) {
     this.global.window.window = this.global.window;
     this.global.window.self = this.global.window;
     
+    // TODO HERE: importCSS method
+    //  parse the CSS to apply only to descendants
+    this.global.importCSS = function (uri) {
+        return self._importCSS(self, uri);
+    };
+    
+    this.global.document.styleSheets = [(new __CSSStyleSheet(this))]; // only one stylesheet per vm!
+    this.cssRules = []; // should be a list of rules for this particular VM (TODO: to be cleaned by some mechanism)
+};
+
+Jnaric.prototype._importCSS = function (__tihs, src_uri) { // safari bug
+    __tihs.cur_stack.EXCEPTION = false;
+    __tihs.cur_stack.my.v0 = undefined;
+    
+    // set up a stop execution flag
+    var _mystop = __jn_stacks.newId();
+    __tihs.cur_stack.STOP = _mystop;
+    var __cs = __tihs.cur_stack;
+    
+    
+    var exec_f = function (rs, obj) {
+        var ruleStr = rs.result.toString();
+        
+        if( __cs.STOP != _mystop ) // means TIMEOUT already fired. Also, if it is != false then a serious programming error may be in place!!
+                return;
+        
+        // now parse the ruleset
+        ruleStr.replace(/\/\*.+\*\//g, "");
+        // split rules
+        var ruleList = ruleStr.split("}");
+        __cs.my.x2.result = true; // DOC: test and document this!
+        if(vm.global.styleSheets[0]) {
+            for(var i=0; i<ruleList.length; i++){
+                try {
+                    vm.global.styleSheets[0].insertRule(ruleList[i]+"}");
+                } catch (e) {
+                    vm.ErrorConsole.log("Error parsing CSS rule: "+ruleList[i]+"}"+" , Error: "+e);
+                    __cs.my.x2.result = false;// DOC: test and document this!
+                }
+            }
+        }
+        
+        
+        __cs.STOP = false;
+        //__tihs.step_next(__cs);
+        __jn_stacks.start(__cs.pid);
+    };
+    
+    /*            
+    var timeout_f = function () {
+        if( __cs.STOP != _mystop ) { // it should NEVER appear to place a STOP flag on the same stack twice
+            // if not false -> __tihs.ErrorConsole.log("VM: load: internal programming error!");
+            return;
+        }
+        // XXX XXX TODO WARNING! LOAD may fail in releasing the stack WITH CONTROL FLOW CATCHUP!!
+        // XXX TODO set onfinish to the currently running steck to continue it!!                
+        __cs.EXCEPTION = THROW;
+        var ex = new __tihs.global.InternalError("load( '"+url+"' ): fetch failed with timeout");// TEST THIS!!
+        ex.status = "timeout";
+        __cs.exc.result = ex;
+
+        __cs.STOP = false;
+        //__tihs.step_next(__cs);
+        __jn_stacks.start(__cs.pid);
+    };
+    */
+    
+    // set the timeout watchguard
+    // setTimeout(timeout_f, __tihs.AJAX_TIMEOUT);
+    
+    // fire the ajax load component
+    
+    var onfail = function (rs) {
+        if( __cs.STOP != _mystop ) // means TIMEOUT already fired
+                return;
+
+        __cs.EXCEPTION = THROW;
+        var ex = new __tihs.global.InternalError("importCSS('"+src_uri+"') failed with exception: "+rs.result);
+        ex.status = rs.status;
+        __cs.exc.result = ex;
+
+        __cs.STOP = false;
+        //__tihs.step_next(__cs);  
+        __jn_stacks.start(__cs.pid);              
+    };
+    
+    kIPC(__tihs, src_uri, "read", [], exec_f, onfail);
     
 };
 
-
-
+Jnaric.prototype.uri2id = function (uri) {
+    var CHARS = "a,b,c,d,e,f,g,h,i,j,k,l,m,n,o,p,q,r,s,t,u,v,w,x,y,z";
+    CHARS += "," + CHARS.toUpperCase();
+    var lCHARS = CHARS.split(",");
+    CHARS = {};
+    for(var i=0; i<lCHARS.length;i++) {
+        CHARS[lCHARS[i]] = true;
+    }
+    var uid="ID";
+    for(var i=0; i<uri.length;i++) {
+        if(uri.charAt(i) in CHARS) {
+            uid += uri.charAt(i);
+        } else {
+            uid += uri.charCodeAt(i).toString();
+        }
+    }
+    return uid;
+}
 
 
 
@@ -379,7 +484,7 @@ ___DOMHTMLSetters = {
         }
         */
         // clear current element's child list
-        delete this.childNodes; //._nodes;
+        //delete this.childNodes; //._nodes;
         this.childNodes._nodes = [];
         // parse as innerHTML and get the parsed values, then re-parse the correct XML with our parser
         // not attaching it anywhere onevent
@@ -1845,3 +1950,69 @@ DOMDocument.prototype.execCommand = function (aCommandName, aShowDefaultUI, aVal
     if(!__execCMDs[aCommandName]) return false; // filter out
     return document.execCommand(aCommandName, aShowDefaultUI, aValueArgument);
 };
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////
+// style sheet section
+
+function __CSSStyleSheet(vm) {
+    this.cssRules=[]; // TODO: should be a getter only
+    this.disabled = false;
+    this.href = "";
+    this.media="screen"; // no printing support yet... how do ya imagine printing an application anyways?
+    this.ownerNode = null;
+    this.ownerRule = null;
+    this.parentStyleSheet  = null;
+    this.title = "";
+    this.type = "text/css";
+    this.___vm = vm;
+}
+
+__CSSStyleSheet.prototype.insertRule = function (ruleStr, indx) {
+    if(typeof indx != "number" || indx == -1) indx = this.cssRules.length;
+    this.cssRules[indx] = new __CSSStyleRule(ruleStr);
+    // now parse the rule
+    // strip comments
+    ruleStr = ruleStr.toString();
+    ruleStr.replace(/\/\*.+\*\//g, "");
+    if(ruleStr.match(/(})/g).length != 1) {
+        throw "wrong rule!";
+    }
+
+    ruleStr = "#"+this.___vm.uriId+" "+ruleStr;
+    if (document.styleSheets[0].cssRules) {
+        var real_idx = document.styleSheets[0].cssRules.length;
+        //console.log("Inserting rule: "+ruleStr);
+        document.styleSheets[0].insertRule(ruleStr, real_idx);
+        var styleObj = document.styleSheets[0].cssRules[real_idx];
+    } else {
+        var real_idx = document.styleSheets[0].rules.length;
+        var sel = ruleStr.split("{")[0];
+        var rul = "{"+ruleStr.split("{")[1];
+        //console.log("Inserting sel: "+sel+" rul: "+rul);
+        document.styleSheets[0].addRule(sel, rul, real_idx);        
+        var styleObj = document.styleSheets[0].rules[real_idx];
+    }
+    this.cssRules[indx].___idx = real_idx;
+    this.cssRules[indx].style = styleObj;
+    this.___vm.cssRules.push(real_idx);
+};
+
+__CSSStyleSheet.prototype.deleteRule = function (indx) {
+    if (document.styleSheets[0].cssRules) {
+        document.styleSheets[0].deleteRule(this.cssRules[indx].___idx);
+    } else {
+        document.styleSheets[0].removeRule(this.cssRules[indx].___idx); // IE
+    }
+    delete this.cssRules[indx];
+};
+
+function __CSSStyleRule(ruleStr) {
+    this.cssText = ruleStr;
+    this.parentRule = null;
+    this.parentStyleSheet = null;
+    this.type = 1; // CSSRule.STYLE_RULE
+    this.selectorText = ruleStr.split("{")[0];
+}
+
+

@@ -230,8 +230,18 @@ URGENT:
 ? implement floating window for DATA PIPE and 100k instead of 20k (or + somehow detect conn spd first)
 + link() call for an already-linked object fails with timeout
 + do eosinit, etc. via callable init() routine for integration
-- CSS support & testing
-- highlighting editor (codepress?)
++ CSS support & testing
++ disallow setting of SRC on an iframe & object. archive,codebase,data,usemap
+? need faster hub connection init! (not very essential, hub connection is actually OK)
+- highlighting editor (codemirror?)
+    - need better iframe support, at least these:
+        - frame.contentWindow
+        - frame.contentWindow.document
+        - document.write(HTML) -> better HTML parser, remove <link> tags, etc.
+            - parse <link> + CSS tags, (and add display: none to SPANs)
+            - parse <script> with SRC, the same
+            - catch 'on' events (like onload)
+            - 
 - multi-line string
 - cookie session auth
 - i've created a temporary session folder for you at /home/(termname)/
@@ -249,6 +259,9 @@ URGENT:
 - objects manipulating toolkit
 - html templating support via core extension (require STL to get this to work; it will be later replaced by userspace library since userspace will be _as fast as kernel_)
 - html FORM, OBJECT & applet/flash security (write flash mp3 player?)
+    - test CSS writing a cute mp3 player
+    - test OBJECT/IFRAME security in IE & others!
+- stress-test the jeneric object database (serializer, swapout, etc. - memory consumption, object limits.. (KCONFIG?))
 - better console library (iclib)
 - database access methods
     (or kernel driver object?? - terminal security model that allows for native code "RING0" injection)
@@ -335,6 +348,7 @@ URGENT:
 - object code parse cache: at least for wakeObject; for createObject too!
 - cache parsed code for all security models loaded (hmm.. not all.. some, with stack or smth
 - better connection speed on-line benchmarking for data pipe floating window
+- make the code so clean, well-designed and readable, that it would be a perfect adn best JS/DOM documentation out there!
 
 kernel programming advisory: be careful with methods that stop the stack - report any possible error via try/catch and stack release w/throw
 
@@ -361,7 +375,10 @@ Jeneric is a mix of virtualization for the WEB, the Web Operating System, etc...
     this is all to allow for faster IPC...
 
 
-
+--- BUGS
+-----------------------
+- IE seems to set incorrect Error either in event handler
+- Chrome does not set line numbers and file names on exceptions (undefined) (??)
 
 --- DOCUMENTATION WORK
 ---------------

@@ -1835,7 +1835,7 @@ eos_om = {
         
         
         var exec_f = function (rs, obj) {
-            data = rs.result;
+            var data = rs.result;
             // like evaluate, but push!
             if( __cs.STOP != _mystop ) // means TIMEOUT already fired. Also, if it is != false then a serious programming error may be in place!!
                     return;
@@ -2003,6 +2003,20 @@ function eos_deleteChild(vm, name) {
             __jn_stacks.stacks_running = newss;
         }
     }
+    
+    // clean CSS stylesheets
+    if(vm.childList[name].cssRules) {
+        for(var i=0; i<vm.childList[name].cssRules.length; i++) {
+            if (document.styleSheets[0].cssRules) {
+                document.styleSheets[0].deleteRule(vm.childList[name].cssRules[i]);
+            } else {
+                document.styleSheets[0].removeRule(vm.childList[name].cssRules[i]); // IE
+            }
+        }
+    }
+    
+    // TODO: clean DOM tree (??)
+    // DOC: CSS stylesheets are cleared, while the generated DOM tree is not
 
     // delete from vm (incl. fake)
     delete vm.childList[name];

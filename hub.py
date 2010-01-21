@@ -51,7 +51,7 @@ from twisted.internet import reactor
 from twisted.internet.task import LoopingCall
 from random import random,seed,choice
 from orbited import json
-import string,time,thread,copy,sqlite3
+import string,time,thread,copy,sqlite3, traceback
 import simplejson
 
 REGISTRAR_DB = "/var/lib/eoshub/registrar.sqlite"
@@ -463,7 +463,7 @@ class Hub(StompClientFactory):
         if DEBUG > 3: print "Received", repr(msg)
         if msg["headers"]["destination"] == ANNOUNCE_PATH:
             # the client wants another session, give it
-            if DEBUG > 3: print "Caught announce!"
+            if DEBUG > 2: print "Caught announce!"
             
             #rq = json.decode(msg["body"])
             rq = simplejson.loads(msg["body"])
@@ -472,6 +472,7 @@ class Hub(StompClientFactory):
             
             if "terminal_id" in rq and "terminal_key" in rq:
                 c = dbconn.cursor()
+                if DEBUG > 2: print " -- got credentials for ", rq["terminal_id"]
                 try:
                     name = rq["terminal_id"]
                     key = rq["terminal_key"]
@@ -479,8 +480,11 @@ class Hub(StompClientFactory):
                     termname = c.fetchone()[0]
                 except sqlite3.Error, e:
                     print "Could not authenticate terminal:", e.args[0]
+                except TypeError:
+                    print "Terminal with id", rq["terminal_id"], "not found in database"
                 except:
                     print "Other general error:"
+                    traceback.print_exc()
                 c.close()
             
             

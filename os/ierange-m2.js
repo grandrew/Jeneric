@@ -509,7 +509,7 @@ if(navigator.userAgent && navigator.userAgent.indexOf("MSIE") > -1) {
     var define_error = function (errName, errObj) {
         var d = "Native"+errName+"="+errName+";";
         eval(d);
-        var e = errName+"= function(m,a,f) { if(typeof a == 'string' || a instanceof String) { var x = new Native"+errName+"(a); x.message=a; x.toString=__error_tostring; return x; } else { var x = new Native"+errName+"(); x.message=m; x.lineno = a; x.filename=f; x.toString=__error_tostring; return x;} };";
+        var e = errName+"= function(m,a,f) { if(typeof a == 'string' || a instanceof String) { var x = new Native"+errName+"(0,a); x.message=a; x.toString=__error_tostring; return x; } else { var x = new Native"+errName+"(); x.message=m; x.lineno = a; x.filename=f; x.toString=__error_tostring; return x;} };";
         eval(e);
     };
     var __ERRORS = {

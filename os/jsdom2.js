@@ -2324,7 +2324,12 @@ DOMNode.prototype._getElementsByTagNameRecursive = function DOMNode__getElements
     // recurse childNodes
     for(var i = 0; i < this.childNodes.length; i++) {
     // TODO HERE: IE8: may have errors on the next line!
-      nodeList = this.childNodes.item(i)._getElementsByTagNameRecursive(tagname, nodeList);
+        //try {
+            nodeList = this.childNodes.item(i)._getElementsByTagNameRecursive(tagname, nodeList);
+        //} catch (e) {
+        //    if(window.console) console.log("Cannot handle null!!! in jsdom2/_getElementsByTagNameRecursive, removing");
+        //    this.childNodes._nodes
+        //}
     }
   }
 
@@ -3122,8 +3127,9 @@ DOMElement.prototype.getAttribute = function DOMElement_getAttribute(name) {
  */
 DOMElement.prototype.setAttribute = function DOMElement_setAttribute(name, value) {
   // JN if name starts with 'on' -> skip it. Nothing starts with "on" in attribute model here (DOM0)
-  if(name.substr(0,2) == "on") return; // do nothing
-  
+  if(name.toLowerCase().substr(0,2) == "on") return; // do nothing
+  if(name.toLowerCase() === "src" || (name.toLowerCase() === "data" && !this.___flash)) return;
+  if(name.toLowerCase() === "type" && value === "application/x-shockwave-flash") this.___flash = true; // todo: not sure this works in IE
   // if attribute exists, use it
   var attr = this.attributes.getNamedItem(name);
 

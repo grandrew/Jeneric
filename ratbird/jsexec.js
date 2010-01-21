@@ -538,12 +538,12 @@ __jn_stacks = {
                 //          so the 'i' will not correspond to the right value anymore
                 //          so do the splices over there VERY carefully...
                 
-                //try {
+                try {
                     ex_status = st.vm.step_next(st.stack);
-                //} catch (exc) { // will not stop scheduler!
-                //    if(window.console) console.log(exc);
-                //    ex_status = false;
-                //}
+                } catch (exc) { // will not stop scheduler!
+                    if(window.console) console.log(exc);
+                    ex_status = false;
+                }
                 
                 if(!ex_status) { // means the stack finished
                     //stacks_running_copy.splice(i,1);
@@ -2115,10 +2115,10 @@ Jnaric.prototype.step_next = function (g_stack) {
     
     // !! log to the console if 'JNARIC' is in the exception object's description/message
     // otherwise - throw
-    v = this.step_execute(ex.n, ex.x, g_stack);
+    //v = this.step_execute(ex.n, ex.x, g_stack);
     try {
-        aaa  =111;
-        //v = this.step_execute(ex.n, ex.x, g_stack);
+        //aaa  =111;
+        v = this.step_execute(ex.n, ex.x, g_stack);
         //if(ex.x.scope.object.f) this.ErrorConsole.log("f is: "+ex.x.scope.object.f+ " f.___call___ is: "+ex.x.scope.object.f.___call___);
     } catch (e) {
         // TODO: 'allocation size overflow' is not compatible with IE/Opera/v8!!
@@ -2132,7 +2132,7 @@ Jnaric.prototype.step_next = function (g_stack) {
             ex.x.result = e;
             g_stack.EXCEPTION = THROW;
             g_stack.EXCEPTION_OBJ = e;
-            
+            //console.log("Exception "+e+"should NOT propagate!!!");
         } else {
             // TODO: add onerror event alongside with onfinish
             this.ErrorConsole.log("vm error: throwing exception '"+e.toString()+"' " + (e.message ? (e.message + ": ") : "") +(e.message ? e.message : "")+"' Stack trace: "+__print_strace(g_stack));
@@ -2314,7 +2314,7 @@ Jnaric.prototype.step_next = function (g_stack) {
             else {
                 //console.log("ex_obj is: "+typeof(ex_obj)+" .toString: "+!!ex_obj.toString+" type of "+typeof(ex_obj.toString));
                 this.ErrorConsole.log("Uncaught exception ... "+ex_obj+"' Stack trace: "+__print_strace(e_stack));
-                console.log("onerror is: " +g_stack.onerror+ " main onerror: "+ this.onerror+ " PID: "+g_stack.pid);
+                //console.log("onerror is: " +g_stack.onerror+ " main onerror: "+ this.onerror+ " PID: "+g_stack.pid);
             }
             
             

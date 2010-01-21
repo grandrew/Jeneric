@@ -374,12 +374,13 @@ hubConnection = {
         // TODO: announce ourself with credentials so server says we're the one we need
         //       i.e. send terminal authentication data
         // do announce only when connected!
-        if(window.console) console.log("announcing...");
+        
         var ann = { "session": this.___SESSIONKEY };
         if(KCONFIG.terminal_id && KCONFIG.terminal_key) { // TODO document this!
             ann.terminal_id = KCONFIG.terminal_id;
             ann.terminal_key = KCONFIG.terminal_key;
         }
+        if(window.console) console.log("announcing... "+ann.terminal_id);
         this.stomp.send(JSON.stringify(ann), ANNOUNCE_PATH); // we will receive our terminal_id back!
     },
     
