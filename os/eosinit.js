@@ -485,7 +485,7 @@ hubConnection = {
             //     we should send a notification of that
             if(blobCount.n == 0) {
                 self.receive(rq);
-                if(window.console) console.log(frame.body)
+                if(DEBUG && window.console) console.log(frame.body)
             } else {
                 if(window.console) {
                     console.log("Delayed blob receipt:");

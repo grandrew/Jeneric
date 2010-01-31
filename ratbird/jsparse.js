@@ -238,28 +238,30 @@ Tokenizer.prototype = {
 
         if (!input)
             return token.type = END;
-
+        var firstChar = input.charCodeAt(0);
         try {
-            //if ((match = fpRegExp(input))) {
+            //if (match = input.match(fpRegExp)) {
             if ((firstChar == 46 || (firstChar > 47 && firstChar < 58)) && 
 				 (match = input.match(fpRegExp))) { // EDIT: use x-browser regex syntax
+                //console.log("FirstChar:" + firstChar);
+                //console.log("FirstChar2:" + input.charCodeAt(0));
                 token.type = NUMBER;
                 token.value = parseFloat(match[0]);
-            } else if ((match = input.match(/^0[xX][\da-fA-F]+|^0[0-7]*|^\d+/))) {
-            // this is erroneous: '0' becomes identifier and undefined...
-            //} else if ((firstChar > 47 && firstChar < 58) && 
-			//			(match = input.match(/^(?:0[xX][\da-fA-F]+|0[0-7]*|\d+)/))) { // EDIT: change regex structure for OOM perf improvement,
+           // } else if ((match = input.match(/^0[xX][\da-fA-F]+|^0[0-7]*|^\d+/))) {
+            
+            } else if ((firstChar > 47 && firstChar < 58) && 
+						(match = input.match(/^(?:0[xX][\da-fA-F]+|0[0-7]*|\d+)/))) { // EDIT: change regex structure for OOM perf improvement,
 																					  //       use x-browser regex syntax
                 token.type = NUMBER;
                 token.value = parseInt(match[0]);
-            } else if ((match = input.match(/^[$_\w]+/))) {       // FIXME no ES3 unicode
+            //} else if ((match = input.match(/^[$_\w]+/))) {       // FIXME no ES3 unicode
             ////} else if ((match = input.match(/^((\$\w*)|(\w+))/))) { 
             // causes 'missing operand'
-            //} else if (((firstChar > 47 && firstChar < 58)  ||   // EDIT: add guards to check before using regex
-			//			 (firstChar > 64 && firstChar < 91)  || 
-			//			 (firstChar > 96 && firstChar < 123) ||   // EDIT: exclude `
-			//			 (firstChar == 36 || firstChar == 95)) && // EDIT: allow $ + mv _ here
-			//			(match = input.match(/^[$\w]+/))) {       // EDIT: allow $, use x-browser regex syntax
+            } else if (((firstChar > 47 && firstChar < 58)  ||   // EDIT: add guards to check before using regex
+						 (firstChar > 64 && firstChar < 91)  || 
+						 (firstChar > 96 && firstChar < 123) ||   // EDIT: exclude `
+						 (firstChar == 36 || firstChar == 95)) && // EDIT: allow $ + mv _ here
+						(match = input.match(/^[$\w]+/))) {       // EDIT: allow $, use x-browser regex syntax
 
                 var id = match[0];
                 if(keywords[id]) { 
@@ -269,18 +271,18 @@ Tokenizer.prototype = {
                     token.type =  IDENTIFIER;
                 }
                 token.value = id;
-            } else if ((match = input.match(/^"(?:\\.|[^"])*"|^'(?:\\.|[^'])*'/))) { //"){
+            //} else if ((match = input.match(/^"(?:\\.|[^"])*"|^'(?:\\.|[^'])*'/))) { //"){
             // does not pass: causes 'illegal token'
-            //} else if ((firstChar == 34 || firstChar == 39) && 
-			//			(match = input.match(/^(?:"(?:\\.|[^"])*"|'(?:[^']|\\.)*')/))) { //"){  // EDIT: change regex structure for OOM perf improvement,
+            } else if ((firstChar == 34 || firstChar == 39) && 
+						(match = input.match(/^(?:"(?:\\.|[^"])*"|'(?:[^']|\\.)*')/))) { //"){  // EDIT: change regex structure for OOM perf improvement,
 																								//       use x-browser regex syntax
 // ("""(?:.|\n)*?""")
                 token.type = STRING;
                 token.value = eval(match[0]);
-            } else if (this.scanOperand && (match = input.match(reRegExp))) {
-            //} else if (this.scanOperand && firstChar == 47 && // EDIT: improve perf by guarding with first char check
+            //} else if (this.scanOperand && (match = input.match(reRegExp))) {
+            } else if (this.scanOperand && firstChar == 47 && // EDIT: improve perf by guarding with first char check
 						////(match = input.match(/^\/((?:\\.|[^\/])+)\/([gi]*)/))) { // EDIT: use x-browser regex syntax
-            //            (match = input.match(reRegExp))) { // EDIT: use x-browser regex syntax
+                        (match = input.match(reRegExp))) { // EDIT: use x-browser regex syntax
 
                 token.type = REGEXP;
                 token.value = new RegExp(match[1], match[2]);

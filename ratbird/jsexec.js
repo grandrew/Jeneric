@@ -331,6 +331,7 @@
     - Safari?? Opera?? -- may have similar things
 */
 DEBUG = 5; // > 2 = VERBOSE, 50ms delay, no bursting, JIT, etc.... >4 = wholy shit!!
+TRACE_DEPTH = 100; // maximum stack trace depth for exception reporting 
 
 __jn_stacks = {
     // the consts
@@ -368,7 +369,7 @@ __jn_stacks = {
         } 
         
         if(counter > vm.MAX_THREADS) {
-            vm.ErrorConsole.log("KERNEL Error: maximum amount of threads per this VM exceeded ("+counter+"); dropping thread creation");
+            vm.ErrorConsole.log("KERNEL Error: maximum amount of threads per this ("+vm.uri+") VM exceeded ("+counter+"); dropping thread creation"); // XXX jsobject mix here (vm.uri)
             var _err = new vm.global.InternalError("maximum amount of threads per this VM exceeded; dropping thread creation");
             _err.___jeneric_err = true;
             throw _err;
@@ -541,7 +542,10 @@ __jn_stacks = {
                 try {
                     ex_status = st.vm.step_next(st.stack);
                 } catch (exc) { // will not stop scheduler!
-                    if(window.console) console.log(exc);
+                    if(window.console) {
+						console.log("TICK: Error exeuting next step:");
+						console.log(exc);
+					}
                     ex_status = false;
                 }
                 
@@ -1346,6 +1350,7 @@ function Jnaric() {
     this.global = {
         //document: document,
         ErrorConsole: __tihs.ErrorConsole, 
+		console: __tihs.ErrorConsole, // TODO: enhanced firebug console emulation
         //window: window,
         //location: location,
         /*
@@ -1685,7 +1690,7 @@ Jnaric.prototype.putValue = function (v, w, vn) {
         }
         */
         //return r; 
-        if(v.base && v.base.___setters && v.base.___setters[v.propertyName]) {
+        if(v.base && v.base.___setters && v.base.___setters.hasOwnProperty(v.propertyName)) {
             if(v.base.___setters[v.propertyName] == 1) {
                 var _err = new TypeError("setting a property that has only a getter", vn.filename, vn.lineno);
                 _err.___jeneric_err = true;
@@ -1734,7 +1739,7 @@ Jnaric.prototype.getValue = function (v) {
         }
         if(v.propertyName.substr(0,3) == "___") throw (new this.global.InternalError("triple underscore is reserved")); 
         // implement hard-coded getter
-        if(v.base.___getters && v.base.___getters[v.propertyName]) {
+        if(v.base.___getters && v.base.___getters.hasOwnProperty(v.propertyName)) {
             // return value returned by getter
             return v.base.___getters[v.propertyName].apply(v.base, [v.propertyName]);
         }
@@ -2244,7 +2249,7 @@ Jnaric.prototype.step_next = function (g_stack) {
             
             if(t_ex.EXCEPTION == THROW) t_ex.throw_exec && t_ex.throw_exec();
             
-            e_stack.push(t_ex);
+            if(t_ex.n.type != TRUE) e_stack.push(t_ex);
         } while(!(g_stack.stack.length == 0 || g_stack.stack[(g_stack.stack.length-1)].TRY_WAIT))
         
         //g_stack.push(e_stack.pop());
@@ -2295,7 +2300,7 @@ Jnaric.prototype.step_next = function (g_stack) {
                 var _e_stack = e_stack;
                 var __fexc = function () {
                     _tihs.ErrorConsole.log("DEBG: exception conversion finished");
-                    _tihs.ErrorConsole.log("Exception ... " + _tihs.global.__jn_exception_string+" Stack trace: "+__print_strace(_e_stack));
+                    _tihs.ErrorConsole.log("Parsed exception ... " + _tihs.global.__jn_exception_string+" Stack trace: "+__print_strace(_e_stack));
                     __onfinish && __onfinish(_tihs.global.__jn_exception_string);
                 }
                 
@@ -2373,19 +2378,19 @@ function __print_strace(s_stack) {
     if(s_stack.stack) {
         
         
-        for(var i=(((s_stack.stack.length-30) < 0) ? 0 : (s_stack.stack.length-30)) ; i<s_stack.stack.length; i++) {
+        for(var i=(((s_stack.stack.length-TRACE_DEPTH) < 0) ? 0 : (s_stack.stack.length-TRACE_DEPTH)) ; i<s_stack.stack.length; i++) {
             __src = "";
             __ex = s_stack.stack[i];
             //__ex.n.tokenizer && (__src = String.prototype.slice.call(__ex.n.tokenizer.source, 0, 40));
-            if(__ex.n) __out = __out + " >"+say_type(__ex.n.type) + "(" + __ex.n.value + ")" + " File: " + __ex.n.filename + " Line: " + __ex.n.lineno + ";";
+            if(__ex.n) __out = __out + " >"+say_type(__ex.n.type) + "(" + (__ex.n.type != RETURN ? __ex.n.value : "?") + ")" + " File: " + __ex.n.filename + " Line: " + __ex.n.lineno + ";";
             else __out = __out + " INTERNAL ERROR: node not defined at "+i+";";
         }
     } else {
-        for(var i=( ((s_stack.length-1) > 30) ? 30 : (s_stack.length-1) ); i>=0; i--) {
+        for(var i=( ((s_stack.length-1) > TRACE_DEPTH) ? TRACE_DEPTH : (s_stack.length-1) ); i>=0; i--) {
             __src = "";
             __ex = s_stack[i];
             //__ex.n.tokenizer && (__src = String.prototype.slice.call(__ex.n.tokenizer.source, 0, 40));
-            if(__ex.n) __out = __out + " >"+say_type(__ex.n.type) + "(" + __ex.n.value + ")" + " File: " + __ex.n.filename + " Line: " + __ex.n.lineno + ";";
+            if(__ex.n) __out = __out + " >"+say_type(__ex.n.type) + "(" + (__ex.n.type != RETURN ? __ex.n.value : "?") + ")" + " File: " + __ex.n.filename + " Line: " + __ex.n.lineno + ";";
             else __out = __out + " INTERNAL ERROR: node not defined at "+i+";";
         }
     }
@@ -3389,7 +3394,7 @@ Jnaric.prototype.step_execute = function (n, x, stack) {
                 }
 
             } else {
-                v = true;
+                v = stack.my.r1;
             }
         }
         stack.my.done = true;

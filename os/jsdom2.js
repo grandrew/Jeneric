@@ -201,7 +201,7 @@ DOMImplementation.prototype.loadXML = function DOMImplementation_loadXML(xmlStr)
   var doc = new DOMDocument(this);
 
   // populate Document with Parsed Nodes
-  this._parseLoop(doc, parser);
+  this.___parseLoop(doc, parser);
 
   // set parseComplete flag, (Some validation Rules are relaxed if this is false)
   doc._parseComplete = true;
@@ -293,7 +293,7 @@ DOMImplementation.prototype.translateErrCode = function DOMImplementation_transl
 }
 
 /**
- * @method DOMImplementation._parseLoop - process SAX events
+ * @method DOMImplementation.___parseLoop - process SAX events
  *
  * @author Jon van Noort (jon@webarcana.com.au), David Joham (djoham@yahoo.com) and Scott Severtson
  *
@@ -302,7 +302,7 @@ DOMImplementation.prototype.translateErrCode = function DOMImplementation_transl
  *
  * @return : DOMDocument
  */
-DOMImplementation.prototype._parseLoop = function DOMImplementation__parseLoop(doc, p) {
+DOMImplementation.prototype.___parseLoop = function DOMImplementation____parseLoop(doc, p) {
   var iEvt, iNode, iAttr, strName;
   iNodeParent = doc;
 
@@ -2154,9 +2154,11 @@ DOMNode.prototype.appendChild = function DOMNode_appendChild(newChild) {
   this.childNodes._appendChild(newChild);
 
     // GDW
-    if(newChild.___link && this.___link) this.___link.appendChild(newChild.___link);
-
-    this.ownerDocument.___DOMcache_outdated = true;
+    
+    if(newChild.___isBody && newChild.___link && newChild.ownerDocument.___bodyLink) newChild.ownerDocument.___bodyLink.appendChild(newChild.___link);
+    else if(newChild.___link && this.___link) this.___link.appendChild(newChild.___link);
+	
+	this.ownerDocument.___DOMcache_outdated = true;
 
   if (newChild.nodeType == DOMNode.DOCUMENT_FRAGMENT_NODE) {
     // do node pointer surgery for DocumentFragment
@@ -2636,7 +2638,7 @@ DOMDocument.prototype.createElement = function DOMDocument_createElement(tagName
     throw(new DOMException(DOMException.INVALID_CHARACTER_ERR));
   }
   
-  if(trim(tagName,true, true).toLowerCase() == "script") tagName = "span";
+  
 
   // create DOMElement specifying 'this' as ownerDocument
   var node = new DOMElement(this);
@@ -2648,7 +2650,6 @@ DOMDocument.prototype.createElement = function DOMDocument_createElement(tagName
   // GDW
   node.bind_real_dom(); // will create real DOM element
 
-  if(trim(tagName,true, true).toLowerCase() == "form") node.___link.target="_blank";
   
   // add Element to 'all' collection
   this.all[this.all.length] = node;
@@ -3073,11 +3074,69 @@ DOMElement.prototype = new DOMNode;
  */
 DOMElement.prototype.bind_real_dom = function DOMElement_bind_real_dom() {
   if(!document.createElement) return; // document must be globally defined anyways but should be null :-\ XXX DOC for implementations!
-  this.___link = document.createElement(this.tagName); // call ONLY when tagName initialized
+  var tagName = this.tagName;
+  
+  if(trim(tagName,true, true).toLowerCase() === "script") {
+    tagName = "span";
+    this.___isScript = true;
+  }
+  else if(trim(tagName,true, true).toLowerCase() === "body") {
+    tagName = "div";
+    this.___isBody = true;
+    if(!this.ownerDocument.body) this.ownerDocument.body = this; // whenever created...
+    
+  } else if(trim(tagName,true, true).toLowerCase() === "meta") {
+    tagName = "span";
+    this.___isMeta = true;
+  } else if(trim(tagName,true, true).toLowerCase() === "iframe") {
+    tagName = "div";
+    this.___isIframe = true;
+    // now bind contentWindow, contentDocument, etc.
+    // XXX WARNING: ABI mess with jsdom.js (highly backwards-dependent)
+    
+    this.ownerDocument.___vm.global.window.frames.push(this);
+    
+    var di = new DOMImplementation();
+    this.contentDocument = di.loadXML("");
+    this.contentDocument.___vm = this.ownerDocument.___vm;
+	this.contentWindow = new __Window(); // XXX DOC WARNING! this will not be 'conforming' since we dont create a separate 'global' scope for this
+    
+    // this is all shit since is not used as 'global' for inline scripts...
+    this.contentWindow.document = this.contentDocument;
+    this.contentWindow.location = "JENERIC";
+    this.contentWindow.parent = this.ownerDocument.___vm.global.window; // TODO: nested iframes support
+    this.contentWindow.top = this.ownerDocument.___vm.global.window; // TODO: nested iframes support
+    this.contentWindow.window = this.contentWindow;
+    this.contentWindow.self = this.contentWindow;
+    this.contentWindow.frameElement = this;
+    this.contentDocument.defaultView = this.contentWindow;
+    // now this is a shit 
+    // DOC this shit
+    //  this means that only one iframe is supported per VM.
+    //  thi means this is shit. I dont currently know how to refactor code to support for iframes
+    //  this shit was invented for codemirror editor
+    this.contentDocument.___vm.global.window.frameElement = this; // circular frame link...
+    this.contentDocument.___vm.global.window.parent = this.contentDocument.___vm.global.window;
+    this.contentDocument.___vm.global.parent = this.contentDocument.___vm.global;
+    
+    
+  } else if(trim(tagName,true, true).toLowerCase() === "link") {
+    tagName = "span";
+    this.___isLink = true;
+  }
+  
+  this.___link = document.createElement(tagName); // call ONLY when tagName initialized
   this.___link.___id = __dom_id();
   this.attributes.___link = this.___link;
   this.style = this.___link.style; // XXX is this secure?
   //this.childNodes.___link = this.___link;
+  
+  if(trim(tagName,true, true).toLowerCase() == "form") this.___link.target="_blank";
+  if(this.___isScript || this.___isMeta || this.___isLink) this.___link.style.display="none";
+  if(this.___isIframe) this.contentDocument.___bodyLink = this.___link;
+  //if(this.___isBody && this.ownerDocument.___bodyLink) this.ownerDocument.___bodyLink.appendChild(this.___link);
+  
+  
 };
 
 
@@ -3127,9 +3186,37 @@ DOMElement.prototype.getAttribute = function DOMElement_getAttribute(name) {
  */
 DOMElement.prototype.setAttribute = function DOMElement_setAttribute(name, value) {
   // JN if name starts with 'on' -> skip it. Nothing starts with "on" in attribute model here (DOM0)
-  if(name.toLowerCase().substr(0,2) == "on") return; // do nothing
-  if(name.toLowerCase() === "src" || (name.toLowerCase() === "data" && !this.___flash)) return;
-  if(name.toLowerCase() === "type" && value === "application/x-shockwave-flash") this.___flash = true; // todo: not sure this works in IE
+  var sname = name.toLowerCase();
+  if(sname.substr(0,2) == "on") return; // do nothing
+  if(sname === "src" && this.___isLink && this.___isStyleSheet) { // get & parse the css
+  console.log("will iport CSS!!");
+    this.ownerDocument.___vm._importCSS(this.ownerDocument.___vm, src, false);
+  }
+  
+  
+  //////////////////////////////////////////////
+  // WARNING! THS IS NT ORKING ESS!!!!!!!!!!!!
+  
+  
+  
+  if(sname === "src" && this.___isScript) { // get & parse the script
+    if(!this.ownerDocument.___scriptTagStack) {
+        var x2 = new this.ownerDocument.___vm.ExecutionContext(GLOBAL_CODE);
+        this.ownerDocument.___scriptTagStack = new __Stack(x2);
+        this.ownerDocument.___scriptTagStack.queueSize = 1;
+    } else {
+        this.ownerDocument.___scriptTagStack.queueSize++;// see jsdom for load window.addEvent...
+    }
+    eos_om["import"].call(this.ownerDocument.___vm, src, this.ownerDocument.___scriptTagStack);
+  }
+  if(sname === "src" || (name.toLowerCase() === "data" && !this.___flash)) return;
+  if(sname === "type" && value === "application/x-shockwave-flash") this.___flash = true; // todo: not sure this works in IE
+  
+  
+  if(sname == "rel" && value.toLowerCase() == "stylesheet"){
+	
+	  this.___isStyleSheet = true;
+  }
   // if attribute exists, use it
   var attr = this.attributes.getNamedItem(name);
 
@@ -3227,7 +3314,43 @@ DOMElement.prototype.setAttributeNode = function DOMElement_setAttributeNode(new
   if (this.ownerDocument.implementation._isIdDeclaration(newAttr.name)) {
     this.id = newAttr.value;  // cache ID for getElementById()
   }
-  //console.log("in set!!");
+  
+  //var okay = true;
+  
+  // now guarding code
+  var sname = newAttr.name.toLowerCase();
+  var value = newAttr.value;
+  
+  // or maybe do these gurds at setNamedItem?
+  if(sname.substr(0,2) == "on") return; // do nothing
+  if(sname == "target" && value == "_self") return; // do nothing
+  
+  if(sname === "type" && value === "application/x-shockwave-flash") this.___flash = true; // todo: not sure this works in IE
+  
+  if(sname == "rel" && value.toLowerCase() == "stylesheet") {
+    this.___isStyleSheet = true;
+  }
+  
+  if(sname === "href" && this.___isLink && this.___isStyleSheet) { // get & parse the css
+    //console.log("AAAAA->will iport CSS!! "+value);
+    this.ownerDocument.___vm._importCSS(this.ownerDocument.___vm, value, false);
+  }
+  
+  if(sname === "src" && this.___isScript) { // get & parse the script
+    if(!this.ownerDocument.___scriptTagStack) {
+        var x2 = new this.ownerDocument.___vm.ExecutionContext(GLOBAL_CODE);
+        this.ownerDocument.___scriptTagStack = new __Stack(x2);
+        this.ownerDocument.___scriptTagStack.queueSize = 1;
+    } else {
+        this.ownerDocument.___scriptTagStack.queueSize++;// see jsdom for load window.addEvent...
+    }
+	
+    eos_om["import"].call(this, this.ownerDocument.___vm, value, this.ownerDocument.___scriptTagStack);
+  }
+  
+  if(this.tagName.toLowerCase() != "img" && (sname === "src" || (name.toLowerCase() === "data" && !this.___flash))) return;
+  // TODO: SRC security checks and validation
+  
   if(this.___link && newAttr.___link && this.___link.setAttributeNode) {
     this.___link.setAttributeNode(newAttr.___link);
     //console.log("Setting attrNode "+newAttr.___link.value);

@@ -85,16 +85,6 @@ else return document.body.clientWidth;
 
 */
 
-
-
-
-
-// XXX LAME! the ___ property can still be accessed via obj["___propname"]
-
-
-
-
-
 Jnaric.prototype.bind_dom = function (wrapped_domElement) {
     
   
@@ -132,67 +122,83 @@ Jnaric.prototype.bind_dom = function (wrapped_domElement) {
     
     this.global.document.___vm = this;
     
-    
-    this.global.window = new __Window();
+    this.global.document.defaultView = this.global;
     
     // now extend global with window
+    // NO! window IS global!
+    /*
     for(var o in this.global.window) {
         this.global[o] = this.global.window[o];
     }
+    */
     
+    /*
     this.global.window.document = this.global.document;
     this.global.window.location = "JENERIC";
     this.global.window.parent = this.global.window;
     this.global.window.top = this.global.window;
     this.global.window.window = this.global.window;
     this.global.window.self = this.global.window;
+    */
+    
+    extendWindow(this.global);
     
     // TODO HERE: importCSS method
     //  parse the CSS to apply only to descendants
     this.global.importCSS = function (uri) {
-        return self._importCSS(self, uri);
+        return self._importCSS(self, uri, true);
     };
     
     this.global.document.styleSheets = [(new __CSSStyleSheet(this))]; // only one stylesheet per vm!
     this.cssRules = []; // should be a list of rules for this particular VM (TODO: to be cleaned by some mechanism)
 };
 
-Jnaric.prototype._importCSS = function (__tihs, src_uri) { // safari bug
-    __tihs.cur_stack.EXCEPTION = false;
-    __tihs.cur_stack.my.v0 = undefined;
-    
-    // set up a stop execution flag
-    var _mystop = __jn_stacks.newId();
-    __tihs.cur_stack.STOP = _mystop;
-    var __cs = __tihs.cur_stack;
-    
-    
+Jnaric.prototype._importCSS = function (__tihs, src_uri, stop) {
+    // stop indicates whether to stop the stack
+    if(stop) {
+        __tihs.cur_stack.EXCEPTION = false;
+        __tihs.cur_stack.my.v0 = undefined;
+        
+        // set up a stop execution flag
+        var _mystop = __jn_stacks.newId();
+        __tihs.cur_stack.STOP = _mystop;
+        var __cs = __tihs.cur_stack;
+    }
+    var vm = __tihs;
     var exec_f = function (rs, obj) {
         var ruleStr = rs.result.toString();
         
-        if( __cs.STOP != _mystop ) // means TIMEOUT already fired. Also, if it is != false then a serious programming error may be in place!!
+        if( stop && __cs.STOP != _mystop ) // means TIMEOUT already fired. Also, if it is != false then a serious programming error may be in place!!
                 return;
+        
         
         // now parse the ruleset
         ruleStr.replace(/\/\*.+\*\//g, "");
         // split rules
+        
         var ruleList = ruleStr.split("}");
-        __cs.my.x2.result = true; // DOC: test and document this!
-        if(vm.global.styleSheets[0]) {
-            for(var i=0; i<ruleList.length; i++){
+        ruleList.pop(); // pop the last null- split
+        
+        if(stop) __cs.my.x2.result = true; // DOC: test and document this!
+        if(vm.global.document.styleSheets[0]) {
+            
+            for(var i=0; i<ruleList.length; i++) {
                 try {
-                    vm.global.styleSheets[0].insertRule(ruleList[i]+"}");
+                    
+                    vm.global.document.styleSheets[0].insertRule(ruleList[i]+"}");
+                    
                 } catch (e) {
                     vm.ErrorConsole.log("Error parsing CSS rule: "+ruleList[i]+"}"+" , Error: "+e);
-                    __cs.my.x2.result = false;// DOC: test and document this!
+                    if(stop) __cs.my.x2.result = false;// DOC: test and document this!
                 }
             }
         }
         
-        
-        __cs.STOP = false;
-        //__tihs.step_next(__cs);
-        __jn_stacks.start(__cs.pid);
+        if(stop) {
+            __cs.STOP = false;
+            //__tihs.step_next(__cs);
+            __jn_stacks.start(__cs.pid);
+        }
     };
     
     /*            
@@ -220,17 +226,21 @@ Jnaric.prototype._importCSS = function (__tihs, src_uri) { // safari bug
     // fire the ajax load component
     
     var onfail = function (rs) {
-        if( __cs.STOP != _mystop ) // means TIMEOUT already fired
+        if( stop && __cs.STOP != _mystop ) // means TIMEOUT already fired
                 return;
 
-        __cs.EXCEPTION = THROW;
-        var ex = new __tihs.global.InternalError("importCSS('"+src_uri+"') failed with exception: "+rs.result);
-        ex.status = rs.status;
-        __cs.exc.result = ex;
+        if(stop) {
+            __cs.EXCEPTION = THROW;
+            var ex = new __tihs.global.InternalError("importCSS('"+src_uri+"') failed with exception: "+rs.result);
+            ex.status = rs.status;
+            __cs.exc.result = ex;
 
-        __cs.STOP = false;
-        //__tihs.step_next(__cs);  
-        __jn_stacks.start(__cs.pid);              
+            __cs.STOP = false;
+            //__tihs.step_next(__cs);  
+            __jn_stacks.start(__cs.pid);              
+        } else {
+            vm.ErrorConsole.log("importCSS('"+src_uri+"') failed with exception: "+rs.result);
+        }
     };
     
     kIPC(__tihs, src_uri, "read", [], exec_f, onfail);
@@ -333,6 +343,10 @@ N designMode ?? (or dont support it??)
 
 ___DOMHTMLGetters = {
     contentEditable: __htmldom_get_direct,
+    designMode: function (name) {
+        if(this.___link && this.___link.contentEditable) return "on";
+        else return "off";
+    },
     innerHTML: __htmldom_get_direct,
     
     textContent: function (name) {
@@ -434,7 +448,7 @@ ___DOMHTMLGetters = {
     rev: __htmldom_get_direct,
     target: __htmldom_get_direct,
     type: __htmldom_get_direct,
-    
+    spellcheck: __htmldom_get_direct,
     // form
     
     action : __htmldom_get_direct,
@@ -472,6 +486,9 @@ ___DOMHTMLGetters = {
 // Setters should always return a value
 ___DOMHTMLSetters = {
     contentEditable: __htmldom_set_direct,
+    designMode: function (name, value) {
+        this.___link && (this.___link.contentEditable = (value==="on" ? true : false));
+    },
     innerHTML: function (name, value) {
         /*
         // parse through innerHTML
@@ -589,7 +606,7 @@ ___DOMHTMLSetters = {
         if(val != "_self") this[name] = val;
     },
     type: __htmldom_set_direct,
-    
+    spellcheck: __htmldom_set_direct,
     // form
     action : __htmldom_set_direct,
     enctype : __htmldom_set_direct,
@@ -920,6 +937,34 @@ DOMDocument.prototype.___rebuild_cache = function () {
     }
     this.___DOMcache_outdated = false;
 };
+
+
+// write as an attempt to conform to HTML5 SPEC
+
+DOMDocument.prototype.write = function () {
+    var args = Array.prototype.slice.call(arguments);
+    var s = args.join("");
+    // XXX or just do .loadXML and flush current document??
+    this._parseComplete = false;
+    parser = new XMLP(s);
+    this.implementation.___parseLoop(this, parser);
+    this._parseComplete = true;
+};
+
+DOMDocument.prototype.open = function () {}; // XXX just dont even know how to implement this...
+DOMDocument.prototype.close = function () {}; // XXX just dont even know how to implement this...
+/*
+
+ if we need to register onload event for an iframe:
+ 
+ 1. document finished parsing
+ 2. iframe.ownerDocument.___scriptTagStack -> when becoms empty 
+	(register core onfinish event && onfinish_onerror)
+ 
+ onload event for main is LTR but seems straightforward
+ LTR: inline script parsing (a bad thing though)
+
+*/
 
 ////////////////////////////////////////////////////////////////////
 // EVENT MODEL
@@ -1509,6 +1554,29 @@ window.scrollByPages
 
 // window object should extend 'global' object with all its methods and properties!
 
+// a function to extend global with window
+function extendWindow(global) {
+    global.window = global;
+    
+    global.frameElement = null;
+    global.frames = [];
+    global.length = 0;
+    
+    
+    global.window.location = "JENERIC";
+    global.window.parent = global.window;
+    global.window.top = global.window;
+    global.window.window = global.window;
+    global.window.self = global.window;
+    
+    for(ob in __Window.prototype) {
+        global[ob] = __Window.prototype[ob];
+    }
+    
+}
+
+// reference. should not be called.
+
 function __Window() { 
     // this.document to be set by inuit!!!!
     this.frameElement = null;
@@ -1516,6 +1584,7 @@ function __Window() {
     this.length = 0;
         
 }
+
 
 // just do not implement incompatible methods!!
 // __Window.prototype.back = fake;
@@ -1540,6 +1609,72 @@ __Window.prototype.scroll = __Window.prototype.scrollTo;
 __Window.prototype.scrollBy = function (x,y) {
     if(window.scrollBy) window.scrollBy(x,y);
 };
+__Window.prototype.focus = function () {
+    window.focus();
+};
+__Window.prototype.blur = function () {
+    // do nothing
+};
+
+
+/*
+    TODO: window event handling:
+    addEventListener/removeEventListener/listEventListeners
+    events:
+        load ( -> all scripts loaded, CSS loaded, etc.)
+        unload (-> onclose)
+        scroll (reroute to window.document.body.addEventListener)
+
+*/
+
+__Window.prototype.addEventListener = function ( type, listener, useCapture, skip, preventDefault) {
+    
+    if(type == 'load' || type == 'DOMContentLoaded') { 
+        // DOC: window.onload event only available for iframes with coode supplied by document.write
+        //      will attach to the first code-running frame detected
+        
+        // searching for stack in current document or frames
+        var sstack = null;
+        if(this.document.___scriptTagStack) sstack = this.document.___scriptTagStack;
+        else { 
+            for(var i=0; i<this.frames.length; i++) {
+                if(this.frames[i].contentWindow.document.___scriptTagStack) {
+                    sstack = this.frames[i].contentWindow.document.___scriptTagStack;
+                }
+            }
+        }
+        if(sstack) {
+            
+            var self = this;
+            sstack.onfinish = function () {
+                //console.log("onfinish figanulo!!! : "+sstack.queueSize);
+                // now check if there is something loading
+                if(!sstack.queueSize) {
+                    //console.log("Starting ONLOAD!!!!!");
+                    var evt_fakeerr = function ( err ) { self.document.___vm.ErrorConsole.log("Error executing onload event handler: "+err); };
+                    self.document.___vm.execf_thread(listener, [{}], fake, evt_fakeerr);
+                }
+            }
+        } else {
+            this.document.___vm.ErrorConsole.log("Failed to find which script stack to attach onload to!");
+        }
+    } else if (type == 'unload') {
+        // do nothing
+    } else {
+        // XXX TODO: onscroll event will likely be at higher (inaccessible from within here) DIV
+        this.document.body.addEventListener( type, listener, useCapture, skip, preventDefault);
+    }
+};
+
+__Window.prototype.removeEventListener = function ( type, listener, useCapture ) {
+    if(type == 'load') { 
+        // is very unlikely that it will ever be called... (TODO)
+    } else if (type == 'unload') {
+        // do nothing
+    } else {
+        this.document.body.removeEventListener( type, listener, useCapture );
+    }
+}
 
 if(window.getSelection) {
     __Window.prototype.getSelection = function getSelection () {
@@ -1565,7 +1700,7 @@ if(window.getSelection) {
             range.setStart(this.___link.anchorNode,this.___link.anchorOffset);
             range.setEnd(this.___link.focusNode,this.___link.focusOffset);
         }
-        wrange = new __Range();
+        var wrange = new __Range();
         wrange.___link = range;
         wrange.___document = this.___document;
 		return wrange;
@@ -1630,8 +1765,14 @@ if(window.getSelection) {
         focusOffset: __htmldom_get_direct,
         isCollapsed: __htmldom_get_direct,
         rangeCount: function (name) { // __htmldom_get_direct // not supported by Safari, Opera, Chrome
+            if(this.___link.rangeCount) {
+                // DOC multiple selections are unsupported
+                var r = this.getRangeAt(0);
+                // we should return 0 if the selection is outside our scope!
+                if(r.___getters.startContainer.call(r, "startContainer") == null) return 0;
+            }
             if("rangeCount" in this.___link) return this.___link.rangeCount;
-            return 1;
+            return 0;
         }
     };
     
@@ -1688,6 +1829,7 @@ if(window.getSelection) {
     __Range.prototype.collapse = function (toStart) {
         this.___link.collapse(toStart);
     };
+    
     
     // --- editing methods
     
@@ -1750,6 +1892,45 @@ if(window.getSelection) {
     __Range.prototype.toString = function () {
         // TODO: DOM security enhancements!
         return this.___link.toString();
+    };
+    
+    __Range.prototype.___getters = {
+        collapsed: function(name) {
+            return this.___link.collapsed;
+        },
+        
+        // copypaste region... ;-)
+        commonAncestorContainer: function (name) {
+            var el = this.___document.___get_from_link(this.___link[name]);
+            if(el) return el;
+            return null;
+        },
+        endContainer: function (name) {
+            var el = this.___document.___get_from_link(this.___link[name]);
+            if(el) return el;
+            return null;
+        },
+        endOffset: function (name) {
+            return this.___link.endOffset;
+        },
+        startContainer: function (name) {
+            var el = this.___document.___get_from_link(this.___link[name]);
+            if(el) return el;
+            return null;
+            
+        },
+        startOffset: function (name) {
+            return this.___link.startOffset;
+        }
+    };
+    
+    __Range.prototype.___setters = {
+        collapsed: 1,
+        commonAncestorContainer:1,
+        endContainer: 1,
+        endOffset: 1,
+        startContainer: 1,
+        startOffset: 1
     };
     
     __Range.prototype.END_TO_END = Range.END_TO_END;
@@ -1978,8 +2159,19 @@ __CSSStyleSheet.prototype.insertRule = function (ruleStr, indx) {
     if(ruleStr.match(/(})/g).length != 1) {
         throw "wrong rule!";
     }
+    
+    var p = ruleStr.split("{")[0];
+    var r = "{"+ruleStr.split("{")[1];
+    
+    var lp = p.split(",");
+    var op = [];
+    for(var ii = 0; ii<lp.length;ii++) {
+        op.push("#"+this.___vm.uriId+" "+lp[ii]);
+    }
+    var p = op.join(",");
+    ruleStr = p+" "+r;
 
-    ruleStr = "#"+this.___vm.uriId+" "+ruleStr;
+    //ruleStr = "#"+this.___vm.uriId+" "+ruleStr;
     if (document.styleSheets[0].cssRules) {
         var real_idx = document.styleSheets[0].cssRules.length;
         //console.log("Inserting rule: "+ruleStr);
@@ -1987,10 +2179,11 @@ __CSSStyleSheet.prototype.insertRule = function (ruleStr, indx) {
         var styleObj = document.styleSheets[0].cssRules[real_idx];
     } else {
         var real_idx = document.styleSheets[0].rules.length;
-        var sel = ruleStr.split("{")[0];
-        var rul = "{"+ruleStr.split("{")[1];
+        //var sel = ruleStr.split("{")[0];
+        //var rul = "{"+ruleStr.split("{")[1];
         //console.log("Inserting sel: "+sel+" rul: "+rul);
-        document.styleSheets[0].addRule(sel, rul, real_idx);        
+        //document.styleSheets[0].addRule(sel, rul, real_idx);        
+        document.styleSheets[0].addRule(p, r, real_idx);        
         var styleObj = document.styleSheets[0].rules[real_idx];
     }
     this.cssRules[indx].___idx = real_idx;

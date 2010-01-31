@@ -1,0 +1,33 @@
+<html>
+<head>
+<meta http-equiv="X-UA-Compatible" content="chrome=1"/> <!-- bye bye mr.Ballmer -->
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+<script> document.domain = document.domain; </script>
+<link href="/os/fauxconsole.css" rel="stylesheet" type="text/css" />
+
+</head>
+
+<body>
+    
+    <script>
+     function err () {
+          try {
+              if(document.styleSheets[0].cssRules) {
+                    r = document.styleSheets[0].cssRules.length;
+              } else {
+                    r = document.styleSheets[0].rules.length; // testing IE
+              }
+          } catch (e) {
+                alert(e);
+          }
+      }
+      
+      //err();
+      
+      
+      setTimeout(err, 500);
+      
+    </script>
+
+</body>
+</html>

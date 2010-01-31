@@ -1823,35 +1823,56 @@ eos_om = {
         ch.kconfig_w = kconfig_w;
     },
     
-    "import": function (__tihs, src_uri) { // safari bug
+    "import": function (__tihs, src_uri, sstack) { // safari bug
         // TODO: DOC: XXX: should an import timeout or not??
-        __tihs.cur_stack.EXCEPTION = false;
-        __tihs.cur_stack.my.v0 = undefined;
-        
-        // set up a stop execution flag
-        var _mystop = __jn_stacks.newId();
-        __tihs.cur_stack.STOP = _mystop;
-        var __cs = __tihs.cur_stack;
-        
+        // ABI: sstack is a special stack to push to (for iframe imports)
+        if(!sstack) {
+            __tihs.cur_stack.EXCEPTION = false;
+            __tihs.cur_stack.my.v0 = undefined;
+            
+            // set up a stop execution flag
+            var _mystop = __jn_stacks.newId();
+            __tihs.cur_stack.STOP = _mystop;
+            var __cs = __tihs.cur_stack;
+        } else {
+			var __cs = sstack;
+		}
         
         var exec_f = function (rs, obj) {
             var data = rs.result;
             // like evaluate, but push!
-            if( __cs.STOP != _mystop ) // means TIMEOUT already fired. Also, if it is != false then a serious programming error may be in place!!
+            if(!sstack && __cs.STOP != _mystop ) // means TIMEOUT already fired. Also, if it is != false then a serious programming error may be in place!!
                     return;
-            
+            // TODO HERE: add task if stack is not yet init; go another path for task specified
+            //      ... __jn_stacks.add_task(this, g_stack, this.nice, this.throttle);
             try {
                 var _p = parse(data, src_uri, 0);
                 //__cs.push(S_EXEC, {n: _p, x: __cs.exc, pmy: {}}); // append it to the 'end' of execution stack
-                __cs.stack.unshift({n: _p, x: __cs.exc, pmy: {}}); // virtually 
+                if(!sstack) __cs.stack.unshift({n: _p, x: __cs.exc, pmy: {}}); // virtually 
+                else {
+                    sstack.stack.unshift({n: _p, x: __cs.exc, pmy: {}}); // virtually 
+                    if(!sstack.pid || sstack.stack.length == 1)   
+                            __jn_stacks.add_task(__tihs, sstack, __tihs.nice, __tihs.throttle);
+                    sstack.queueSize--; // XXX see jsdom2: how sstack is set up in setAttribute; also see jsdom how window.addEventListener & onload work
+                    
+                }
             } catch (e) {
-                __cs.EXCEPTION = THROW;
-                __cs.exc.result = e;// TEST THIS!!
+                if(!sstack) {
+                    __cs.EXCEPTION = THROW;
+                    __cs.exc.result = e;// TEST THIS!!
+                } else {
+                    __tihs.ErrorConsole.log("Import exec error! "+e);
+					__tihs.ErrorConsole.log(e);
+                }
             }
             
-            __cs.STOP = false;
-            //__tihs.step_next(__cs);
-            __jn_stacks.start(__cs.pid);
+            if(!sstack) {
+                __cs.STOP = false;
+                //__tihs.step_next(__cs);
+                __jn_stacks.start(__cs.pid);
+            } else {
+                sstack.pid && __jn_stacks.start(sstack.pid);
+            }
         };
         
         /*            
@@ -1879,17 +1900,23 @@ eos_om = {
         // fire the ajax load component
         
         var onfail = function (rs) {
-            if( __cs.STOP != _mystop ) // means TIMEOUT already fired
+            if(!sstack && __cs.STOP != _mystop ) // means TIMEOUT already fired
                     return;
+                    
+            if(!sstack) {
+                __cs.EXCEPTION = THROW;
+                var ex = new __tihs.global.InternalError("import('"+src_uri+"') failed with exception: "+rs.result);
+                ex.status = rs.status;
+                __cs.exc.result = ex;
 
-            __cs.EXCEPTION = THROW;
-            var ex = new __tihs.global.InternalError("import('"+src_uri+"') failed with exception: "+rs.result);
-            ex.status = rs.status;
-            __cs.exc.result = ex;
-
-            __cs.STOP = false;
-            //__tihs.step_next(__cs);  
-            __jn_stacks.start(__cs.pid);              
+                __cs.STOP = false;
+                //__tihs.step_next(__cs);  
+                __jn_stacks.start(__cs.pid);              
+            } else {
+                var ex = new __tihs.global.InternalError("import('"+src_uri+"') failed with exception: "+rs.result);
+                ex.status = rs.status;
+                __tihs.ErrorConsole.log(""+ex);
+            }
         };
         
         kIPC(__tihs, src_uri, "read", [], exec_f, onfail);
@@ -2169,7 +2196,7 @@ Jnaric.prototype.bind_om = function () {
     
     this.global.object["import"] = function (srcURI) { // safari bug
         // kernel extension to import code into current stack and scope
-        return eos_om["import"].call(this, __tihs, srcURI);
+        return eos_om["import"].call(this, __tihs, srcURI, false);
     };
     this.global["import"] = this.global.object["import"];
     

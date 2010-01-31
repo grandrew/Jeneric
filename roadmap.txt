@@ -235,20 +235,59 @@ URGENT:
 ? need faster hub connection init! (not very essential, hub connection is actually OK)
 - highlighting editor (codemirror?)
     - need better iframe support, at least these:
-        - frame.contentWindow
-        - frame.contentWindow.document
-        - document.write(HTML) -> better HTML parser, remove <link> tags, etc.
-            - parse <link> + CSS tags, (and add display: none to SPANs)
-            - parse <script> with SRC, the same
-            - catch 'on' events (like onload)
-            - 
+        + iframe => div (??? make RETURN IFRAME! (only create link as <div>, <span>, etc. NOT in createElement!! TODO!!
+        + frame.contentWindow
+        + frame.contentWindow.document
+        + ..document.body, ownerDocument contentDocument contentWindow wrap/trap!
+        + document.designMode = "on" / "off" -> behave as contentEditable
+        + document.write(HTML) -> feed the di sax parser further
+        + SPAN with style display:none (hard-coded)
+        + parse <body> to <div>
+        + parse <html> <meta> <title>  and such into <span> with display: none and set js intrf 'origTagName' to original tagName 
+        + parse <link> + CSS tags, (and add display: none to SPANs)
+        - parse <script> with SRC, the same
+            - what stack to import scripts to??
+                - create a new stack associated with iframe "main thread"
+        + for the script inside IFRAME: ownerDocument->document to have window.top and parent
+        + element.spellcheck = true/false
+        - catch 'on' events (like onload)
+            - see https://developer.mozilla.org/en/iframe: Some quirks of the iframe in design mode: Elements 'onclick' functions doesn't work - add events with addEventListener window.setTimeout doesn't work. Use parent. 
 - multi-line string
+- remove fetchUrl & load () when bind_om init (security)
+- ic: better parse of errors when program launch (maybe attach to errorLog??)
+- ic: bug with autocompletion (double-check the regex to 1. match only from beginning and 2. return ful string)
+- ic: removing dead program doesn't work via click on "close"
+- ic: remove these: 'child not found in cl' and 'IC: failed to remove child'
+- ack! is sent 35 times (!!) during codeMirror loading
+- hub leaks memory when client actively reannounces :-\ - should stop the bad-behaving client from flooding the base
+- check that event handler stck queue really works!
+- why is 'import' unshifting stack instead of pushing?? that doesnt seem to be correct
+- exceptions line and file are not set in chrome browser
+- some strange info at the end of stack traces found :-\
+- deal with JSDOM setAttribute/js DOM intrf mess (props set/get by .type != .setAttribute('type', v) )
+  normalize:
+	- setNamedItem
+	- DOMElement_setAttributeNode
+	- bind_real_dom
+	- setAttribute
+	- ___setters&getters
+  do for:
+    - a & tagret
+    - form & tagret
+    - link & disallow non-css
+    - object - disallow everything except for flash, set params to not call external JS
+    - object, form src!
+- enhance/reduce logging for jsobject/eosinit: log only if KCONFIG("debug") is set; and set the level
+    - or maybe introduce firebug/console-only setup??? like set DEBUG=<LEVEL> in firebug to enable logging?
+    - check jsexec for (full) conformance with DEBUG variable
+    - methods to setup debug for within inside VM (but! checks for global DEBUG before logging) -- 'attach to console' here
 - cookie session auth
 - i've created a temporary session folder for you at /home/(termname)/
     - make sessions persistent through page reloads (?)
 - how to change security model of an object?? - only a super-puper user may do that; or the security code itself
     - terminal has initial security. It must to allow or to disallow the setting of security by object parent (at inittime or runtime)
     - denote every single kernel feature and allow security code to manage it (we need a wiki page on that)
+- detach all I/O methods from VM!
 - security model
 - security to return optional "reason" value: true or text that will be set to "deny reason" for EPERM, etc.
     - modify EPERM error transfer
@@ -257,6 +296,7 @@ URGENT:
 - object description protocol (at least for storage objects + naming) type, length, content-type
     - link should always report type 'link' (kernel feature?)
 - objects manipulating toolkit
+- cute "OK" check for POSTs (to indicate the POST was OK)
 - html templating support via core extension (require STL to get this to work; it will be later replaced by userspace library since userspace will be _as fast as kernel_)
 - html FORM, OBJECT & applet/flash security (write flash mp3 player?)
     - test CSS writing a cute mp3 player
@@ -277,6 +317,8 @@ URGENT:
 - write SvoyaSet panel?? or make SS entirely AJAX (see some Elgg tutorial to AJAXify it)
 - International version yrmarkt.com, yourmarkt.com, corpoware.com, webnotware.com, warenot.com, warebs.com, 
 - remove unneeded commands from IC
+- terminal ipc method ping
+    - and 'ping' program
 
 - process control routines
 - print_traceback() kernel method
@@ -326,6 +368,7 @@ URGENT:
 
 --- LTR line
 ----------------
+- highlighting mc-like (keyboard-driven) code browser
 - some terminal security improvements
     - move terminal_auth to terminal.jn responsibility (only allow to auth from "~" object)
     - implement passwd change in ic.jn (write program?)
