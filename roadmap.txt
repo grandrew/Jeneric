@@ -252,6 +252,31 @@ URGENT:
         + element.spellcheck = true/false
         - catch 'on' events (like onload)
             - see https://developer.mozilla.org/en/iframe: Some quirks of the iframe in design mode: Elements 'onclick' functions doesn't work - add events with addEventListener window.setTimeout doesn't work. Use parent. 
+- iframe core refactoring: support for iframe code scope trap
+    - enumerate scope-formation places: 'global' scope setup, etc.
+        - setTimeout (thisObject)
+        - start_new_thread
+        - setInterval
+        ---- the above may not require scope change (see spec.)
+        - FUNCTIONOBJECT_PROTOTYPE._call (thisObject)
+        - new Function: (in global init)
+        - ExecutionContext.prototype.scope this.XCp.scope = {object: this.global, parent: null};; thisObject next line
+        - reflectClass uses global [check]
+        - putValue uses global as default scope search path
+        - toObject uses global to convert [check]
+        - step_next in error checking uses global to check for InternalError
+        - all internalError set by global.InternalError
+        - error deref algorith uses global [skip]
+        - execf_thread sets thisObject (incorrectly? compare with setTimeout?)
+        - execf_stack
+        - native __hasInstance uses vm.global.Function check
+    - add ability to alter global scope
+    - add ability to create new global scope via method
+        - maybe "fork scope?" - mean, link to global InternalError and other defaults?
+            then all the code will work with global scope forks...
+    - rewrite iframe scope creation procedure (to run all code from new scope)
+    - rewrite onload event
+    - test!
 - multi-line string
 - remove fetchUrl & load () when bind_om init (security)
 - ic: better parse of errors when program launch (maybe attach to errorLog??)

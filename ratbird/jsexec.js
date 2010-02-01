@@ -2204,24 +2204,9 @@ Jnaric.prototype.step_next = function (g_stack) {
                 }
                 
             }
-            try {
-                ex.pmy[ex["e"]] = v;
-            } catch (e) {
-                console.log("Catching...");
-                console.log(e);
-                // now, to debug, we need:
-                // 1. stack trace
-                __print_strace(g_stack);
-                // 2. value types
-                console.log("V is: "+v);
-                AAA = ex.pmy;
-                BBB = ex["e"];
-                console.log("TYPE: "+typeof(ex.pmy[ex["e"]]));
-                console.log("EX is: "+ex.pmy[ex["e"]]);
-                // 3. set globals to these
-                
-                BBB = ex.pmy[ex["e"]];
-            }
+            
+            ex.pmy[ex["e"]] = v;
+            
         }
         if("v" in ex) {
             if(DEBUG) {
