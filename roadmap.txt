@@ -262,7 +262,8 @@ URGENT:
 - hub leaks memory when client actively reannounces :-\ - should stop the bad-behaving client from flooding the base
 - check that event handler stck queue really works!
 - why is 'import' unshifting stack instead of pushing?? that doesnt seem to be correct
-- exceptions line and file are not set in chrome browser
+- jn-thrown exceptions line and file are not set in chrome browser
+- codemirror sometimes fails to load entirely (slow connection/orbited issue?)
 - some strange info at the end of stack traces found :-\
 - deal with JSDOM setAttribute/js DOM intrf mess (props set/get by .type != .setAttribute('type', v) )
   normalize:

@@ -540,6 +540,7 @@ __jn_stacks = {
                 //          so do the splices over there VERY carefully...
                 
                 try {
+                    ////ex_status = false;
                     ex_status = st.vm.step_next(st.stack);
                 } catch (exc) { // will not stop scheduler!
                     if(window.console) {
@@ -2122,7 +2123,7 @@ Jnaric.prototype.step_next = function (g_stack) {
     // otherwise - throw
     //v = this.step_execute(ex.n, ex.x, g_stack);
     try {
-        //aaa  =111;
+        //var aaa  =111;
         v = this.step_execute(ex.n, ex.x, g_stack);
         //if(ex.x.scope.object.f) this.ErrorConsole.log("f is: "+ex.x.scope.object.f+ " f.___call___ is: "+ex.x.scope.object.f.___call___);
     } catch (e) {
@@ -2203,7 +2204,24 @@ Jnaric.prototype.step_next = function (g_stack) {
                 }
                 
             }
-            ex.pmy[ex["e"]] = v;
+            try {
+                ex.pmy[ex["e"]] = v;
+            } catch (e) {
+                console.log("Catching...");
+                console.log(e);
+                // now, to debug, we need:
+                // 1. stack trace
+                __print_strace(g_stack);
+                // 2. value types
+                console.log("V is: "+v);
+                AAA = ex.pmy;
+                BBB = ex["e"];
+                console.log("TYPE: "+typeof(ex.pmy[ex["e"]]));
+                console.log("EX is: "+ex.pmy[ex["e"]]);
+                // 3. set globals to these
+                
+                BBB = ex.pmy[ex["e"]];
+            }
         }
         if("v" in ex) {
             if(DEBUG) {
@@ -2221,7 +2239,7 @@ Jnaric.prototype.step_next = function (g_stack) {
                     ex.x.result = e;
                     g_stack.EXCEPTION = THROW;
                     g_stack.EXCEPTION_OBJ = e;
-                }
+                } else throw e;
             }
         }
         ex.finally_exec && ex.finally_exec();
@@ -2846,8 +2864,8 @@ Jnaric.prototype.step_execute = function (n, x, stack) {
                     if(!("i" in stack.my)) stack.my.i = 0; // init the loop
                     t = n.catchClauses[stack.my.i];
                     if(!stack.my.reach2try) { // we're only trying to reach the second try block...
-                        if(!("e" in stack.my)) {
-                            stack.my.e = x.result;
+                        if(!("eee" in stack.my)) {
+                            stack.my.eee = x.result;
                             if(this.DEBUG > 3)this.ErrorConsole.log("x.result done");
                         }
                         x.result = undefined;
@@ -2862,22 +2880,22 @@ Jnaric.prototype.step_execute = function (n, x, stack) {
                         }
                         
                         if(stack.my.i == j) {
-                            //x.result = stack.my.e; // here hides the EXCEPTION_OBJ
+                            //x.result = stack.my.eee; // here hides the EXCEPTION_OBJ
                             if(this.DEBUG > 3)this.ErrorConsole.log("i = j!! throw again!!! blin!!!");
                             if(this.DEBUG > 3){var vvvx = []; for(var ob in stack.my) vvvx.push(ob); this.ErrorConsole.log(vvvx);}
                             // stack.EXCEPTION = THROW; // but still execute filnally!! ECMA...
                             stack.my.loop = false;
                             delete stack.EXCEPTION;
                             stack.my.savedException = THROW;
-                            stack.my.savedResult = stack.my.e;
+                            stack.my.savedResult = stack.my.eee;
                             break;
                         }
                         stack.my.loop = true;
                         if(this.DEBUG > 3)this.ErrorConsole.log("loop setup ok; scope setup done");
                         if(this.DEBUG > 3){var vvvx = []; for(var ob in stack.my) vvvx.push(ob); this.ErrorConsole.log(vvvx);}
                         x.scope = {object: {}, parent: x.scope};
-                        //x.scope.object.__defineProperty__(t.varName, stack.my.e, true);                    
-                        x.scope.object[t.varName]= stack.my.e; 
+                        //x.scope.object.__defineProperty__(t.varName, stack.my.eee, true);                    
+                        x.scope.object[t.varName]= stack.my.eee; 
                     } 
                     
                     if(t.guard && (!stack.my.ex2caught)) {
