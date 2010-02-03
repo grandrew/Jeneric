@@ -258,23 +258,24 @@ URGENT:
         - start_new_thread
         - setInterval
         ---- the above may not require scope change (see spec.)
-        - FUNCTIONOBJECT_PROTOTYPE._call (thisObject)
-        - new Function: (in global init)
-        - ExecutionContext.prototype.scope this.XCp.scope = {object: this.global, parent: null};; thisObject next line
-        - reflectClass uses global [check]
-        - putValue uses global as default scope search path
-        - toObject uses global to convert [check]
-        - step_next in error checking uses global to check for InternalError
-        - all internalError set by global.InternalError
-        - error deref algorith uses global [skip]
-        - execf_thread sets thisObject (incorrectly? compare with setTimeout?)
-        - execf_stack
-        - native __hasInstance uses vm.global.Function check
-    - add ability to alter global scope
-    - add ability to create new global scope via method
+            - FUNCTIONOBJECT_PROTOTYPE._call (thisObject)
+            - new Function: (in global init)
+            - ExecutionContext.prototype.scope this.XCp.scope = {object: this.global, parent: null};; thisObject next line
+            - reflectClass uses global [check]
+            - putValue uses global as default scope search path
+            - toObject uses global to convert [check]
+            - step_next in error checking uses global to check for InternalError
+            - all internalError set by global.InternalError
+            - error deref algorith uses global [skip]
+            - execf_thread sets thisObject (incorrectly? compare with setTimeout?)
+            - execf_stack
+            - native __hasInstance uses vm.global.Function check
+        + fixed using global switch
+    + add ability to create new global scope via method
         - maybe "fork scope?" - mean, link to global InternalError and other defaults?
             then all the code will work with global scope forks...
-    - rewrite iframe scope creation procedure (to run all code from new scope)
+    - add ability to alter global scope [????]
+    + rewrite iframe scope creation procedure (to run all code from new scope)
     - rewrite onload event
     - test!
 - multi-line string
@@ -289,6 +290,7 @@ URGENT:
 - why is 'import' unshifting stack instead of pushing?? that doesnt seem to be correct
 - jn-thrown exceptions line and file are not set in chrome browser
 - codemirror sometimes fails to load entirely (slow connection/orbited issue?)
+- editor.js is impossiblt to save via /bin/edit: the system hangs completely FF3.6/eeepc
 - some strange info at the end of stack traces found :-\
 - deal with JSDOM setAttribute/js DOM intrf mess (props set/get by .type != .setAttribute('type', v) )
   normalize:
@@ -314,7 +316,11 @@ URGENT:
     - terminal has initial security. It must to allow or to disallow the setting of security by object parent (at inittime or runtime)
     - denote every single kernel feature and allow security code to manage it (we need a wiki page on that)
 - detach all I/O methods from VM!
+- sequential READ for object type_uri (and sec_uri??) -- see codeMirror problem (HUGE file transfer)
+    - or make HUGE argument transfer more reliable (auto-sequencing??)
+- ISPs as partners: VPS hosting for HUBs
 - security model
+- encrypt passwords
 - security to return optional "reason" value: true or text that will be set to "deny reason" for EPERM, etc.
     - modify EPERM error transfer
 - stabilize init procedure (to look for init in /var or something?)
@@ -328,6 +334,7 @@ URGENT:
     - test CSS writing a cute mp3 player
     - test OBJECT/IFRAME security in IE & others!
 - stress-test the jeneric object database (serializer, swapout, etc. - memory consumption, object limits.. (KCONFIG?))
+- jsexec optimization: do not switch context for EACH step, rather do this for each BURST group
 - better console library (iclib)
 - database access methods
     (or kernel driver object?? - terminal security model that allows for native code "RING0" injection)
@@ -336,6 +343,7 @@ URGENT:
     - friend group search
 - industrial database
     - stress-test what if we use FF/Chrome storage
+    - PUBLIC security model for INDUSTRIAL #1
     - think through how to build a standalone storage (maybe using full JN protocol + security model?)
     - use either solution
 - a descriptive Google Gears ask-for-install field

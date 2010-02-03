@@ -3099,7 +3099,9 @@ DOMElement.prototype.bind_real_dom = function DOMElement_bind_real_dom() {
     var di = new DOMImplementation();
     this.contentDocument = di.loadXML("");
     this.contentDocument.___vm = this.ownerDocument.___vm;
-	this.contentWindow = new __Window(); // XXX DOC WARNING! this will not be 'conforming' since we dont create a separate 'global' scope for this
+	//this.contentWindow = new __Window(); // XXX DOC WARNING! this will not be 'conforming' since we dont create a separate 'global' scope for this
+    this.contentWindow = this.ownerDocument.___vm.createGlobal();
+    extendWindow(this.contentWindow);
     
     // this is all shit since is not used as 'global' for inline scripts...
     this.contentWindow.document = this.contentDocument;
@@ -3115,10 +3117,17 @@ DOMElement.prototype.bind_real_dom = function DOMElement_bind_real_dom() {
     //  this means that only one iframe is supported per VM.
     //  thi means this is shit. I dont currently know how to refactor code to support for iframes
     //  this shit was invented for codemirror editor
+    
+    // these already set up 
+    //this.contentWindow.window.frameElement = this; // circular frame link...
+    //this.contentWindow.window.parent = this.contentDocument.___vm.global.window;
+    //this.contentWindow.parent = this.contentDocument.___vm.global;
+    
+    /*
     this.contentDocument.___vm.global.window.frameElement = this; // circular frame link...
     this.contentDocument.___vm.global.window.parent = this.contentDocument.___vm.global.window;
     this.contentDocument.___vm.global.parent = this.contentDocument.___vm.global;
-    
+    */
     
   } else if(trim(tagName,true, true).toLowerCase() === "link") {
     tagName = "span";
@@ -3198,12 +3207,13 @@ DOMElement.prototype.setAttribute = function DOMElement_setAttribute(name, value
   // WARNING! THS IS NT ORKING ESS!!!!!!!!!!!!
   
   
-  
+  /*
   if(sname === "src" && this.___isScript) { // get & parse the script
     if(!this.ownerDocument.___scriptTagStack) {
         var x2 = new this.ownerDocument.___vm.ExecutionContext(GLOBAL_CODE);
         this.ownerDocument.___scriptTagStack = new __Stack(x2);
         this.ownerDocument.___scriptTagStack.queueSize = 1;
+        
     } else {
         this.ownerDocument.___scriptTagStack.queueSize++;// see jsdom for load window.addEvent...
     }
@@ -3217,6 +3227,7 @@ DOMElement.prototype.setAttribute = function DOMElement_setAttribute(name, value
 	
 	  this.___isStyleSheet = true;
   }
+  */
   // if attribute exists, use it
   var attr = this.attributes.getNamedItem(name);
 
@@ -3339,8 +3350,13 @@ DOMElement.prototype.setAttributeNode = function DOMElement_setAttributeNode(new
   if(sname === "src" && this.___isScript) { // get & parse the script
     if(!this.ownerDocument.___scriptTagStack) {
         var x2 = new this.ownerDocument.___vm.ExecutionContext(GLOBAL_CODE);
+        x2.scope = { object: this.ownerDocument.defaultView, parent: null };
         this.ownerDocument.___scriptTagStack = new __Stack(x2);
         this.ownerDocument.___scriptTagStack.queueSize = 1;
+        if(this.ownerDocument.defaultView) {
+            this.ownerDocument.___scriptTagStack.global_scope = this.ownerDocument.defaultView;
+        }
+        else console.log("AAAAAAAAAAAAAA ->>>>>>>>> no defaultView deined!");
     } else {
         this.ownerDocument.___scriptTagStack.queueSize++;// see jsdom for load window.addEvent...
     }

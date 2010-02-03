@@ -1348,7 +1348,110 @@ function Jnaric() {
     
     this.VERSION = "jnaric 0.1 alpha";
     
-    this.global = {
+    this.FunctionObject = function (node, scope) {
+        this.node = node;
+        this.scope = scope;
+        //this.__defineProperty__('length', node.params.length, true, true, true);
+        this.length = node.params.length;
+        var proto = {};
+        //this.__defineProperty__('prototype', proto, true);
+        this["prototype"] = proto;
+        //proto.__defineProperty__('constructor', this, false, false, true);
+        proto["constructor"] = this;
+    }
+
+    this.FOp = this.FunctionObject.prototype = {
+        // Internal methods.
+        ___call___: function (t, a, x, stack) {
+            return FUNCTIONOBJECT_PROTOTYPE._call.call(this, __tihs, t, a, x, stack);
+        },
+
+        ___construct___: FUNCTIONOBJECT_PROTOTYPE.construct,
+
+        ___hasInstance___: FUNCTIONOBJECT_PROTOTYPE.hasInstance,
+
+        // Standard methods.
+        toString: function () {
+            return this.node.getSource();
+        },
+
+        apply: function (t, a) {
+            return FUNCTIONOBJECT_PROTOTYPE.apply.call(this, __tihs, t, a);
+        },
+
+        call: function (t) {
+            // Curse ECMA a third time!
+            var a = Array.prototype.splice.call(arguments, 1);
+            return this.apply(t, a);
+        }
+    };
+    
+    this.global = this.createGlobal();
+    this.global_bak = this.global;
+    
+    /*
+    this.global.Lock.prototype.acquire = function (blocking) {
+        return LOCK_PROTOTYPE.acquire.call(this, __tihs, blocking);
+    };
+    
+    this.global.Lock.prototype.release = function (f) {
+        return LOCK_PROTOTYPE.release.call(this, __tihs, f);
+    };
+
+    this.global.Lock.prototype.check = function () {
+        return LOCK_PROTOTYPE.check.call(this);
+    };
+
+    
+    this.reflectClass('Array', new Array);
+
+    
+    
+    
+    this.gSp = this.reflectClass('String', new String);
+    this.gSp.toSource = function () { return this.value.toSource(); };
+    this.gSp.toString = function () { return this.value; };
+    this.gSp.valueOf  = function () { return this.value; };
+    this.global.String.fromCharCode = String.fromCharCode;
+*/
+    
+    
+    this.ExecutionContext = function(type) {
+        this.type = type;
+    }
+    this.XCp = this.ExecutionContext.prototype;
+    
+    this.ExecutionContext.current = this.XCp.caller = this.XCp.callee = null;
+    
+    this.XCp.scope = {object: this.global, parent: null};
+    this.XCp.thisObject = this.global;
+    this.XCp.result = undefined;
+    this.XCp.target = null;
+    this.XCp.ecmaStrictMode = false;
+    
+    
+    // init execution context for first evaluate
+    this.glo_exc = new this.ExecutionContext(GLOBAL_CODE);
+    this.ExecutionContext.current = this.glo_exc;
+    
+    this.g_stack = new __Stack(this.ExecutionContext.current); 
+    //this.e_stack = [];
+    //this.g_stack.e_stack = this.e_stack;
+    
+    
+    
+    
+    
+    
+
+    // Connect Function.prototype and Function.prototype.constructor in global.
+    //this.reflectClass('Function', FOp);
+    
+}
+
+Jnaric.prototype.createGlobal = function () {
+    var __tihs = this;
+    var glo = {
         //document: document,
         ErrorConsole: __tihs.ErrorConsole, 
 		console: __tihs.ErrorConsole, // TODO: enhanced firebug console emulation
@@ -1543,106 +1646,41 @@ function Jnaric() {
         version: __tihs.VERSION
     };
     
-    
-    
-    // TODO: move these out of the closure scope!
-    this.global.Lock.prototype.acquire = function (blocking) {
+    glo.Lock.prototype.acquire = function (blocking) {
         return LOCK_PROTOTYPE.acquire.call(this, __tihs, blocking);
     };
     
-    this.global.Lock.prototype.release = function (f) {
+    glo.Lock.prototype.release = function (f) {
         return LOCK_PROTOTYPE.release.call(this, __tihs, f);
     };
 
-    this.global.Lock.prototype.check = function () {
+    glo.Lock.prototype.check = function () {
         return LOCK_PROTOTYPE.check.call(this);
     };
+    
+    this.reflectClass2(glo, 'Array', new Array);
 
+    var gSp = this.reflectClass2(glo, 'String', new String);
+    gSp.toSource = function () { return this.value.toSource(); };
+    gSp.toString = function () { return this.value; };
+    gSp.valueOf  = function () { return this.value; };
+    glo.String.fromCharCode = String.fromCharCode;
+    this.reflectClass2(glo, 'Function', this.FOp); //FOp is defined before in init
     
-    this.reflectClass('Array', new Array);
-
-    
-    
-    
-    this.gSp = this.reflectClass('String', new String);
-    this.gSp.toSource = function () { return this.value.toSource(); };
-    this.gSp.toString = function () { return this.value; };
-    this.gSp.valueOf  = function () { return this.value; };
-    this.global.String.fromCharCode = String.fromCharCode;
-
-    
-    
-    this.ExecutionContext = function(type) {
-        this.type = type;
-    }
-    this.XCp = this.ExecutionContext.prototype;
-    
-    this.ExecutionContext.current = this.XCp.caller = this.XCp.callee = null;
-    
-    this.XCp.scope = {object: this.global, parent: null};
-    this.XCp.thisObject = this.global;
-    this.XCp.result = undefined;
-    this.XCp.target = null;
-    this.XCp.ecmaStrictMode = false;
-    
-    
-    // init execution context for first evaluate
-    this.glo_exc = new this.ExecutionContext(GLOBAL_CODE);
-    this.ExecutionContext.current = this.glo_exc;
-    
-    this.g_stack = new __Stack(this.ExecutionContext.current); 
-    //this.e_stack = [];
-    //this.g_stack.e_stack = this.e_stack;
-    
-    
-    
-    
-    
-    this.FunctionObject = function (node, scope) {
-        this.node = node;
-        this.scope = scope;
-        //this.__defineProperty__('length', node.params.length, true, true, true);
-        this.length = node.params.length;
-        var proto = {};
-        //this.__defineProperty__('prototype', proto, true);
-        this["prototype"] = proto;
-        //proto.__defineProperty__('constructor', this, false, false, true);
-        proto["constructor"] = this;
-    }
-
-    var FOp = this.FunctionObject.prototype = {
-        // Internal methods.
-        ___call___: function (t, a, x, stack) {
-            return FUNCTIONOBJECT_PROTOTYPE._call.call(this, __tihs, t, a, x, stack);
-        },
-
-        ___construct___: FUNCTIONOBJECT_PROTOTYPE.construct,
-
-        ___hasInstance___: FUNCTIONOBJECT_PROTOTYPE.hasInstance,
-
-        // Standard methods.
-        toString: function () {
-            return this.node.getSource();
-        },
-
-        apply: function (t, a) {
-            return FUNCTIONOBJECT_PROTOTYPE.apply.call(this, __tihs, t, a);
-        },
-
-        call: function (t) {
-            // Curse ECMA a third time!
-            var a = Array.prototype.splice.call(arguments, 1);
-            return this.apply(t, a);
-        }
-    };
-
-    // Connect Function.prototype and Function.prototype.constructor in global.
-    this.reflectClass('Function', FOp);
-    
-}
+    return glo;
+};
 
 Jnaric.prototype.reflectClass = function (name, proto) {
     var gctor = this.global[name];
+    //gctor.__defineProperty__('prototype', proto, true, true, true);
+    gctor["prototype"] = proto;
+    //proto.__defineProperty__('constructor', gctor, false, false, true);
+    proto["constructor"] = gctor;
+    return proto;
+};
+
+Jnaric.prototype.reflectClass2 = function (g, name, proto) {
+    var gctor = g[name];
     //gctor.__defineProperty__('prototype', proto, true, true, true);
     gctor["prototype"] = proto;
     //proto.__defineProperty__('constructor', gctor, false, false, true);
@@ -2114,10 +2152,15 @@ Jnaric.prototype.step_next = function (g_stack) {
     }
     
     // switch context
+    // TODO: switch context for BURST group only
     this.ExecutionContext.current = g_stack.exc;
     Object.prototype = g_stack.object_prototype;
     //console.log("Setting exc to "+g_stack.exc);
     this.cur_stack = g_stack; // for eval () method and other context switching
+    if(g_stack.global_scope) {
+        // switch global scope
+        this.global = g_stack.global_scope;
+    }
     
     // !! log to the console if 'JNARIC' is in the exception object's description/message
     // otherwise - throw
@@ -2183,6 +2226,9 @@ Jnaric.prototype.step_next = function (g_stack) {
     // switch context back...
     g_stack.exc = this.ExecutionContext.current; 
     g_stack.object_prototype = Object.prototype;
+    if(g_stack.global_scope) {
+        this.global = this.global_bak;
+    }
 
     
     if(g_stack.stack.length > this.STACKSIZE) {

@@ -1652,7 +1652,24 @@ __Window.prototype.addEventListener = function ( type, listener, useCapture, ski
                 if(!sstack.queueSize) {
                     //console.log("Starting ONLOAD!!!!!");
                     var evt_fakeerr = function ( err ) { self.document.___vm.ErrorConsole.log("Error executing onload event handler: "+err); };
-                    self.document.___vm.execf_thread(listener, [{}], fake, evt_fakeerr);
+                    
+                    if(sstack.global_scope) { // this is the only place where stack is created manually since we want to execute in the loader's scope
+                        
+                        var x2 = new self.document.___vm.ExecutionContext(GLOBAL_CODE);
+                        
+                        x2.scope = { object: self.document.defaultView, parent: null };
+                        var nstack = new __Stack(x2);
+                        nstack.global_scope = sstack.global_scope;
+                        nstack.onerror = function (ee) {
+                            self.document.___vm.ErrorConsole.log("Error executing onload(): "+ee);
+                        };
+                        
+                        var st = self.document.___vm.execf_stack(nstack, listener, [{}], self.document.defaultView);
+                        __jn_stacks.add_task(self.document.___vm, st, self.document.___vm.nice, self.document.___vm.throttle);
+                    } else {
+                        console.log("Starting onload via THREAD");
+                        self.document.___vm.execf_thread(listener, [{}], fake, evt_fakeerr);
+                    }
                 }
             }
         } else {
