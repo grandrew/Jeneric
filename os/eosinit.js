@@ -530,10 +530,16 @@ hubConnection = {
                 delete this.rqe[i]; // XXX TODO how will it interact with property-iteration?
                 
             } else {
+                if(this.rqe[i]["last_resend"] && ((ct - this.rqe[i]["last_resend"]) < RQ_RESEND_INTERVAL)) continue;
+                this.rqe[i]["last_resend"] = ct;
+                
                 this.rqe[i]["r"].session = this.___SESSIONKEY;
                 var rqq = this.rqe[i]["r"];
                 // TODO: Blob send goes here
                 //      XXX check how will blob send fail behave!!
+                
+                
+                
                 var replacer = function(key, value) {
                     return blob_replacer(key, value, rqq);
                 };
