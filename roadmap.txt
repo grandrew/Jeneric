@@ -288,7 +288,7 @@ URGENT:
 - hub leaks memory when client actively reannounces :-\ - should stop the bad-behaving client from flooding the base
 - check that event handler stck queue really works!
 - why is 'import' unshifting stack instead of pushing?? that doesnt seem to be correct
-- rename 'import' to 'include' (import is reseved javascript keyword and include is more natural from other languages)
++ rename 'import' to 'include' (import is reseved javascript keyword and include is more natural from other languages)
 - DOM transactional model: .commit() -> to write to DOM (to solve consistency problems of editors)
 - jn-thrown exceptions line and file are not set in chrome browser
 - register global shortcut like CTRL-SHIFT-P to print trace if debug enabled!
