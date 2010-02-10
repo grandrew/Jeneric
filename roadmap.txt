@@ -284,7 +284,7 @@ URGENT:
 - ic: better parse of errors when program launch (maybe attach to errorLog??)
 - ic: bug with autocompletion (double-check the regex to 1. match only from beginning and 2. return ful string)
 + ic: removing dead program doesn't work via click on "close"
-- ack! is sent 35 times (!!) during codeMirror loading
++ ack! is sent 35 times (!!) during codeMirror loading
 - hub leaks memory when client actively reannounces :-\ - should stop the bad-behaving client from flooding the base
 - check that event handler stck queue really works!
 - why is 'import' unshifting stack instead of pushing?? that doesnt seem to be correct

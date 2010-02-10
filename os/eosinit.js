@@ -549,7 +549,7 @@ hubConnection = {
                 try {
                     //this.stomp.send(JSON.stringify(this.rqe[i]["r"], replacer), HUB_PATH);
                     var jsn = JSON.stringify(this.rqe[i]["r"], replacer);
-                    if(window.console) console.log("Sending "+jsn);
+                    //if(window.console) console.log("Sending "+jsn);
                     this.stomp.send(jsn, HUB_PATH);
                     this.last_sent_time = (new Date()).getTime();
                 } catch (e) {
