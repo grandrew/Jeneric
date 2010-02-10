@@ -288,10 +288,19 @@ URGENT:
 - hub leaks memory when client actively reannounces :-\ - should stop the bad-behaving client from flooding the base
 - check that event handler stck queue really works!
 - why is 'import' unshifting stack instead of pushing?? that doesnt seem to be correct
+- rename 'import' to 'include' (import is reseved javascript keyword and include is more natural from other languages)
+- DOM transactional model: .commit() -> to write to DOM (to solve consistency problems of editors)
 - jn-thrown exceptions line and file are not set in chrome browser
+- register global shortcut like CTRL-SHIFT-P to print trace if debug enabled!
 - codemirror sometimes fails to load entirely (slow connection/orbited issue?)
 - editor.js is impossiblt to save via /bin/edit: the system hangs completely FF3.6/eeepc
+- Range: insertNode: DOM normalizer (and other methods that require normalized DOM)
+- implement advanced HTML control element: highlighting code editor (as TMP workaround?, double iframes!, expose codeMirror API)
+- close registration of terminal names shorter than 8 chars
+    - create terminal names of length 8+, (or?) starting with # instead of 't'
+    - filter(sort down only!) out names starting with # from 'list' output??
 - some strange info at the end of stack traces found :-\
+- think of 'mixed namespace': merge object trees under same destination (multiple links? -> search for children, methods in descending order)
 - deal with JSDOM setAttribute/js DOM intrf mess (props set/get by .type != .setAttribute('type', v) )
   normalize:
 	- setNamedItem
@@ -301,7 +310,7 @@ URGENT:
 	- ___setters&getters
   do for:
     - a & tagret
-    - form & tagret
+    - form & tagret => default not to _blank but to _frame; disallow non-jeneric destinations?? maybe always upload to hub and then decide what to do?
     - link & disallow non-css
     - object - disallow everything except for flash, set params to not call external JS
     - object, form src!
@@ -465,6 +474,18 @@ Jeneric is a mix of virtualization for the WEB, the Web Operating System, etc...
 - LIPC sending function references and executing them in another vm may result in any unpredicted behaviour (stack mess)
 - EOS or POS?
 - hub.py is VERY poorly code-designed
+
+
+--- CRAZY
+---------------
+- DDP kernel extension: Direct DOM Pixelerizer
+    - create a <table> of certain dim & size (or calculate via pixelsize)
+        - & cloneBuffer
+    - expose STD GFX hooks: pixel, draw move
+        - later: more advanced fast-drawing functions: fill(), box(), circle(), arc(), etc.
+    - expose 8-bit Unicode binary image drawing support (convert BMP images using GearsBlob, for ex.)
+    - z-index double(or N-ble)-buffering support (.setActiveBuffer(N))
+
 
 
 ---------------

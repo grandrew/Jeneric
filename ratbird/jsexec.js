@@ -539,6 +539,9 @@ __jn_stacks = {
                 //          so the 'i' will not correspond to the right value anymore
                 //          so do the splices over there VERY carefully...
                 
+                // ITHROW
+                ex_status = st.vm.step_next(st.stack);
+                /*
                 try {
                     ////ex_status = false;
                     ex_status = st.vm.step_next(st.stack);
@@ -549,7 +552,7 @@ __jn_stacks = {
 					}
                     ex_status = false;
                 }
-                
+                */
                 if(!ex_status) { // means the stack finished
                     //stacks_running_copy.splice(i,1);
                     for(j=0; j<this.stacks_running.length;j++) {
@@ -2164,10 +2167,11 @@ Jnaric.prototype.step_next = function (g_stack) {
     
     // !! log to the console if 'JNARIC' is in the exception object's description/message
     // otherwise - throw
-    //v = this.step_execute(ex.n, ex.x, g_stack);
+    // ITHROW
+    v = this.step_execute(ex.n, ex.x, g_stack);
     try {
-        //var aaa  =111;
-        v = this.step_execute(ex.n, ex.x, g_stack);
+        var aaa  =111;
+        //v = this.step_execute(ex.n, ex.x, g_stack);
         //if(ex.x.scope.object.f) this.ErrorConsole.log("f is: "+ex.x.scope.object.f+ " f.___call___ is: "+ex.x.scope.object.f.___call___);
     } catch (e) {
         // TODO: 'allocation size overflow' is not compatible with IE/Opera/v8!!
@@ -4413,9 +4417,11 @@ if (!('___call___' in Fp)) {
         // TODO: some native methods want OUR (non-native, not compiled) functions - pass JIT or use emulated methods
         
         stack.EXCEPTION = RETURN; // TODO: HOPE THIS WILL WORK!!! WARN!! UNKNOWN!!!
-        
+        // ITHROW
+        stack.my.x2.result = this.apply(t, a);
         try {
-            stack.my.x2.result = this.apply(t, a);
+            //stack.my.x2.result = this.apply(t, a);
+            a=1;
         } catch (e) {
             if(e instanceof SyntaxError) { // catch RegExp errors
                 stack.EXCEPTION = THROW;

@@ -111,7 +111,7 @@ Jnaric.prototype.bind_dom = function (wrapped_domElement) {
     // this is not conforming -> documentElement should be <html> and contain <head> and <title> or such
     this.global.document = di.loadXML("<div/>"); // SLOW???
     
-    this.global.document.body = this.global.document.documentElement;
+    this.global.document.body = this.global.document.documentElement; // DOC this: documentElement == body!
     
     
     if(typeof wrapped_domElement != 'undefined')
@@ -188,7 +188,7 @@ Jnaric.prototype._importCSS = function (__tihs, src_uri, stop) {
                     vm.global.document.styleSheets[0].insertRule(ruleList[i]+"}");
                     
                 } catch (e) {
-                    vm.ErrorConsole.log("Error parsing CSS rule: "+ruleList[i]+"}"+" , Error: "+e);
+                    vm.ErrorConsole.log("Error parsing CSS rule: "+ruleList[i]+"}"+"; Error: "+e);
                     if(stop) __cs.my.x2.result = false;// DOC: test and document this!
                 }
             }
@@ -343,10 +343,7 @@ N designMode ?? (or dont support it??)
 
 ___DOMHTMLGetters = {
     contentEditable: __htmldom_get_direct,
-    designMode: function (name) {
-        if(this.___link && this.___link.contentEditable) return "on";
-        else return "off";
-    },
+    
     innerHTML: __htmldom_get_direct,
     
     textContent: function (name) {
@@ -486,9 +483,7 @@ ___DOMHTMLGetters = {
 // Setters should always return a value
 ___DOMHTMLSetters = {
     contentEditable: __htmldom_set_direct,
-    designMode: function (name, value) {
-        this.___link && (this.___link.contentEditable = (value==="on" ? true : false));
-    },
+    
     innerHTML: function (name, value) {
         /*
         // parse through innerHTML
@@ -561,7 +556,7 @@ ___DOMHTMLSetters = {
     previousSibling: 1,
     nodeName: 1,
     nodeType: 1,
-    nodeValue: 1,
+    nodeValue: __htmldom_set_direct, // XXX TODO: is this secure? is this correct? implement thru setter?
     parentNode: 1,
     tagName: 1,
 
@@ -642,8 +637,10 @@ ___DOMHTMLSetters = {
 
 
 // implement DOM setters:
-DOMElement.prototype.___getters = ___DOMHTMLGetters;
-DOMElement.prototype.___setters = ___DOMHTMLSetters;
+//DOMElement.prototype.___getters = ___DOMHTMLGetters;
+//DOMElement.prototype.___setters = ___DOMHTMLSetters;
+DOMNode.prototype.___getters = ___DOMHTMLGetters;
+DOMNode.prototype.___setters = ___DOMHTMLSetters;
 
 
 
@@ -771,8 +768,10 @@ createExpression HTML5 Compiles an XPathExpression
 */
 
 ___DOCHTMLGetters = {
-    // designMode: // not supported
-    
+    designMode: function (name) {
+        if(this.body.___link && this.body.___link.contentEditable) return "on";
+        else return "off";
+    },
     textContent: function (name) {
         return null;
     },
@@ -843,7 +842,10 @@ ___DOCHTMLGetters = {
 // Setters should always return a value
 ___DOCHTMLSetters = {
     contentEditable: __htmldom_set_direct,
-    
+    designMode: function (name, value) {
+        //console.log("Setting contentEditable to "+(value=="on" ? true : false));
+        this.body.___link && (this.body.___link.contentEditable = (value=="on" ? true : false));
+    },
     textContent: function (name, value) { // do nothing
         return value;
     },
@@ -918,13 +920,49 @@ DOMDocument.prototype.getElementsByName = function () {
 DOMDocument.prototype.___get_from_link = function (domElement) {
     if(!domElement) return undefined;
     if(!this.___DOMcache || this.___DOMcache_outdated) this.___rebuild_cache();
+    if(domElement.nodeType == 3) { // text node
+      // search for container, then return ref to textNodde, if exists
+      // normalize when needed
+      var src = domElement.parentNode;
+    } else {
+      var src = domElement;
+    }
     
-    var wt = this.___DOMcache[domElement.___id];
+    var wt = this.___DOMcache[src.___id];
     if(!wt) {
         //if(window.console)console.log("Cache problem! Element not found");
-        return null;
+        // search in frames
+        if(this.defaultView.frames.length)  {
+            var t;
+            for(var i=0; i< this.defaultView.frames.length; i++){
+                t = this.defaultView.frames[i].contentDocument;
+                if(!t.___DOMcache || t.___DOMcache_outdated) t.___rebuild_cache();
+                wt = t.___DOMcache[src.___id];
+                if(wt) break;
+            }
+        }
+        
     }
-    return wt;
+    if(!wt) return null;
+    
+    if(domElement.nodeType == 3) { // text node
+        console.log('doing for text node');
+        if(src.childNodes.length == 1) {
+          // just get child
+                  if(wt.childNodes._nodes.length == 1) {
+                    return wt.getFirstChild();
+                  } else {
+                    if(window.console && console.log) console.log("get_from_link: XML tree TextNodes inconsistency #1");
+                    return null;
+                  }
+        } else {
+            // normalize if necessary
+            NOTNORM = src;
+            if(window.console && console.log) console.log('Can not normalize yet!');
+        }
+    } else {
+      return wt;
+    }
 };
 
 DOMDocument.prototype.___rebuild_cache = function () {
@@ -1140,7 +1178,7 @@ DOMElement.prototype.addEventListener = function ( type, listener, useCapture, s
     if(!(listener.node && listener.scope)) throw (new vm.global.TypeError("JNARIC: addEventListener second argument must be a function"));
 
     var cstack = undefined;
-    
+    var self = this;
     var evt = function (e) {
         /*
         __jn_stacks.add_task(vm, g_stack, my_nice, vm.throttle);
@@ -1149,8 +1187,10 @@ DOMElement.prototype.addEventListener = function ( type, listener, useCapture, s
         
         
         var e = new __Event(vm, e); // create an event based on real event
-        if(e.target == null) return; // DOC: skip events not coming from current VM scope (???)
-
+        if(e.target == null) { 
+            return; // DOC: skip events not coming from current VM scope (???)
+        }
+        
         if(preventDefault) e.preventDefault();
         
         // TODO: more verbosity here
@@ -1172,9 +1212,13 @@ DOMElement.prototype.addEventListener = function ( type, listener, useCapture, s
         // we need to append to thread stack - if it exists - and do not append if stack is too full
         // (thus skipping events)
         
-        //if(preventDefault || e.___preventDefault) {
-        //    return false;
-        //}
+        if(preventDefault || e.___preventDefault) {
+            // XXX: TODO HERE: REMOVE THIS!
+            //console.log("PreventDefault: prevented, returning false!");
+            return false;
+        }
+        e.passed = true; // DOC: means it can not be canceled anymore due to 'passed'
+        e.cancelable = false;
     };
     
     // now register event
@@ -1187,10 +1231,16 @@ DOMElement.prototype.addEventListener = function ( type, listener, useCapture, s
     if(!this.___listeners) this.___listeners = {};
     if(!this.___listeners[type]) this.___listeners[type] = {};
     this.___listeners[type][listener] = evt;
+    
+    
+    
 };
 
 DOMDocument.prototype.addEventListener = function ( type, listener, useCapture , skip, preventDefault) {
-    this.documentElement.addEventListener( type, listener, useCapture , skip, preventDefault);
+    //console.log("LOOOG: Adding event listener to: "+this.documentElement.___link+"id:"+this.documentElement.___id+" type "+type+" list "+listener);
+    //this.documentElement.addEventListener( type, listener, useCapture , skip, preventDefault);
+    this.body.LISTENING = true;
+    this.body.addEventListener( type, listener, useCapture , skip, preventDefault);
 };
 
 DOMDocument.prototype.removeEventListener = function ( type, listener, useCapture ) {
@@ -1385,7 +1435,10 @@ __Event.prototype.preventDefault = function () {
     
     this.___preventDefault = true;
     if(this.___link) {
-        if(this.___link.preventDefault) this.___link.preventDefault();
+        if(this.___link.preventDefault) {
+            this.___link.preventDefault();
+            if(this.passed) this.___vm.ErrorConsole.log("failed to preventDefault(): check event preemption condition");
+        }
         else {
             try {
                 this.___link.returnValue = false;
@@ -1649,7 +1702,7 @@ __Window.prototype.addEventListener = function ( type, listener, useCapture, ski
             sstack.onfinish = function () {
                 //console.log("onfinish figanulo!!! : "+sstack.queueSize);
                 // now check if there is something loading
-                if(!sstack.queueSize) {
+                if(!sstack.queueSize) { // XXX DOC: will not fire onfinish event if some of the script that were to be loaded fired an error. (see how onfinish/onerror and script loading works)
                     //console.log("Starting ONLOAD!!!!!");
                     var evt_fakeerr = function ( err ) { self.document.___vm.ErrorConsole.log("Error executing onload event handler: "+err); };
                     
@@ -1878,9 +1931,68 @@ if(window.getSelection) {
     };
     
     __Range.prototype.insertNode = function (newNode) {
-    
-        // TODO: reflect changes in local XML tree!
-        this.___link.insertNode(newNode.___link);
+		// TODO: DOM security - make sure we're inserting only to where we have access to!
+		
+		// this.___link.insertNode(newNode.___link);
+		
+		// 		: simulate the insertNode rather than executing it 
+		
+		var node = this.___link.startContainer;
+		var offset = this.___link.startOffset;
+
+		if (node.nodeType == 3){ // text node
+			var Text = node.textContent ? node.textContent : node.innerText;
+			if (offset == 0) {
+			    var wbefore = this.___document.___get_from_link(node);
+				wbefore.getParentNode().insertBefore(newNode, wbefore);
+			 
+			} else if (offset == Text.length) {
+				if(node.nextSibling) {
+					var wbefore = this.___document.___get_from_link(node.nextSibling);
+                    // TODO: DOM normalizer required here! DOC the absense..
+                    /* temporary workaround(for <br> after enter-press) ... */
+                    //if(!wbefore && !node.nextSibling.nextSibling) {if(window.console) console.log("insertBefore: doing workaround!"); node.parentNode.removeChild(node.nextSibling); this.___document.___get_from_link(node.parentNode).appendChild(newNode); return;}
+                    /* ... end temporary workaround */
+					wbefore.getParentNode().insertBefore(newNode, wbefore);
+				} else {
+					var wbefore = this.___document.___get_from_link(node.parentNode);
+					wbefore.appendChild(newNode);
+				}
+			} else {
+			  // we need to split the textNode here and insert between... see spec... 
+
+			  var wparent = this.___document.___get_from_link(node.parentNode);
+			  var wthis = this.___document.___get_from_link(node);
+			  
+			  var begText = Text.slice(0, offset);
+			  var endText = Text.slice(offset);
+			  var wbegNode = this.___document.createTextNode(begText);
+			  var wendNode = this.___document.createTextNode(endText);
+			  wparent.replaceChild(wendNode, wthis);
+			  wparent.insertBefore(wbegNode, wendNode);
+			  wparent.insertBefore(newNode, wendNode);
+			}
+			 
+		} else {
+			if (offset == node.childNodes.length) {
+				var wnode = this.___document.___get_from_link(node);
+				wnode.appendChild(newNode);
+			}
+			else if (offset == 0) {
+				var wbefore = this.___document.___get_from_link(node.firstChild);
+				wbefore.getParentNode().insertBefore(newNode, wbefore);
+			}
+			else {
+				var wbefore = this.___document.___get_from_link(node.childNodes[offset]);
+				wbefore.getParentNode().insertBefore(newNode, wbefore);
+			}
+		}
+		
+		
+		// set the ___id of new element and add to cache to avoid unnesessary cache rebuilding
+		// TODO: update cache at insertBefore..
+	
+        
     };
     
     __Range.prototype.surroundContents = function (newNode) {
@@ -1933,7 +2045,9 @@ if(window.getSelection) {
         startContainer: function (name) {
             var el = this.___document.___get_from_link(this.___link[name]);
             if(el) return el;
-            return null;
+            console.log("CCC: no container!");
+            CCC = this.___link[name];
+			return null;
             
         },
         startOffset: function (name) {
@@ -2199,8 +2313,15 @@ __CSSStyleSheet.prototype.insertRule = function (ruleStr, indx) {
         //var sel = ruleStr.split("{")[0];
         //var rul = "{"+ruleStr.split("{")[1];
         //console.log("Inserting sel: "+sel+" rul: "+rul);
-        //document.styleSheets[0].addRule(sel, rul, real_idx);        
-        document.styleSheets[0].addRule(p, r, real_idx);        
+        //document.styleSheets[0].addRule(sel, rul, real_idx);   
+        if(p.indexOf(",") > -1) { // IE supports only 'Single contextual selector' here
+            lp = p.split(",");
+            for(var l=0; l<lp.length;l++) {
+                document.styleSheets[0].addRule(lp[l], r, real_idx+l);
+            }
+        } else {
+            document.styleSheets[0].addRule(p, r, real_idx);        
+        }
         var styleObj = document.styleSheets[0].rules[real_idx];
     }
     this.cssRules[indx].___idx = real_idx;

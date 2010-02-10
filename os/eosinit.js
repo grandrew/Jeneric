@@ -39,8 +39,10 @@ KCONFIG = {
 
 
 //////////////////////////////////////////////////////////////////////////////
-// browser compatibility section
+// browser compatibility section; we're now dependent on these globals!
 _isFF = ((navigator.product === "Gecko") && (navigator.userAgent.toLowerCase().indexOf("firefox") > -1) );
+_isIE = (navigator.userAgent.indexOf("MSIE") != -1);
+_isIE8 = (navigator.userAgent.indexOf("MSIE 8") != -1);
 if(window.opera && opera.postError) console = { log: opera.postError };
 
 

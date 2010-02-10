@@ -1615,7 +1615,11 @@ DOMNode.prototype.getNodeName = function DOMNode_getNodeName() {
  * @return : string
  */
 DOMNode.prototype.getNodeValue = function DOMNode_getNodeValue() {
-   if(this.___link) this.nodeValue = this.___link.nodeValue;
+   if(this.___link) {
+    this.nodeValue = this.___link.nodeValue;
+    
+   }
+   
    return this.nodeValue;
 };
 
@@ -2687,7 +2691,10 @@ DOMDocument.prototype.createTextNode = function DOMDocument_createTextNode(data)
   // assign values to properties (and aliases)
   node.data      = data;
   node.nodeValue = data;
-  if(document.createTextNode) node.___link = document.createTextNode(data);
+  if(document.createTextNode) {
+    node.___link = document.createTextNode(data);
+    // node.___link.___id = __dom_id(); // IE does not support this (buggy), and we don't address node trees by textNodes
+  }
   // set initial length
   node.length    = data.length;
 
@@ -3352,6 +3359,7 @@ DOMElement.prototype.setAttributeNode = function DOMElement_setAttributeNode(new
         var x2 = new this.ownerDocument.___vm.ExecutionContext(GLOBAL_CODE);
         x2.scope = { object: this.ownerDocument.defaultView, parent: null };
         this.ownerDocument.___scriptTagStack = new __Stack(x2);
+		this.ownerDocument.___scriptTagStack.onerror = function (e) {console.log("Error loading <script>: "+e); console.log(e);};
         this.ownerDocument.___scriptTagStack.queueSize = 1;
         if(this.ownerDocument.defaultView) {
             this.ownerDocument.___scriptTagStack.global_scope = this.ownerDocument.defaultView;
@@ -3368,7 +3376,11 @@ DOMElement.prototype.setAttributeNode = function DOMElement_setAttributeNode(new
   // TODO: SRC security checks and validation
   
   if(this.___link && newAttr.___link && this.___link.setAttributeNode) {
-    this.___link.setAttributeNode(newAttr.___link);
+    if(!_isIE) this.___link.setAttributeNode(newAttr.___link);
+    else {
+        // IE way..
+        applyStyleRules(this.___link, newAttr.nodeValue);
+    }
     //console.log("Setting attrNode "+newAttr.___link.value);
   }
 
@@ -4502,3 +4514,23 @@ Strings.getColumnNumber = function Strings_getColumnNumber(strD, iP) {
 StringBuffer = function() {this._a=new Array();};
 StringBuffer.prototype.append = function StringBuffer_append(d){this._a[this._a.length]=d;};
 StringBuffer.prototype.toString = function StringBuffer_toString(){return this._a.join("");};
+
+
+function applyStyleRules(element, rules) { // IE8 fix
+    var lrules = rules.split(";");
+    var rule,p,v,p1,p2;
+    for(var i=0;i<lrules.length;i++) {
+        rule = trim(lrules[i], true, true);
+        if(rule.length > 3) {
+            p=trim(rule.split(":")[0], true, true);
+            v=trim(rule.split(":")[1], true, true);
+            p1=p.split("-")[0];
+            p2 = p.split("-")[1];
+            if(p1 && p2) {
+                p = p1+p2.charAt(0).toUpperCase()+p2.slice(1);
+            }
+            if(p == "float") p = "styleFloat";
+            element.style[p] = v;
+        }
+    }
+}

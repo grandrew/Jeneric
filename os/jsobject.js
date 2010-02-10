@@ -1861,7 +1861,7 @@ eos_om = {
                     __cs.EXCEPTION = THROW;
                     __cs.exc.result = e;// TEST THIS!!
                 } else {
-                    __tihs.ErrorConsole.log("Import exec error! "+e);
+                    __tihs.ErrorConsole.log("Import exec error! "+e+" Line: "+e.lineNumber+" File: "+e.fileName);
 					__tihs.ErrorConsole.log(e);
                 }
             }
