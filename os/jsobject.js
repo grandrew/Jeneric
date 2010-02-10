@@ -1823,9 +1823,9 @@ eos_om = {
         ch.kconfig_w = kconfig_w;
     },
     
-    "import": function (__tihs, src_uri, sstack) { // safari bug
-        // TODO: DOC: XXX: should an import timeout or not??
-        // ABI: sstack is a special stack to push to (for iframe imports)
+    "include": function (__tihs, src_uri, sstack) { // safari bug
+        // TODO: DOC: XXX: should an include timeout or not??
+        // ABI: sstack is a special stack to push to (for iframe includes)
         if(!sstack) {
             __tihs.cur_stack.EXCEPTION = false;
             __tihs.cur_stack.my.v0 = undefined;
@@ -1861,7 +1861,7 @@ eos_om = {
                     __cs.EXCEPTION = THROW;
                     __cs.exc.result = e;// TEST THIS!!
                 } else {
-                    __tihs.ErrorConsole.log("Import exec error! "+e+" Line: "+e.lineNumber+" File: "+e.fileName);
+                    __tihs.ErrorConsole.log("include exec error! "+e+" Line: "+e.lineNumber+" File: "+e.fileName);
 					__tihs.ErrorConsole.log(e);
                 }
             }
@@ -1905,7 +1905,7 @@ eos_om = {
                     
             if(!sstack) {
                 __cs.EXCEPTION = THROW;
-                var ex = new __tihs.global.InternalError("import('"+src_uri+"') failed with exception: "+rs.result);
+                var ex = new __tihs.global.InternalError("include('"+src_uri+"') failed with exception: "+rs.result);
                 ex.status = rs.status;
                 __cs.exc.result = ex;
 
@@ -1913,7 +1913,7 @@ eos_om = {
                 //__tihs.step_next(__cs);  
                 __jn_stacks.start(__cs.pid);              
             } else {
-                var ex = new __tihs.global.InternalError("import('"+src_uri+"') failed with exception: "+rs.result);
+                var ex = new __tihs.global.InternalError("include('"+src_uri+"') failed with exception: "+rs.result);
                 ex.status = rs.status;
                 __tihs.ErrorConsole.log(""+ex);
             }
@@ -2198,11 +2198,11 @@ Jnaric.prototype.bind_om = function () {
         return eos_om.kconfig(__tihs, p, v);
     };
     
-    this.global.object["import"] = function (srcURI) { // safari bug
-        // kernel extension to import code into current stack and scope
-        return eos_om["import"].call(this, __tihs, srcURI, false);
+    this.global.object["include"] = function (srcURI) { // safari bug
+        // kernel extension to include code into current stack and scope
+        return eos_om["include"].call(this, __tihs, srcURI, false);
     };
-    this.global["import"] = this.global.object["import"];
+    this.global["include"] = this.global.object["include"];
     
     // getMethodList ?? describeObject ?? or is it security code??
     
