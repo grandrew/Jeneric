@@ -3108,6 +3108,10 @@ DOMElement.prototype.bind_real_dom = function DOMElement_bind_real_dom() {
     this.contentDocument.___vm = this.ownerDocument.___vm;
 	//this.contentWindow = new __Window(); // XXX DOC WARNING! this will not be 'conforming' since we dont create a separate 'global' scope for this
     this.contentWindow = this.ownerDocument.___vm.createGlobal();
+    // security 
+    delete this.contentWindow.fetchUrl;
+    delete this.contentWindow.load;
+        
     extendWindow(this.contentWindow);
     
     // this is all shit since is not used as 'global' for inline scripts...

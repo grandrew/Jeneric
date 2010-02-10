@@ -543,6 +543,7 @@ hubConnection = {
                 try {
                     //this.stomp.send(JSON.stringify(this.rqe[i]["r"], replacer), HUB_PATH);
                     var jsn = JSON.stringify(this.rqe[i]["r"], replacer);
+                    if(window.console) console.log("Sending "+jsn);
                     this.stomp.send(jsn, HUB_PATH);
                     this.last_sent_time = (new Date()).getTime();
                 } catch (e) {
@@ -565,7 +566,7 @@ hubConnection = {
         
         for(var i in this.acks) {
             //if(i == "__defineProperty__") continue; // XXX FUCK!!
-            if(ct - this.acks[i] > MAX_WINDOW_SIZE) {
+            if((ct - this.acks[i]) > MAX_WINDOW_SIZE) {
                 delete this.acks[i];
             }
         }

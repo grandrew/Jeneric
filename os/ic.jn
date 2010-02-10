@@ -107,10 +107,12 @@ function inputDOM() {
                 x.style.backgroundColor="#e6e6e6";
                 try {
                     var ldata = execURI(oparent, "listChildren", [], 2000);
+                    //var ss = "/"+ldata.join("/\n/")+"/";
                     var ss = ldata.join("\n");
                     if(oname.length > 0) {
                         var re = new RegExp("("+oname+".+)", "g");
                         var m = ss.match(re);
+                        //var m = re.exec(ss);
                         if(m && m.length == 1) {
                             x.value = x.value.replace(v, oparent+"/"+m[0]);
                         } else if (m && m.length > 1) {
@@ -218,7 +220,7 @@ function set_param_box (el) {
 function close_click(e) {
     if(this.parentNode.prog) {
         try {
-            object.deleteChild(this.prog);
+            object.deleteChild(this.parentNode.prog);
         } catch (e) {
             ErrorConsole.log("IC: failed to remove child: "+e);
         }

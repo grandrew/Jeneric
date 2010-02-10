@@ -252,7 +252,7 @@ URGENT:
         + element.spellcheck = true/false
         - catch 'on' events (like onload)
             - see https://developer.mozilla.org/en/iframe: Some quirks of the iframe in design mode: Elements 'onclick' functions doesn't work - add events with addEventListener window.setTimeout doesn't work. Use parent. 
-- iframe core refactoring: support for iframe code scope trap
++ iframe core refactoring: support for iframe code scope trap
     - enumerate scope-formation places: 'global' scope setup, etc.
         - setTimeout (thisObject)
         - start_new_thread
@@ -274,16 +274,16 @@ URGENT:
     + add ability to create new global scope via method
         - maybe "fork scope?" - mean, link to global InternalError and other defaults?
             then all the code will work with global scope forks...
-    - add ability to alter global scope [????]
+    + add ability to alter global scope [????]
     + rewrite iframe scope creation procedure (to run all code from new scope)
-    - rewrite onload event
-    - test!
+    + rewrite onload event
+    + test!
 - multi-line string
 - remove fetchUrl & load () when bind_om init (security)
+  - this will be done by security code!!! (???)
 - ic: better parse of errors when program launch (maybe attach to errorLog??)
 - ic: bug with autocompletion (double-check the regex to 1. match only from beginning and 2. return ful string)
-- ic: removing dead program doesn't work via click on "close"
-- ic: remove these: 'child not found in cl' and 'IC: failed to remove child'
++ ic: removing dead program doesn't work via click on "close"
 - ack! is sent 35 times (!!) during codeMirror loading
 - hub leaks memory when client actively reannounces :-\ - should stop the bad-behaving client from flooding the base
 - check that event handler stck queue really works!
@@ -365,6 +365,7 @@ URGENT:
 
 - process control routines
 - print_traceback() kernel method
+- ie8: out of stack space when running codemirror
 - store an ummutable? ID object at ~/sys/uuid that holds the machine UUID stored in unexpirable cookie see http://www.broofa.com/Tools/Math.uuid.js
 - fix array.sort and JSON.stringify(replacer/reviver) (maybe others??) - WONTFIX for pre-alpha release
 - make sure 'move' call really exists for the object tree (
