@@ -43,7 +43,7 @@
 # test redir
 # test security??
 
-DEBUG  = 3
+DEBUG  = 5
 
 
 from stompservice import StompClientFactory
@@ -567,6 +567,9 @@ class Hub(StompClientFactory):
                 # the response is a definite action so just forward it to caller
                 rq["hub_oid"] = rq["id"]
                 rq["id"] = oid;
+                if not rq.has_key("terminal_id"): 
+                    if DEBUG: print "E! setting terminal_id forced"
+                    rq["terminal_id"] = caller
                 # XXX: check it has a result and status right??
                 self.send(get_session_by_terminal( caller ), rq ) 
                 # XXX: no such object here -> notify callee??
@@ -588,6 +591,7 @@ class Hub(StompClientFactory):
                 
                 # first, check if the request is for our own subsystem
                 if rq["uri"] == "/":
+                    rq["terminal_id"] = terminal # just change it
                     # process the request and send the response
                     self.send( msg["headers"]["session"] , self.processHUBRequest(rq, msg))
                     return

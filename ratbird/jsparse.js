@@ -166,6 +166,8 @@ Tokenizer.prototype = {
         if (!this.match(tt)) {
             var _err = this.newSyntaxError("Missing " + tokens[tt].toLowerCase() + " at line "+this.lineno, this.filename, this.lineno);
             _err.___jeneric_err = true;
+            _err.lineNumber = this.lineno;
+            _err.fileName = this.filename;
             throw _err;
         }
         return this.token();
@@ -344,6 +346,7 @@ Tokenizer.prototype = {
     newSyntaxError: function (m) {
         var e = new SyntaxError(m, this.filename, this.lineno);
         e.lineNumber = this.lineno; // EDIT: x-browser exception handling
+        e.fileName = this.filename;
         e.source = this.source;
         e.cursor = this.cursor;
         return e;

@@ -1847,8 +1847,11 @@ eos_om = {
             //      ... __jn_stacks.add_task(this, g_stack, this.nice, this.throttle);
             try {
                 var _p = parse(data, src_uri, 0);
-                //__cs.push(S_EXEC, {n: _p, x: __cs.exc, pmy: {}}); // append it to the 'end' of execution stack
-                if(!sstack) __cs.stack.unshift({n: _p, x: __cs.exc, pmy: {}}); // virtually 
+                
+                if(!sstack) {
+                    //__cs.stack.unshift({n: _p, x: __cs.exc, pmy: {}}); // virtually 
+                    __cs.push(S_EXEC, {n: _p, x: __cs.exc, pmy: {}}); // append it to the 'end' of execution stack
+                }
                 else {
                     sstack.stack.unshift({n: _p, x: __cs.exc, pmy: {}}); // virtually 
                     if(!sstack.pid || sstack.stack.length == 1)   
@@ -2034,10 +2037,15 @@ function eos_deleteChild(vm, name) {
     // clean CSS stylesheets
     if(vm.childList[name].cssRules) {
         for(var i=0; i<vm.childList[name].cssRules.length; i++) {
-            if (document.styleSheets[0].cssRules) {
-                document.styleSheets[0].deleteRule(vm.childList[name].cssRules[i]);
-            } else {
-                document.styleSheets[0].removeRule(vm.childList[name].cssRules[i]); // IE
+            
+            try { // XXX TODO: BAD, this may fail to accomplish
+                if (document.styleSheets[0].cssRules) {
+                    document.styleSheets[0].deleteRule(vm.childList[name].cssRules[i]);
+                } else {
+                    document.styleSheets[0].removeRule(vm.childList[name].cssRules[i]); // IE
+                }
+            } catch (e) {
+                vm.ErrorConsole.log("deleteChild: failed to remove stylesheet entry due to error: " +e);
             }
         }
     }

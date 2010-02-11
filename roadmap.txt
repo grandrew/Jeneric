@@ -282,18 +282,28 @@ URGENT:
 - remove fetchUrl & load () when bind_om init (security)
   - this will be done by security code!!! (???)
 - ic: better parse of errors when program launch (maybe attach to errorLog??)
-- ic: bug with autocompletion (double-check the regex to 1. match only from beginning and 2. return ful string)
++ ic: bug with autocompletion (double-check the regex to 1. match only from beginning and 2. return ful string)
 + ic: removing dead program doesn't work via click on "close"
 + ack! is sent 35 times (!!) during codeMirror loading
 - hub leaks memory when client actively reannounces :-\ - should stop the bad-behaving client from flooding the base
 - check that event handler stck queue really works!
-- why is 'import' unshifting stack instead of pushing?? that doesnt seem to be correct
++ why is 'import' unshifting stack instead of pushing?? that doesnt seem to be correct
 + rename 'import' to 'include' (import is reseved javascript keyword and include is more natural from other languages)
 - DOM transactional model: .commit() -> to write to DOM (to solve consistency problems of editors)
-- jn-thrown exceptions line and file are not set in chrome browser
++ jn-thrown exceptions line and file are not set in chrome browser
+- google chrome native-thrown exceptions line and file are not set
+    - see http://code.google.com/p/chromium/issues/detail?id=7240
+
 - register global shortcut like CTRL-SHIFT-P to print trace if debug enabled!
-- codemirror sometimes fails to load entirely (slow connection/orbited issue?)
+- BUG: sometimes removal of CSS stylesheet fails in deleteChild (try to delete open codemirror)
+
 - editor.js is impossiblt to save via /bin/edit: the system hangs completely FF3.6/eeepc
+    - the connection hangs, then it unfreezes and sends lots of announce and ack requests, flooding hub
+    - hubConnection.stomp.reset() helps to resolve.. should be considered
+    - should be better investigated
+- codemirror sometimes fails to load entirely (slow connection/orbited issue?)
+- no terminal_id in request available??
+
 - Range: insertNode: DOM normalizer (and other methods that require normalized DOM)
 - implement advanced HTML control element: highlighting code editor (as TMP workaround?, double iframes!, expose codeMirror API)
 - close registration of terminal names shorter than 8 chars

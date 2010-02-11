@@ -3228,7 +3228,7 @@ DOMElement.prototype.setAttribute = function DOMElement_setAttribute(name, value
     } else {
         this.ownerDocument.___scriptTagStack.queueSize++;// see jsdom for load window.addEvent...
     }
-    eos_om["import"].call(this.ownerDocument.___vm, src, this.ownerDocument.___scriptTagStack);
+    eos_om["include"].call(this.ownerDocument.___vm, src, this.ownerDocument.___scriptTagStack);
   }
   if(sname === "src" || (name.toLowerCase() === "data" && !this.___flash)) return;
   if(sname === "type" && value === "application/x-shockwave-flash") this.___flash = true; // todo: not sure this works in IE
@@ -3372,8 +3372,8 @@ DOMElement.prototype.setAttributeNode = function DOMElement_setAttributeNode(new
     } else {
         this.ownerDocument.___scriptTagStack.queueSize++;// see jsdom for load window.addEvent...
     }
-	
-    eos_om["import"].call(this, this.ownerDocument.___vm, value, this.ownerDocument.___scriptTagStack);
+	// XXX WARNING! tight conection with jsobject.js here!
+    eos_om["include"].call(this, this.ownerDocument.___vm, value, this.ownerDocument.___scriptTagStack);
   }
   
   if(this.tagName.toLowerCase() != "img" && (sname === "src" || (name.toLowerCase() === "data" && !this.___flash))) return;

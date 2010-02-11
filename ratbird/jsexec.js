@@ -1257,6 +1257,8 @@ FUNCTIONOBJECT_PROTOTYPE = {
             var _err = new TypeError("'prototype' property is not an object",
                                 this.node.filename, this.node.lineno);
             _err.___jeneric_err = true;
+            _err.lineNumber = this.node.lineno;
+            _err.fileName = this.node.filename;
             throw _err;
         }
         var o;
@@ -1312,6 +1314,8 @@ FUNCTIONOBJECT_PROTOTYPE = {
                                 " must be an array or arguments object",
                                 this.node.filename, this.node.lineno);
             _err.___jeneric_err = true;
+            _err.lineNumber = this.node.lineno;
+            _err.fileName = this.node.filename;
             throw _err;
         }
 
@@ -1735,6 +1739,8 @@ Jnaric.prototype.putValue = function (v, w, vn) {
         if(v.base && v.base.___setters && v.base.___setters.hasOwnProperty(v.propertyName)) {
             if(v.base.___setters[v.propertyName] == 1) {
                 var _err = new TypeError("setting a property that has only a getter", vn.filename, vn.lineno);
+                _err.lineNumber = vn.lineno;
+                _err.fileName = vn.filename;
                 _err.___jeneric_err = true;
                 throw _err;
             }
@@ -1776,6 +1782,8 @@ Jnaric.prototype.getValue = function (v) {
             //this.cur_stack.stack.pop(); // ??
             var _err = new ReferenceError(v.propertyName + " is not defined", v.node.filename, v.node.lineno);
             _err.___jeneric_err = true;
+            _err.lineNumber = v.node.lineno;
+            _err.fileName = v.node.filename;
             throw _err;
             return; // return undefined
         }
@@ -1823,6 +1831,8 @@ Jnaric.prototype.toObject = function (v, r, rn) {
     var _err = rn ? new TypeError(message, rn.filename, rn.lineno)
              : new TypeError(message);
     _err.___jeneric_err = true;
+    _err.lineNumber = rn.lineno;
+    _err.fileName = rn.filename;
     throw _err;
 };
 

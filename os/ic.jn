@@ -110,7 +110,7 @@ function inputDOM() {
                     //var ss = "/"+ldata.join("/\n/")+"/";
                     var ss = ldata.join("\n");
                     if(oname.length > 0) {
-                        var re = new RegExp("("+oname+".+)", "g");
+                        var re = new RegExp("^("+oname+".+)", "gm");
                         var m = ss.match(re);
                         //var m = re.exec(ss);
                         if(m && m.length == 1) {
