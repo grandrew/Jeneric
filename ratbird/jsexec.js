@@ -1353,7 +1353,7 @@ function Jnaric() {
     
     var __tihs = this; // closure
     
-    this.VERSION = "jnaric 0.1 alpha";
+    this.VERSION = "ratbird kernel 0.1 alpha";
     
     this.FunctionObject = function (node, scope) {
         this.node = node;

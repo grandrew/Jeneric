@@ -600,7 +600,7 @@ ___DOMHTMLSetters = {
         // if form -> set to NAME; and never set to _self
         if(val != "_self") this[name] = val;
     },
-    type: __htmldom_set_direct,
+    type: __htmldom_set_direct, // <--------------- XXX INTERFACE MESS HERE
     spellcheck: __htmldom_set_direct,
     // form
     action : __htmldom_set_direct,
@@ -630,7 +630,7 @@ ___DOMHTMLSetters = {
     src : __htmldom_set_direct,
     tabIndex : __htmldom_set_direct,
     textLength : 1,
-    type : 1,
+    // type : 1, // <--------------- XXX INTERFACE MESS HERE -- get/set mimetype of link resource
     useMap : __htmldom_set_direct,
     value : __htmldom_set_direct
 };

@@ -153,6 +153,7 @@ ASSORTED TODO ITEMS
 
 
 - new kernel feature: check for getChild() ipc(?)object. method to get child ref redirect instead of kernel URI resolution procedure - alternative getChild for more object path resolution control
+- think of 'mixed namespace': merge object trees under same destination (multiple links? -> search for children, methods in descending order)
 - check if the values of function parameters not supplied are defined but set to 'undefined' so that || or && notation could be used safely
 - improvement: if there are several Blobs in request - transfer chunked data instead of just bare body in many requests; pack the blobs into FormFileTransfer-alike HTTP pieces; parse them chunked in Twisted and send to callee/caller this way
 - properly debug/audit conections
@@ -233,150 +234,157 @@ URGENT:
 + CSS support & testing
 + disallow setting of SRC on an iframe & object. archive,codebase,data,usemap
 ? need faster hub connection init! (not very essential, hub connection is actually OK)
-- highlighting editor (codemirror?)
-    - need better iframe support, at least these:
-        + iframe => div (??? make RETURN IFRAME! (only create link as <div>, <span>, etc. NOT in createElement!! TODO!!
-        + frame.contentWindow
-        + frame.contentWindow.document
-        + ..document.body, ownerDocument contentDocument contentWindow wrap/trap!
-        + document.designMode = "on" / "off" -> behave as contentEditable
-        + document.write(HTML) -> feed the di sax parser further
-        + SPAN with style display:none (hard-coded)
-        + parse <body> to <div>
-        + parse <html> <meta> <title>  and such into <span> with display: none and set js intrf 'origTagName' to original tagName 
-        + parse <link> + CSS tags, (and add display: none to SPANs)
-        - parse <script> with SRC, the same
-            - what stack to import scripts to??
-                - create a new stack associated with iframe "main thread"
-        + for the script inside IFRAME: ownerDocument->document to have window.top and parent
-        + element.spellcheck = true/false
-        - catch 'on' events (like onload)
-            - see https://developer.mozilla.org/en/iframe: Some quirks of the iframe in design mode: Elements 'onclick' functions doesn't work - add events with addEventListener window.setTimeout doesn't work. Use parent. 
 + iframe core refactoring: support for iframe code scope trap
-    - enumerate scope-formation places: 'global' scope setup, etc.
-        - setTimeout (thisObject)
-        - start_new_thread
-        - setInterval
-        ---- the above may not require scope change (see spec.)
-            - FUNCTIONOBJECT_PROTOTYPE._call (thisObject)
-            - new Function: (in global init)
-            - ExecutionContext.prototype.scope this.XCp.scope = {object: this.global, parent: null};; thisObject next line
-            - reflectClass uses global [check]
-            - putValue uses global as default scope search path
-            - toObject uses global to convert [check]
-            - step_next in error checking uses global to check for InternalError
-            - all internalError set by global.InternalError
-            - error deref algorith uses global [skip]
-            - execf_thread sets thisObject (incorrectly? compare with setTimeout?)
-            - execf_stack
-            - native __hasInstance uses vm.global.Function check
-        + fixed using global switch
-    + add ability to create new global scope via method
-        - maybe "fork scope?" - mean, link to global InternalError and other defaults?
-            then all the code will work with global scope forks...
-    + add ability to alter global scope [????]
-    + rewrite iframe scope creation procedure (to run all code from new scope)
-    + rewrite onload event
-    + test!
-- multi-line string
-- remove fetchUrl & load () when bind_om init (security)
-  - this will be done by security code!!! (???)
-- ic: better parse of errors when program launch (maybe attach to errorLog??)
 + ic: bug with autocompletion (double-check the regex to 1. match only from beginning and 2. return ful string)
 + ic: removing dead program doesn't work via click on "close"
 + ack! is sent 35 times (!!) during codeMirror loading
-- hub leaks memory when client actively reannounces :-\ - should stop the bad-behaving client from flooding the base
-- check that event handler stck queue really works!
 + why is 'import' unshifting stack instead of pushing?? that doesnt seem to be correct
 + rename 'import' to 'include' (import is reseved javascript keyword and include is more natural from other languages)
-- DOM transactional model: .commit() -> to write to DOM (to solve consistency problems of editors)
 + jn-thrown exceptions line and file are not set in chrome browser
-- google chrome native-thrown exceptions line and file are not set
++ w3c localStorage instead of/with Gears - localStorage serialization (available on many browsers)
+? check that event handler stck queue really works!
++? no terminal_id in request available??
++ close registration of terminal names shorter than 8 chars
+    + create terminal names of length 8+, (or?) starting with # instead of 't'
+    + filter(sort down only!) out names starting with # from 'list' output?? (auto done)
++ modify fixedstore.jn to support wrapped BLOBs as arguments
++ test BLOB usage without gears
++ use some other serialization avail indicator instead of gears FixedStore availability
++ request resend stopped working! (restart hub->)
++ deal with JSDOM setAttribute/js DOM intrf mess 
+  + normalize:
+	+ ___setters&getters
+    + setNamedItem
+        + DOMElement_setAttributeNode
+        + setAttribute
+    +? DOMAttr_setValue
+        +? DOMattr.setNodeValue: apply guards
+    ? setNodeValue
+	? bind_real_dom
+	
+  - do for:
+    + a & tagret
+    + form & tagret => default not to _blank but to _frame; disallow non-jeneric destinations?? maybe always upload to hub and then decide what to do?
+        + as form is used to upload files only - we may use it without targeting to a hidden iframe yet. also hidden iframe may lead to security flaws 
+          and also may "jump-swap out" the OS and execute any script!!!
+    + check that form target!="_self"
+    + link & disallow non-css
+    + object, form src!
+    
+    
+    
+    
+- BUG: google chrome native-thrown exceptions line and file are not set
     - see http://code.google.com/p/chromium/issues/detail?id=7240
-
-- register global shortcut like CTRL-SHIFT-P to print trace if debug enabled!
 - BUG: sometimes removal of CSS stylesheet fails in deleteChild (try to delete open codemirror)
+- BUG connection:
+    - editor.js is impossiblt to save via /bin/edit: the system hangs completely FF3.6/eeepc
+        - the connection hangs, then it unfreezes and sends lots of announce and ack requests, flooding hub
+        - hubConnection.stomp.reset() helps to resolve.. should be considered
+        - should be better investigated
+    - codemirror sometimes fails to load entirely (slow connection/orbited issue?)
+- BUG: some strange info at the end of stack traces found :-\
+- ic: better parse of errors when program launch (maybe attach to errorLog??)
 
-- editor.js is impossiblt to save via /bin/edit: the system hangs completely FF3.6/eeepc
-    - the connection hangs, then it unfreezes and sends lots of announce and ack requests, flooding hub
-    - hubConnection.stomp.reset() helps to resolve.. should be considered
-    - should be better investigated
-- codemirror sometimes fails to load entirely (slow connection/orbited issue?)
-- no terminal_id in request available??
 
-- Range: insertNode: DOM normalizer (and other methods that require normalized DOM)
-- implement advanced HTML control element: highlighting code editor (as TMP workaround?, double iframes!, expose codeMirror API)
-- close registration of terminal names shorter than 8 chars
-    - create terminal names of length 8+, (or?) starting with # instead of 't'
-    - filter(sort down only!) out names starting with # from 'list' output??
-- some strange info at the end of stack traces found :-\
-- think of 'mixed namespace': merge object trees under same destination (multiple links? -> search for children, methods in descending order)
-- deal with JSDOM setAttribute/js DOM intrf mess (props set/get by .type != .setAttribute('type', v) )
-  normalize:
-	- setNamedItem
-	- DOMElement_setAttributeNode
-	- bind_real_dom
-	- setAttribute
-	- ___setters&getters
-  do for:
-    - a & tagret
-    - form & tagret => default not to _blank but to _frame; disallow non-jeneric destinations?? maybe always upload to hub and then decide what to do?
-    - link & disallow non-css
+
+
+
+SECURITY FIRST HERE!!!
+INDUSTRIAL DB FIRST HERE!!
+DENY until fixed
     - object - disallow everything except for flash, set params to not call external JS
-    - object, form src!
+        - disallow changing of flash-protecting values
+        + disallow setting of 'data' property
+    - embed object
+    - AllowScriptAccess http://kb2.adobe.com/cps/164/tn_16494.html
+    - http://blog.monstuff.com/archives/000280.html - cross-domain flash access
+- also nota 'audio' and 'video' tags!
+    
+
+- implement advanced HTML control element: highlighting code editor (as TMP workaround?, double iframes!, expose codeMirror API)
+- flash control element insertion kernel method!
+
+- property transfer: if a prop is large string: do not retry transferring if transfer is in progress...
+    this is a substantial bug that should be fixed at alpha-beta stage...
+
+
 - enhance/reduce logging for jsobject/eosinit: log only if KCONFIG("debug") is set; and set the level
     - or maybe introduce firebug/console-only setup??? like set DEBUG=<LEVEL> in firebug to enable logging?
     - check jsexec for (full) conformance with DEBUG variable
     - methods to setup debug for within inside VM (but! checks for global DEBUG before logging) -- 'attach to console' here
+    - reduce logging in s_agent
+    - localStorage consistency logging: compare getChildList behaviour!
 - cookie session auth
-- i've created a temporary session folder for you at /home/(termname)/
-    - make sessions persistent through page reloads (?)
+    - and store terminal IDs for a week or two??
+- i've created a temporary session folder for you at /session/(termname)/ (provided by HUB)
+    - make sessions persistent through page reloads (?cookie)
 - how to change security model of an object?? - only a super-puper user may do that; or the security code itself
     - terminal has initial security. It must to allow or to disallow the setting of security by object parent (at inittime or runtime)
     - denote every single kernel feature and allow security code to manage it (we need a wiki page on that)
-- detach all I/O methods from VM!
 - sequential READ for object type_uri (and sec_uri??) -- see codeMirror problem (HUGE file transfer)
     - or make HUGE argument transfer more reliable (auto-sequencing??)
-- ISPs as partners: VPS hosting for HUBs
+
+- add core md5 method http://www.myersdaily.org/joseph/javascript/md5-text.html
+- the policy should be able to set restrictions on what code may be loaded
 - security model
+    - notifyList in security!
+    - remove fetchUrl & load () when bind_om init (security)
+      - this will be done by security code!!! (???)
+    - allow "kernel driver" native code injection
 - encrypt passwords
+    - use md5 hashing for auth, register and storing passwords http://pajhome.org.uk/crypt/md5/advancedauth.html#alternative
 - security to return optional "reason" value: true or text that will be set to "deny reason" for EPERM, etc.
     - modify EPERM error transfer
+- hub leaks memory when client actively reannounces :-\ - should stop the bad-behaving client from flooding the base
+
 - stabilize init procedure (to look for init in /var or something?)
-- localStorage serialization (available on many browsers)
 - object description protocol (at least for storage objects + naming) type, length, content-type
     - link should always report type 'link' (kernel feature?)
-- objects manipulating toolkit
 - cute "OK" check for POSTs (to indicate the POST was OK)
-- html templating support via core extension (require STL to get this to work; it will be later replaced by userspace library since userspace will be _as fast as kernel_)
-- html FORM, OBJECT & applet/flash security (write flash mp3 player?)
-    - test CSS writing a cute mp3 player
-    - test OBJECT/IFRAME security in IE & others!
-- stress-test the jeneric object database (serializer, swapout, etc. - memory consumption, object limits.. (KCONFIG?))
-- jsexec optimization: do not switch context for EACH step, rather do this for each BURST group
-- better console library (iclib)
-- database access methods
-    (or kernel driver object?? - terminal security model that allows for native code "RING0" injection)
-- start integration proposal
+
+
+
+- highlighting editor
+- ls -la: object description
+- objects manipulating toolkit
 - write standard tools: mv(?), rm, mkdir, rmdir, cp, cr - create object of certain type/sec, ul - upload something, cl - copy local (gears get)
     - friend group search
+- terminal ipc method ping 
+    - and 'ping' program (may just ping via calling nonexistent method)
+- better console library (iclib)
+- mp3 player
+- offline service manifest file! https://developer.mozilla.org/en/Offline_resources_in_Firefox#Specifying_a_cache_manifest
+
+
+
+- html templating support via core extension (require STL to get this to work; it will be later replaced by userspace library since userspace will be _as fast as kernel_)
+    - or maybe kernel driver?
+- stress-test the jeneric object database (serializer, swapout, etc. - memory consumption, object limits.. (KCONFIG?))
+- jsexec optimization: do not switch context for EACH step, rather do this for each BURST group
+
+- database access methods
+    (or kernel driver object?? - terminal security model that allows for native code "RING0" injection)
+
 - industrial database
     - stress-test what if we use FF/Chrome storage
     - PUBLIC security model for INDUSTRIAL #1
     - think through how to build a standalone storage (maybe using full JN protocol + security model?)
     - use either solution
-- a descriptive Google Gears ask-for-install field
+    
+- start integration proposal
+
 - test jquery & something
+- a descriptive Google Gears ask-for-allow field
 - write SvoyaSet panel?? or make SS entirely AJAX (see some Elgg tutorial to AJAXify it)
-- International version yrmarkt.com, yourmarkt.com, corpoware.com, webnotware.com, warenot.com, warebs.com, 
+- International version yrmarkt.com, yourmarkt.com, corpoware.com, webnotware.com, warenot.com, warebs.com, platform25.com
 - remove unneeded commands from IC
-- terminal ipc method ping
-    - and 'ping' program
+
 
 - process control routines
 - print_traceback() kernel method
 - ie8: out of stack space when running codemirror
-- store an ummutable? ID object at ~/sys/uuid that holds the machine UUID stored in unexpirable cookie see http://www.broofa.com/Tools/Math.uuid.js
+- store an immutable? ID object at ~/sys/uuid that holds the machine UUID stored in unexpirable cookie see http://www.broofa.com/Tools/Math.uuid.js
 - fix array.sort and JSON.stringify(replacer/reviver) (maybe others??) - WONTFIX for pre-alpha release
 - make sure 'move' call really exists for the object tree (
   - and document all tree calls)
@@ -391,11 +399,9 @@ URGENT:
     - also set the limits in VM via parent call
     - also get the limits in child
     - control the ability of child creation totally
-- HUB: sessions do not timeout
-- push TRUE: HAS NOT gone aWAY!! [at least for exception cases] [seems to be an exceptions problem only]
 - jeneric in 'prefix mode' - for easier integration: prefix="/hub.php" -> all requests go through "mysite.com/hub.php?q=/tcp/...", "mysite.com/hub.php?q=/os/ramstore.jn", etc. 
   - pass jeneric kernel parameters in integration-friendly mode
-
+- disttools: a shell script to create distribution of jeneric (to write kernel version release numbers, etc.)
 
 - get rid of STOMP ACKing -- HTTP protocol is already a good transport [need some tight HTTP/STOMP integration]
 - get rid of pinging - use HTTP long-poll session info [STOMP session connection information?]
@@ -410,11 +416,10 @@ URGENT:
 - steal unit tests for DOM
 - set and debug for DOCTYPE strict setting (mozilla will render faster) see https://developer.mozilla.org/en/Migrate_apps_from_Internet_Explorer_to_Mozilla
 - jsdom: better DOM cache cleanup upon removal :-\
-- even more fast parser: see errors
 - DOM wrapper seems to need a substantial rewrite ???
     (without having the 'local copy'?)
 - // WARNING!! this all may result in exceptions! (DOMException) -> this should not be thrown by VM as errors!
-- mouse scroll event DOM enhancement http://markup-javascript.com/2009/05/24/krossbrauzernyj-mousewheel-obrabotka-sobytiya-skrolinga/
+
 - need to re-announce (or ping) if connection lost 101 ???
 - BlobObject slice poor perf bugfix for Chrome (do not slice if we want full object)
 - totally-rename wrappedString to ___wrppedString for more security
@@ -422,7 +427,13 @@ URGENT:
 
 --- LTR line
 ----------------
+- multi-line string
 - highlighting mc-like (keyboard-driven) code browser
+- Range: insertNode: DOM normalizer (and other methods that require normalized DOM)
+- DOM transactional model: .commit() -> to write to DOM (to solve consistency problems of editors)
+- register global shortcut like CTRL-SHIFT-P to print trace if debug enabled!
+- localStorage as FixedStorage
+    - mozilla specific: https://developer.mozilla.org/en/nsIDOMOfflineResourceList, http://mxr.mozilla.org/mozilla-central/source/dom/interfaces/offline/nsIDOMOfflineResourceList.idl
 - some terminal security improvements
     - move terminal_auth to terminal.jn responsibility (only allow to auth from "~" object)
     - implement passwd change in ic.jn (write program?)
@@ -446,6 +457,11 @@ URGENT:
 - cache parsed code for all security models loaded (hmm.. not all.. some, with stack or smth
 - better connection speed on-line benchmarking for data pipe floating window
 - make the code so clean, well-designed and readable, that it would be a perfect adn best JS/DOM documentation out there!
+- mouse scroll event DOM enhancement http://markup-javascript.com/2009/05/24/krossbrauzernyj-mousewheel-obrabotka-sobytiya-skrolinga/
+- support for removeNamedItem, _readonly and errorChecking in jsdom2
+- test html FORM, OBJECT & applet/flash security (write flash mp3 player?)
+    - test CSS writing a cute mp3 player
+    - test OBJECT/IFRAME security in IE & others!
 
 kernel programming advisory: be careful with methods that stop the stack - report any possible error via try/catch and stack release w/throw
 
@@ -485,7 +501,7 @@ Jeneric is a mix of virtualization for the WEB, the Web Operating System, etc...
 - LIPC sending function references and executing them in another vm may result in any unpredicted behaviour (stack mess)
 - EOS or POS?
 - hub.py is VERY poorly code-designed
-
+- document limitations: large code files will be stored as Blobs, cannot be used as TypeURI or SecurityURI
 
 --- CRAZY
 ---------------

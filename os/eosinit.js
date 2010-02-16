@@ -475,6 +475,8 @@ hubConnection = {
             if(rq.error && rq.error == "NOSESSION") {
                 if(window.console) console.log("no session, doing announce");
                 hubConnection.announce();
+                // and resend pending requests
+                hubConnection.send_real(true); // force
                 return;           
             }
 
@@ -508,7 +510,7 @@ hubConnection = {
         this.send_real();
     },
     
-    send_real: function () {
+    send_real: function (force) {
         var ct = (new Date()).getTime();
         for(var i in this.rqe) {
             //if(i == "__defineProperty__") continue; // XXX FUCK!!
@@ -530,7 +532,7 @@ hubConnection = {
                 delete this.rqe[i]; // XXX TODO how will it interact with property-iteration?
                 
             } else {
-                if(this.rqe[i]["last_resend"] && ((ct - this.rqe[i]["last_resend"]) < RQ_RESEND_INTERVAL)) continue;
+                if(!force && this.rqe[i]["last_resend"] && ((ct - this.rqe[i]["last_resend"]) < RQ_RESEND_INTERVAL)) continue;
                 this.rqe[i]["last_resend"] = ct;
                 
                 this.rqe[i]["r"].session = this.___SESSIONKEY;
@@ -630,9 +632,10 @@ function blob_replacer(key, value, req) {
         // add object to BlobSender and send separately
         // return blob-representation object
         // XXX assume we HAVE gears installed if we encounter GearsBlob here!
-
         var blobID = "Blob("+key+"."+randomString(10)+")";
-        if(value.wrappedString) sendWrappedBlob(blobID, value, req); // TEST IT
+        if(value.hasOwnProperty("wrappedString")) {
+            sendWrappedBlob(blobID, value, req); // TEST IT
+        }
         else sendBlob(blobID, value, req);
         return blobID;
     }
@@ -672,7 +675,7 @@ function sendBlob(bid, blob, req) {
 
 function sendWrappedBlob(bid, blob, req) {
     var dr = new DataRequestor();
-    
+    console.log("wrappedBlob working");
     // TODO: notifications of send error
     // dr.onload = ...;
     dr.onfail = function (status, txt) {
@@ -682,6 +685,7 @@ function sendWrappedBlob(bid, blob, req) {
     
         if(window.console) console.log("wrappedBlob send failure for request "+req.id+" with status "+status);
     };
+    console.log("wrappedBlob sending string: '"+blob.wrappedString+"'");
     dr.addArg(_POST, "data", blob.wrappedString);
     dr.addArg(_POST, "blob_session", hubConnection.___SESSIONKEY);
     dr.addArg(_POST, "blobid", bid);
@@ -689,7 +693,7 @@ function sendWrappedBlob(bid, blob, req) {
 
 }
 
-
+ 
 function getBlob(bid, blobCount, blobObject, req) {
     // again,assume gears is there
     var request = google.gears.factory.create("beta.httprequest");
@@ -744,8 +748,8 @@ function getWrappedBlob(bid, blobCount, blobObject, req) {
 
         if(window.console) console.log("wrappedBlob get failure for request "+req.rq.id+" with status "+status);
     };
-    dr.addArg(_POST, "blob_session", hubConnection.___SESSIONKEY);
-    dr.addArg(_POST, "blobid", bid);
+    dr.addArg(_GET, "blob_session", hubConnection.___SESSIONKEY);
+    dr.addArg(_GET, "blobid", bid);
     dr.getURL( "/base64get" );
 
 }

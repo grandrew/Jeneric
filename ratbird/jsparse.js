@@ -196,7 +196,7 @@ Tokenizer.prototype = {
     },
 
     get: function () {
-        var token;
+        var token, match2;
         while (this.lookahead) {
             --this.lookahead;
             this.tokenIndex = (this.tokenIndex + 1) & 3;
@@ -276,11 +276,16 @@ Tokenizer.prototype = {
             //} else if ((match = input.match(/^"(?:\\.|[^"])*"|^'(?:\\.|[^'])*'/))) { //"){
             // does not pass: causes 'illegal token'
             } else if ((firstChar == 34 || firstChar == 39) && 
-						(match = input.match(/^(?:"(?:\\.|[^"])*"|'(?:[^']|\\.)*')/))) { //"){  // EDIT: change regex structure for OOM perf improvement,
+						((match = input.match(/^(?:"(?:\\.|[^"])*"|'(?:[^']|\\.)*')/)) /* || match2=input.match(/"""(?:.|\n)*?"""/) */ )) { //"){  // EDIT: change regex structure for OOM perf improvement,
 																								//       use x-browser regex syntax
 // ("""(?:.|\n)*?""")
                 token.type = STRING;
-                token.value = eval(match[0]);
+                if(match) { 
+                    token.value = eval(match[0]);
+                } else {
+                    // multiline string...
+                    //token.value = match2[0].slice(3, -3);
+                }
             //} else if (this.scanOperand && (match = input.match(reRegExp))) {
             } else if (this.scanOperand && firstChar == 47 && // EDIT: improve perf by guarding with first char check
 						////(match = input.match(/^\/((?:\\.|[^\/])+)\/([gi]*)/))) { // EDIT: use x-browser regex syntax

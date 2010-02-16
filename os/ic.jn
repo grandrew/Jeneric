@@ -255,7 +255,7 @@ brDOM();
 // TODO: write Google Gears hint - if not detected
 if(!object.FixedStorage)
 {  
-    printDOM("Google Gears not installed. Will not save objects locally! Please check http://gears.google.com/");
+    printDOM("Google Gears not installed. Reduced functionality mode. Please check http://gears.google.com/");
     brDOM();
 }
 

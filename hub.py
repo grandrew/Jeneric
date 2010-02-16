@@ -57,7 +57,8 @@ import simplejson
 REGISTRAR_DB = "/var/lib/eoshub/registrar.sqlite"
 TMP_DB = "/tmp/blob_tmp_db.sqlite"
 
-PFX = "_t" # terminal ID prefix
+PFX = "" # terminal ID prefix
+PFX_SIZE = 9 # size of terminal name generated in chars excluding PFX
 # SFX = "" # hub domain suffix
 
 ANNOUNCE_PATH = "/announce"
@@ -315,12 +316,25 @@ class Hub(StompClientFactory):
                 s = "EEXCP"
                 r = "invalid arguments"
             if len(s) == 0: # XXX arbitrary length limitations??
-                if len(name) < 2: 
+                if len(name) < 8: 
                   s = "EEXCP"
-                  r = "name cannot be less than two chars"
+                  r = "name cannot be less than 8 chars"
                 if len(key) < 2:
                   s = "EEXCP"
-                  r = "key cannot be less than two chars"
+                  r = "key cannot be less than 2 chars"
+                if len(name) > 256: 
+                  s = "EEXCP"
+                  r = "name cannot be longer than 256 chars"
+                if len(key) > 256: 
+                  s = "EEXCP"
+                  r = "key cannot be longer than 256 chars"
+                try:
+                    a = int(name)
+                    s = "EEXCP"
+                    r = "numeric names are reserved"
+                except:
+                    pass;
+
             if len(s) == 0:
                 # try to register the terminal
                 c = dbconn.cursor();
@@ -468,7 +482,7 @@ class Hub(StompClientFactory):
             #rq = json.decode(msg["body"])
             rq = simplejson.loads(msg["body"])
             
-            termname = PFX+str(newId())
+            termname = PFX+str(newId()).zfill(PFX_SIZE);
             
             if "terminal_id" in rq and "terminal_key" in rq:
                 c = dbconn.cursor()
@@ -822,7 +836,7 @@ class BlobPipe(Resource):
             else:
                 request.write(d); 
                 request.finish();
-            
+             
             return server.NOT_DONE_YET
         else: # This means that we got a direct access request and we should parse it into sequential READs
             pass;
@@ -1016,16 +1030,16 @@ class BlobPipe(Resource):
 
     def render_POST(self, request):
         #[]
-        print "POST!" # #####################
+        if DEBUG>1:print "POST! prepath=", request.prepath[0] # #####################
         self.preinit();
         
-        print "preinit done!" # #####################
+        if DEBUG>3:print "preinit done!" # #####################
         if "blobsend" == request.prepath[0]:
             #pass # do receive the blob in base64
-            print "blobsend!" # #####################
+            if DEBUG>3:print "blobsend!" # #####################
             blob = request.content.read(); # the body of request, Google-Gears specific
             
-            print "blobsend: GOT POST BODY length: ", len(blob) # ############################################
+            if DEBUG>3:print "blobsend: GOT POST BODY length: ", len(blob) # ############################################
             try:
                 blobid = request.args['blobid'][0]
                 sess = request.args['blob_session'][0]
@@ -1066,6 +1080,11 @@ class BlobPipe(Resource):
             isblob = True # treat as blob by default
             
             #if not fd.read(1):
+            if DEBUG > 4: 
+                print "POST Args:"
+                for ob in request.args:
+                    print ">", ob, "Len:", 
+                    print len(request.args[ob])
             if len(request.args['file'][0]) < TREAT_AS_BLOB_SIZE:
                 #fd.seek(0)
                 #r = fd.read()

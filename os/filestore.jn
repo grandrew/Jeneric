@@ -56,21 +56,47 @@ if(object.FixedStorage) {
     }
     
 } else {
-    ErrorConsole.log("NO FIXED STOR DETECTED");
+    //ErrorConsole.log("NO FIXED STOR DETECTED");
     function read(rq, offset, len) {
         // TODO: error checking?
         //ErrorConsole.log("ramstore: returning data: "+sdata.substr(offset, len) + " params: "+offset+" l "+len);
         if(!offset) offset = 0;
-        if(!len) len = object.data.data.length;
-        return object.data.data.substr(offset, len);
+        if(!len) len = object.data.data.length/2;
+        
+        //len = len/2;
+        var bb = new object.BlobBuilder();
+        b = bb.getAsBlob();
+        b.wrappedString=object.data.data.substr(offset*2, len*2);
+        return b;
+        
     }
 
     function write(rq, data, offset) {
         // TODO: error checking?
         if(typeof offset != "undefined") {
-            object.data.data = "".concat(object.data.data.substr(0, offset), data, object.data.data.substr(offset+data.length));
+            if(data.wrappedString) {
+                data = data.wrappedString;
+                object.data.data = "".concat(object.data.data.substr(0, offset*2), data, object.data.data.substr(offset*2+data.length));
+            } else {
+                var blb = new object.BlobBuilder();
+                var bc = new object.BlobBuilder().getAsBlob();
+                bc.wrappedString = object.data.data;
+                blb.append(bc.slice(0, offset)); // no matter null or blb
+                blb.append(data); // no matter blob or wrapped
+                if(!("length" in data)) data.length = data.getLength();
+                blb.append( bc.slice(offset+data.length) );
+                object.data.data = blb.getAsBlob().wrappedString;
+                //object.data.data = "".concat(object.data.data.substr(0, offset), data, object.data.data.substr(offset+data.length));
+            }
         } else {
-            object.data.data = data;
+            if(data.wrappedString) {
+                object.data.data = data;
+            } else {
+                var bb = new object.BlobBuilder();
+                bb.append(data);
+                object.data.data = bb.getAsBlob().wrappedString;
+            }
+            
         }
         object.release(); // save and release
         return true;

@@ -282,7 +282,7 @@ BlobBuilder.prototype.append = function (obj) {
                 r = encodeURI(ch);
                 if(r.length > 1) r = r.split("%"); // %D0%AB -> "", "D0" "AB"
                 else r = [ r.charCodeAt(0).toString(16).toUpperCase() ]; // -> HEX.
-                lh.concat(r);
+                lh=lh.concat(r);
             }
             this.___bloblist.push(lh.join(""));
         } else if (obj instanceof Array) {
@@ -292,6 +292,7 @@ BlobBuilder.prototype.append = function (obj) {
                 // convert int to hex
                 if(typeof obj[i] == "number") ch = obj[i].toString(16).toUpperCase(); // assume it is integer??
                 else throw (new TypeError("array does not consist of numbers"));
+                if(ch.length==0) ch = "0"+ch;
                 lh = lh + ch;
             }
             this.___bloblist.push(lh);
@@ -305,6 +306,7 @@ function BlobObject() {
     
     // no way of creating a spare blob directly...
     //_BlobObject.apply(this);
+    this.isBlob = true; // to detect blobs
 }
 
 BlobObject.prototype.toString = function () {
@@ -1400,6 +1402,7 @@ GearsStore.prototype.getByURI = function (uri) {
     return dump;
 };
 
+
 GearsStore.prototype.getChildList = function (URIorID) {
     if(typeof URIorID == "string") {
         var rs = this.db.execute("SELECT rowid,TypeURI,SecurityURI,ChildList FROM Serialize WHERE URI=?", [URIorID]);
@@ -1442,12 +1445,103 @@ GearsStore.prototype.close = function () {
     this.db.close();
 };
 
+/* 
+ *  localStorage interface!
+ */
+
+function localStore() {
+
+}
+
+localStore.prototype.checkID = function (ID) {
+    // check if the ID is available in serial form
+    if(window.localStorage.getItem(ID.toString())) return true;
+    return false;
+};
+
+localStore.prototype.update = function (ID, data) {
+    // inefficient...
+    var saved_data = JSON.parse(window.localStorage.getItem(ID.toString()));
+    for(var ob in data) {
+        saved_data[ob] = data[ob];
+    }
+    saved_data.Modified = (new Date()).getTime();
+    window.localStorage.setItem(ID.toString(), JSON.stringify(saved_data));
+};
+
+localStore.prototype.insert = function (data) {
+    var ID = (new Date()).getTime();
+    data.Created = data.Modified = ID;
+    window.localStorage.setItem(ID.toString(), JSON.stringify(data));
+    window.localStorage.setItem(data.URI, ID.toString());
+    return ID;
+};
+
+
+localStore.prototype.getByID = function (serID) {
+    var d = JSON.parse(window.localStorage.getItem(serID.toString()));
+    d.rowid = parseInt(serID); // XXX Gears API mess :-\
+    return d;
+};
+
+localStore.prototype.getByURI = function (uri) {
+    var ID = window.localStorage.getItem(uri);
+    if(!ID) return null;
+    return this.getByID(ID);
+};
+
+
+localStore.prototype.getChildList = function (URIorID) {
+    if(typeof URIorID == "string") {
+        var ID = window.localStorage.getItem(URIorID);
+        if(!ID) {
+            if(window.console) console.log("localStore getChildList consistency error!!: "+URIorID);
+            return;
+        }
+    } else {
+        var ID = URIorID;
+    }
+    var d= JSON.parse(window.localStorage.getItem(ID.toString()));
+    d.rowid = parseInt(ID); // XXX Gears API mess :-\
+    return d;
+};
+
+
+localStore.prototype.setChildList = function (URIorID, schildList) {
+    if(typeof URIorID == "string") {
+        var ID = window.localStorage.getItem(URIorID);
+        if(!ID) { 
+            if(window.console) console.log("localStore setChildList consistency error!!: "+URIorID);
+            return;
+        }
+    } else {
+        var ID = URIorID;
+    }
+    var data = JSON.parse(window.localStorage.getItem(ID.toString()));
+    data.ChildList = schildList;
+    window.localStorage.setItem(ID.toString(), JSON.stringify(data))
+};
+
+
+localStore.prototype.remove = function (ID) { // remove from storage...
+    // may fail here??
+    var data = JSON.parse(window.localStorage.getItem(ID.toString()));
+    window.localStorage.removeItem(data.URI);
+    window.localStorage.removeItem(ID.toString());
+};
+
+
+localStore.prototype.close = function () { };
 
 function getFixedStorage() {
-    if(!window.google) {
+    if(window.google) {
+        return (new GearsStore()); // prefer gears??
+    } else if (window.localStorage) {
+        return (new localStore());
+    } else {
         return undefined;
     }
-    return (new GearsStore());
+    
 }
 
 // WARNING! different error handling API here
@@ -2170,7 +2264,7 @@ Jnaric.prototype.bind_om = function () {
     };
     this.global.object.getMyAbsoluteURI = function() {
         //return KCONFIG["terminal_id"] + __tihs.uri.split("~",1)[1]; // to remove ~ or fail :-\       
-        return KCONFIG["terminal_id"] + __tihs.uri.slice(1);     
+        return "/"+KCONFIG["terminal_id"] + __tihs.uri.slice(1);     
     };    
     this.global.object.getMyTypeURI = function() {
         return __tihs.TypeURI;        
@@ -2231,7 +2325,7 @@ Jnaric.prototype.bind_om = function () {
     
     this.global.JSON = {
         stringify: function (value, replacer, space) {
-            // firefox 3.5 bug workaround
+            // in fact, we cannot yet use replacer at all.. DOC
             if(typeof(replacer)==="function") return JSON.stringify(value, replacer, space);
             else { 
                 if(JSON.native_stringify) return JSON.native_stringify(value, replacer, space);
@@ -2242,6 +2336,11 @@ Jnaric.prototype.bind_om = function () {
             return JSON.parse(text, reviver);
         }
     };
+    if(getFixedStorage()) {
+        this.global.object.canSerialize = true;
+    } else {
+        this.global.object.canSerialize = false;
+    }
     
     this.bind_storage(); // always try to bind storage
     

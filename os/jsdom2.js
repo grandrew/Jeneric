@@ -1105,6 +1105,7 @@ DOMNamedNodeMap.prototype.setNamedItem = function DOMNamedNodeMap_setNamedItem(a
 
   arg.ownerElement = this.parentNode;            // update ownerElement
 
+  /*
   // GDW
   if(arg.___link && this.___link) {
     // WARNING XXX set ___link to the same as attached DOMElement!!
@@ -1113,10 +1114,10 @@ DOMNamedNodeMap.prototype.setNamedItem = function DOMNamedNodeMap_setNamedItem(a
     try {
         this.___link.setAttributeNode(arg.___link);
     } catch (e) {
-        this.___rewriteNode = true;
+        this.___rewriteNode = true; // IE fix
     }
   } // TODO: return an error (InternalProgrammingError) if any of two coexist without real link
-     
+  */   
 
   return ret;                                    // return old node or null
 };
@@ -3082,20 +3083,20 @@ DOMElement.prototype = new DOMNode;
 DOMElement.prototype.bind_real_dom = function DOMElement_bind_real_dom() {
   if(!document.createElement) return; // document must be globally defined anyways but should be null :-\ XXX DOC for implementations!
   var tagName = this.tagName;
-  
-  if(trim(tagName,true, true).toLowerCase() === "script") {
+  var ttn = trim(tagName,true, true).toLowerCase();
+  if(ttn === "script") {
     tagName = "span";
     this.___isScript = true;
   }
-  else if(trim(tagName,true, true).toLowerCase() === "body") {
+  else if(ttn === "body") {
     tagName = "div";
     this.___isBody = true;
     if(!this.ownerDocument.body) this.ownerDocument.body = this; // whenever created...
     
-  } else if(trim(tagName,true, true).toLowerCase() === "meta") {
+  } else if(ttn === "meta") {
     tagName = "span";
     this.___isMeta = true;
-  } else if(trim(tagName,true, true).toLowerCase() === "iframe") {
+  } else if(ttn === "iframe") {
     tagName = "div";
     this.___isIframe = true;
     // now bind contentWindow, contentDocument, etc.
@@ -3143,7 +3144,7 @@ DOMElement.prototype.bind_real_dom = function DOMElement_bind_real_dom() {
   } else if(trim(tagName,true, true).toLowerCase() === "link") {
     tagName = "span";
     this.___isLink = true;
-  }
+  } 
   
   this.___link = document.createElement(tagName); // call ONLY when tagName initialized
   this.___link.___id = __dom_id();
@@ -3151,7 +3152,7 @@ DOMElement.prototype.bind_real_dom = function DOMElement_bind_real_dom() {
   this.style = this.___link.style; // XXX is this secure?
   //this.childNodes.___link = this.___link;
   
-  if(trim(tagName,true, true).toLowerCase() == "form") this.___link.target="_blank";
+  if(ttn == "form" || ttn=="a") this.___link.target="_blank";
   if(this.___isScript || this.___isMeta || this.___isLink) this.___link.style.display="none";
   if(this.___isIframe) this.contentDocument.___bodyLink = this.___link;
   //if(this.___isBody && this.ownerDocument.___bodyLink) this.ownerDocument.___bodyLink.appendChild(this.___link);
@@ -3282,7 +3283,12 @@ DOMElement.prototype.setAttribute = function DOMElement_setAttribute(name, value
   }
 
   // add/replace Attribute in NamedNodeMap
-  this.attributes.setNamedItem(attr);
+  if(this instanceof DOMElement) {
+    // reroute through setAttributeNode
+    this.setAttributeNode(attr);
+  } else {
+    this.attributes.setNamedItem(attr);
+  }
 };
 
 /**
@@ -3345,7 +3351,7 @@ DOMElement.prototype.setAttributeNode = function DOMElement_setAttributeNode(new
   
   // or maybe do these gurds at setNamedItem?
   if(sname.substr(0,2) == "on") return; // do nothing
-  if(sname == "target" && value == "_self") return; // do nothing
+  if(sname == "target" && value != "_blank") return; // DOC: this and all around here
   
   if(sname === "type" && value === "application/x-shockwave-flash") this.___flash = true; // todo: not sure this works in IE
   
@@ -3376,10 +3382,11 @@ DOMElement.prototype.setAttributeNode = function DOMElement_setAttributeNode(new
     eos_om["include"].call(this, this.ownerDocument.___vm, value, this.ownerDocument.___scriptTagStack);
   }
   
-  if(this.tagName.toLowerCase() != "img" && (sname === "src" || (name.toLowerCase() === "data" && !this.___flash))) return;
+  if(this.tagName.toLowerCase() != "img" && (sname === "src")) return;
+  if(this.tagName == "object" && sname === "data" && !this.___flash) return;
   // TODO: SRC security checks and validation
   
-  if(this.___link && newAttr.___link && this.___link.setAttributeNode) {
+  if(sname == "style" && this.___link && newAttr.___link && this.___link.setAttributeNode) {
     if(!_isIE) this.___link.setAttributeNode(newAttr.___link);
     else {
         // IE way..
@@ -3388,6 +3395,19 @@ DOMElement.prototype.setAttributeNode = function DOMElement_setAttributeNode(new
     //console.log("Setting attrNode "+newAttr.___link.value);
   }
 
+  // GDW
+  if(newAttr.___link && this.___link) {
+    // WARNING XXX set ___link to the same as attached DOMElement!!
+    // XXX this will fail in IE on properties like 'type' (exception & fail) or 'class' (fail to apply)
+    // and will lead to substantial incompatibility with IE
+    try {
+        this.___link.setAttributeNode(newAttr.___link);
+    } catch (e) {
+        this.___rewriteNode = true; // IE fix
+    }
+  } // TODO: return an error (InternalProgrammingError) if any of two coexist without real link
+
+  
   // delegate to DOMNamedNodeMap.setNamedItem
   return this.attributes.setNamedItem(newAttr);
 };
@@ -3729,7 +3749,7 @@ DOMAttr.prototype.setValue = function DOMAttr_setValue(value) {
   }
 
   //console.log("Setting ATTR .value to "+value);
-  if(this.___link) this.___link.value = value;
+  //if(this.___link) this.___link.value = value;
   
   // delegate to setNodeValue
   this.setNodeValue(value);
@@ -3744,9 +3764,22 @@ DOMAttr.prototype.setValue = function DOMAttr_setValue(value) {
  * @param  value : string - the new attribute value
  */
 DOMAttr.prototype.setNodeValue = function DOMAttr_setNodeValue(value) {
+  
+  
+  // apply guards if attached to DOM element
+  var sname = this.name.toLowerCase();
+  if(sname == "target" && (value.toLowerCase() != "_blank")) return; // DOC this and everything here
+  if(sname == "data") return; // disallow OBJECT data= setting
+  // SRC, DATA for iframes, img, object
+  /*
+  if(this.ownerElement && this.ownerElement.tagName.toLowerCase() == "a") {
+    
+  }
+  */
   this.nodeValue = new String(value);
   this.value     = this.nodeValue;
   this.specified = (this.value.length > 0);
+  
   if(this.___link) this.___link.nodeValue = value;
 };
 
