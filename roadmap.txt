@@ -312,6 +312,8 @@ DENY until fixed
     
     
 + security.changeSecurityURI(newURI) - will change security URI to a new one, unloading previous one, loading new, and setting SecurityURI to a new value.
+- ipc security: exec with 'this' set to security object!
+- attach a copy of object
 
 - enhance/reduce logging for jsobject/eosinit: log only if KCONFIG("debug") is set; and set the level
     - or maybe introduce firebug/console-only setup??? like set DEBUG=<LEVEL> in firebug to enable logging?

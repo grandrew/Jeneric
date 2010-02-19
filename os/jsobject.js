@@ -2337,6 +2337,9 @@ Jnaric.prototype.bind_om = function () {
         // XXX DISCUSS whether to remove method or report if serialization is impossible??
         eos_om.serialize(__tihs);
     };
+    this.global.object.isSerialized = function() { // request serialization XXX it may not be possible though to serialize
+        return (__tihs.serID > 0);
+    };
     //this.global.serialize = this.global.object.serialize;
     
     this.global.object.destroyInstance = function () {
