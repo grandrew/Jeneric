@@ -4,7 +4,7 @@ OutTo = document.body;
 object.ipc["write"] = function(rq, data) {
     // write 
     if(WRITE_ON) {
-        brDOM(); printDOM("Message from "+rq["terminal_id"]+rq["caller_uri"]+": "+data.substr(0, 1000)); brDOM(); // the RQ may contain 'username' if we use the right security model..
+        brDOM(); printDOM("Message from /"+rq["terminal_id"]+rq["caller_uri"].slice(1)+": "+data.substr(0, 1000)); brDOM(); // the RQ may contain 'username' if we use the right security model..
     }
 }
 

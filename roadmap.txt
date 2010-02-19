@@ -270,7 +270,7 @@ URGENT:
     + check that form target!="_self"
     + link & disallow non-css
     + object, form src!
-    
++ terminal name can not contain a dot!  
     
     
     
@@ -309,6 +309,10 @@ DENY until fixed
     this is a substantial bug that should be fixed at alpha-beta stage...
 
 
+    
+    
++ security.changeSecurityURI(newURI) - will change security URI to a new one, unloading previous one, loading new, and setting SecurityURI to a new value.
+
 - enhance/reduce logging for jsobject/eosinit: log only if KCONFIG("debug") is set; and set the level
     - or maybe introduce firebug/console-only setup??? like set DEBUG=<LEVEL> in firebug to enable logging?
     - check jsexec for (full) conformance with DEBUG variable
@@ -326,6 +330,8 @@ DENY until fixed
     - or make HUGE argument transfer more reliable (auto-sequencing??)
 
 - add core md5 method http://www.myersdaily.org/joseph/javascript/md5-text.html
+    - security.typeCodeMD5
+    - security.securityCodeMD5  (??)
 - the policy should be able to set restrictions on what code may be loaded
 - security model
     - notifyList in security!
@@ -342,7 +348,7 @@ DENY until fixed
 - object description protocol (at least for storage objects + naming) type, length, content-type
     - link should always report type 'link' (kernel feature?)
 - cute "OK" check for POSTs (to indicate the POST was OK)
-
+    - more: output "Got file (tick) \n You may close your window now.\n writing to destination... 10%.. 20%.. ... complete!"
 
 
 - highlighting editor
@@ -424,6 +430,10 @@ DENY until fixed
 - BlobObject slice poor perf bugfix for Chrome (do not slice if we want full object)
 - totally-rename wrappedString to ___wrppedString for more security
 - file GEARS bug: when doing slice of size more than blob size -> the LENGTH is set to parameter sent to slice rather than real (0)
+
+- normalize source code
+    - strip out unnessesary comments
+    - normalize EOL
 
 --- LTR line
 ----------------

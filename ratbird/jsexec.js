@@ -4240,7 +4240,7 @@ Jnaric.prototype.step_execute = function (n, x, stack) {
 
 
 
-Jnaric.prototype.evaluate_thread = function (s, f, l) {
+Jnaric.prototype.evaluate_thread = function (s, f, l, onok, onerr) {
     if (typeof s != "string")
         s = s.toString();
         //return s;
@@ -4251,6 +4251,8 @@ Jnaric.prototype.evaluate_thread = function (s, f, l) {
     //this.ExecutionContext.current = x2; // this is now done via executionContext switcher in step_next
     
     var g_stack = new __Stack(x2); // a 'threading mode' means we create a new execution stack! ... and execution context
+    g_stack.onok = onok;
+    g_stack.onerr = onerr;
     //var e_stack = [];
     //g_stack.e_stack = e_stack;
     g_stack.stack.unshift({n: parse(s, f, l), x: x2, pmy: {}}); // append it to the 'end' of execution stack

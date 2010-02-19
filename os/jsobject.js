@@ -1917,7 +1917,7 @@ eos_om = {
         ch.kconfig_w = kconfig_w;
     },
     
-    "include": function (__tihs, src_uri, sstack) { // safari bug
+    "include": function (__tihs, src_uri, sstack) { 
         // TODO: DOC: XXX: should an include timeout or not??
         // ABI: sstack is a special stack to push to (for iframe includes)
         if(!sstack) {
@@ -2032,6 +2032,54 @@ eos_om = {
             cs.exc.result = new vm.global.Error("delete object error code "+r);        
         }
         return r;
+    },
+    
+    changeSecurityURI: function (vm, newURI) {
+        vm.SecurityURI = newURI;
+        // now clean security object; 
+        vm.security_backup = vm.security;
+        vm.security_backup_global = vm.global.security;
+        vm.security = {};
+        // attach it to global
+        vm.global.security = vm.security;
+        // lock the VM Inbound-IPC
+        // XXX TODO: lock the outbound IPC!
+        vm.global.initIPCLock.goflag = 0;
+        // load new code into it {in a thread?}
+        // XXX DOC: the object may LOCK until restarted if new security fails?
+        // XXX: do we need to stop all stacks for a period here??
+        var exec_f = function (rs, obj) {
+            var data = rs.result;
+            // now run thread!
+            var t_ok = function () {
+                vm.global.initIPCLock.goflag = 1;
+            };
+            
+            var t_err = function (e) {
+                vm.ErrorConsole.log("changeSecurityURI security code error! "+e+" Line: "+e.lineNumber+" File: "+e.fileName);
+                vm.ErrorConsole.log(e);
+                vm.security = vm.security_backup;
+                vm.global.security = vm.security_backup_global;
+                vm.global.initIPCLock.goflag = 1;
+            };
+            
+            try {
+                vm.evaluate_thread(data, newURI, 0, t_ok, t_err);
+            } catch (e) {
+                t_err(e);
+            }
+        };
+        
+
+        var onfail = function (rs) {
+            vm.ErrorConsole.log("changeSecurityURI security code failed to fetch from this URI "+newURI+" Reason: "+rs.status+" : "+rs.result);
+            vm.security = vm.security_backup;
+            vm.global.security = vm.security_backup_global;
+            vm.global.initIPCLock.goflag = 1;
+        };
+        
+        kIPC(vm, newURI, "read", [], exec_f, onfail);
+
     }
 }
 
@@ -2188,6 +2236,9 @@ Jnaric.prototype.bind_om = function () {
     
     this.security = {}; // empty security
     this.global.security = this.security;
+    this.security.changeSecurityURI = function (newURI) {
+        return eos_om.changeSecurityURI(__tihs, newURI); // no return, no block
+    }
     
     this.global.object = {name: this.name, version: this.VERSION};
     this.global._object = this.global.object; // backup object...

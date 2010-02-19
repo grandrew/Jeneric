@@ -43,7 +43,7 @@
 # test redir
 # test security??
 
-DEBUG  = 5
+DEBUG  = 0
 
 
 from stompservice import StompClientFactory
@@ -306,7 +306,7 @@ class Hub(StompClientFactory):
         m = rq["method"]
         
         
-        
+        # DOC: register, what is allowed?
         if m == "register":
             try:
                 name = rq["args"][0]
@@ -328,6 +328,12 @@ class Hub(StompClientFactory):
                 if len(key) > 256: 
                   s = "EEXCP"
                   r = "key cannot be longer than 256 chars"
+                if "." in name:
+                  s = "EEXCP"
+                  r = "terminal name cannot contain a dot"
+                if "#" in name: # and others?
+                  s = "EEXCP"
+                  r = "terminal name cannot contain a #"
                 try:
                     a = int(name)
                     s = "EEXCP"
