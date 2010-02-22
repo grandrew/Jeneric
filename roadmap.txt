@@ -314,6 +314,7 @@ DENY until fixed
 + security.changeSecurityURI(newURI) - will change security URI to a new one, unloading previous one, loading new, and setting SecurityURI to a new value.
 - ipc security: exec with 'this' set to security object!
 - attach a copy of object
+- ability to deny requests via signRequest
 
 - enhance/reduce logging for jsobject/eosinit: log only if KCONFIG("debug") is set; and set the level
     - or maybe introduce firebug/console-only setup??? like set DEBUG=<LEVEL> in firebug to enable logging?
@@ -321,6 +322,8 @@ DENY until fixed
     - methods to setup debug for within inside VM (but! checks for global DEBUG before logging) -- 'attach to console' here
     - reduce logging in s_agent
     - localStorage consistency logging: compare getChildList behaviour!
+- add copyright notice to each source file
+    - and clean headers
 - cookie session auth
     - and store terminal IDs for a week or two??
 - i've created a temporary session folder for you at /session/(termname)/ (provided by HUB)

@@ -10,6 +10,8 @@ security.load = load;
 delete fetchUrl;
 delete load;
 
+// TODO HERE: FOR createChild -> fixed securityURI!
+
 security.setSecurityState = function (state) {
     delete state.inheritParent;
     this.state = state; // no checks
@@ -30,9 +32,12 @@ security.checkInherit = function (rq) {
     return d.result;
 }
 
+// TODO HERE: signRequest: any ability to deny??
+
 security.validateRequest = function (rq) {
     //if(rq.method === "validateRequest" && rq.caller_uri.indexOf(this.object.getMyURI()) != -1) return true;
     // allow all local requests, making the above unnesessary
+    if(rq.caller_uri == this.object.getMyURI()) return false; // deny IPC requests from myself (the code cannot control or interact with the security in any way)
     if(rq.terminal_id = "~") return true;
     return security.ipc.validateRequest(null, rq).result;
 };
@@ -62,5 +67,11 @@ security.ipc.securityFlushCache = function () {
     delete this.state.inheritParent;
     if(this.object.isSerialized()) this.object.serialize();
 };
+
+security.ipc.changeSecurityURI = function(rq, newURI) {
+    this.changeSecurityURI(newURI);
+    if(this.object.isSerialized()) this.object.serialize();
+};
+
 
 delete security; // detach from global...
