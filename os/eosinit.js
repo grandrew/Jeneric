@@ -28,6 +28,7 @@ ACK_TIMEOUT = 60000; // milliseconds before give up resending
 MAX_WINDOW_SIZE = 60000; // ms. max window size for ACKs to remember
 KEY_LENGTH = 80; // bytes stringkey length
 PING_INTERVAL = 90000;
+
 // GENERAL INIT part
 KCONFIG = {
   terminal_id: "~", // init as unknown, will be set later at terminal object instance
@@ -56,8 +57,8 @@ function jeneric_init(elemt) {
     _terminal_vm = new Jnaric();
 
     _terminal_vm.name = "~"; // "terminal"+(new Date()).getTime(); // TODO! get real terminal name!!! (somehow??)
-    _terminal_vm.TypeURI = "terminal"; // no real tURI
-    _terminal_vm.SecurityURI = "terminal"; 
+    _terminal_vm.TypeURI = ""; // no real tURI
+    _terminal_vm.SecurityURI = "~/security/terminal"; 
     _terminal_vm.parent = {serID: 0, uri: "/"}; // only for serialization
     _terminal_vm.uri = "~";//_terminal_vm.parent + "/"+name;
     _terminal_vm.serID = -1; // set to real value, if exists
@@ -89,17 +90,30 @@ function jeneric_init(elemt) {
 
     // TWEAKINIT part
 
-    _terminal_vm.load("os/anarchic.jn");
-
+    //_terminal_vm.load("os/anarchic.jn");
+    _terminal_vm.load("os/st.jn");
 
 
     // write the object!
     __eos_objects["terminal"] = _terminal_vm; // conventional... get rid of this later XXX
     __eos_objects["~"] = _terminal_vm;
 
+    _cn = 0;
+    /////////////////////////////////////////////////////////////////////////////////////////
+    /////////////////////// THE tweak part here
+    INITOBS = 0; // will auto-tune depending on amount of objects requested to load
+    ffoo = function () { 
+        _cn++; 
+        if(_cn == INITOBS) { // see below
+            _terminal_vm.load("os/terminal.jn"); 
+            hubConnection.connect();
+        }
+    }; 
+
+    
 
     // NOW CREATE SYS OBJECT
-
+/*
     _sys_vm = new Jnaric();
 
     _sys_vm.name = "sys";
@@ -132,23 +146,16 @@ function jeneric_init(elemt) {
     // register it
     _terminal_vm.childList["sys"] = _sys_vm;
     __eos_objects["~/sys"] = _sys_vm;
-
-
-    _cn = 0;
-    /////////////////////////////////////////////////////////////////////////////////////////
-    /////////////////////// THE tweak part here
-    ffoo = function () { 
-        _cn++; 
-        if(_cn == 6) { // XXX run terminal when 5 objects initialized!
-            _terminal_vm.load("os/terminal.jn"); 
-            hubConnection.connect();
-        }
-    }; 
-
+    
     _sys_vm.onfinish = function () {
         _sys_vm.onfinish = ffoo;
         _sys_vm.evaluate("wakeupIPCLock.release();"); 
     }; 
+    
+*/
+
+    
+    
 
 
     // NOW CREATE anarchic OBJECT
@@ -156,6 +163,7 @@ function jeneric_init(elemt) {
 
     // TODO: beautify it ;-)
     //       1. create a struct {objname: url,} 2. use object count or length in THE tweak part
+    /*
     _anarchic_vm = manualRamstoreObject("anarchic", _sys_vm);
     _anarchic_vm.onfinish = function () {
         _anarchic_vm.onfinish = ffoo;
@@ -191,7 +199,47 @@ function jeneric_init(elemt) {
         _init_vm.onfinish = ffoo;
         _init_vm.evaluate("sdata = fetchUrl('os/totinit.jn');wakeupIPCLock.release();"); 
     }; 
-
+    */
+    
+    var init_objects = [
+        {name: "sys", parentURI: "~", security: "os/readonly.jn" }, 
+        {name: "anarchic", parentURI: "~/sys", contenturl: "os/anarchic.jn", security: "os/readonly.jn" },
+        {name: "security", parentURI: "~", typeurl: "os/ramstore.jn", security: "os/st.jn" }, // security folder SHOULD be serializable!
+        //{name: "insecure", parentURI: "~", typeurl: "os/ramstore.jn", security: "os/st.jn" }, // should be made serializeable too!
+        
+        // TODO: if object does not exist!
+        {name: "terminal", parentURI: "~/security", contenturl: "os/st.jn", security: "os/readonly.jn" },
+        {name: "ACL", parentURI: "~/security", typeurl: "os/st_acl.jn", security: "os/st.jn" }, 
+        
+        {name: "ramstore", parentURI: "~/sys", contenturl: "os/ramstore.jn", security: "os/readonly.jn" },
+        //{name: "public", parentURI: "~/sys", url: "os/public.jn" },
+        
+        {name: "ic", parentURI: "~/sys", contenturl: "os/ic.jn", security: "os/readonly.jn" },
+        {name: "init", parentURI: "~/sys", contenturl: "os/totinit.jn", security: "os/readonly.jn" }
+    ];
+    
+    for(var ix=0; ix < init_objects.length; ix++) {
+        nvm = manualRamstoreObject(init_objects[ix].name, __eos_objects[init_objects[ix].parentURI], init_objects[ix].typeurl, init_objects[ix].security);
+        (function () {
+            var n = nvm;
+            if(init_objects[ix].contenturl) {
+                var s = init_objects[ix].contenturl;
+                n.onfinish = function () {
+                    n.onfinish = ffoo;
+                    n.evaluate("sdata = fetchUrl2('"+s+"');wakeupIPCLock.release();"); 
+                }; 
+            } else {
+                n.onfinish = function () {
+                    n.onfinish = ffoo;
+                    n.evaluate("wakeupIPCLock.release();"); 
+                }; 
+            }
+        })();
+        INITOBS++;
+    }
+    
+    // now set security states...
+    __eos_objects["~"].security.state = { ipcIn: {"hubConnectionChanged":[""]} };
 
 
 
@@ -201,7 +249,7 @@ function jeneric_init(elemt) {
 
     ////////////////////////////////////////////////////////////////////////////////////
     // okay, now deserialize 'var' ramstore object and its childlist!
-
+/*
     _var_vm = new Jnaric();
 
     _var_vm.name = "var";
@@ -239,18 +287,27 @@ function jeneric_init(elemt) {
         _var_vm.onfinish = ffoo;
         _var_vm.evaluate("wakeupIPCLock.release();"); 
     }; 
-
+*/
 
     _stor = getFixedStorage();
     if(_stor) {
         // if fixed storage is accessible
-        var d = _stor.getByURI("~/var");
+
+        
+        // XXX WARNING! this is a trick for a predefined security!
+        var d = _stor.getByURI("~/security");
         if(d) {
-          _var_vm.ErrorConsole.log("restoring ~/var childList...");
-          _var_vm.childList = JSON.parse(d.ChildList);
-          _var_vm.serID = parseInt(d.rowid);
+          var ncl = JSON.parse(d.ChildList);
+          for(var ob in ncl) {
+            delete __eos_objects["~/security/"+ob]; // make sure to clean out auto-created object equivalents!
+          }
+          __eos_objects["~/security"].ErrorConsole.log("restoring ~/security childList...");
+          __eos_objects["~/security"].childList = ncl;
+          __eos_objects["~/security"].serID = parseInt(d.rowid);
         }
-        d = _stor.getByURI("~");
+        
+
+        d = _stor.getByURI("~");        
         if(d) {
           _terminal_vm.ErrorConsole.log("restoring ~ childList...");
           // MERGE instead of RESTORE
@@ -312,21 +369,19 @@ function jeneric_init(elemt) {
 ///////////////////////////////////////////////////////////////////////////////////
 
 
-function manualRamstoreObject(oname, oparent) {
+function manualRamstoreObject(oname, oparent, typeurl, security) {
     var _vm = new Jnaric();
 
     _vm.name = oname;
     _vm.TypeURI = "~/sys/ramstore";
-    _vm.SecurityURI = "~/sys/anarchic"; // no IPC for terminal at all
+    //_vm.SecurityURI = "~/sys/anarchic"; 
+    _vm.SecurityURI = "~/security/terminal"; 
     _vm.parent = oparent; 
                               
     _vm.uri = _vm.parent.uri + "/"+oname; 
                           
     _vm.serID = -1; // can never be serialized
     _vm.childList = {}; 
-
-//    _vm.global.initIPCLock = true; // this will be normally unset
-//    _vm.global.wakeupIPCLock = true; // this will emulate like we're deserializing and will lock IPC until we explicitly unlock
 
     _vm.global.initIPCLock = new _vm.global.Lock(); // THIS to be flushed by security validateRequest method init
     _vm.global.initIPCLock.goflag = 0; // set the lock
@@ -336,11 +391,17 @@ function manualRamstoreObject(oname, oparent) {
     // BINDING part
     _vm.bind_dom(); // XXX not ever bind DOM???
     _vm.bind_om(); // bind the protected EOS object model
+    _vm.global.fetchUrl2 = _vm.global.fetchUrl; // cheating for trusted code....
 
     // TWEAKINIT part
 
-    _vm.load("os/anarchic.jn");
-    _vm.load("os/tmpstore.jn"); // XXX THIS IS CHEATING!!!
+    //_vm.load("os/anarchic.jn");
+    
+    if(security) _vm.load(security);
+    else _vm.load("os/readonly.jn");
+    
+    if(typeurl) _vm.load(typeurl);
+    else _vm.load("os/tmpstore.jn"); // XXX THIS IS CHEATING!!!
         
     oparent.childList[oname] = _vm;
     __eos_objects[_vm.uri] = _vm;
@@ -452,7 +513,7 @@ hubConnection = {
                 return blob_parse(key, value, blobCount, rqh);
             };
             
-            //console.log("Input!: frame.body");
+            if(DEBUG) console.log("Input!: "+frame.body);
             
             //var rq = JSON.parse(frame.body, reviver);
 

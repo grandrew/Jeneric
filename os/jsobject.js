@@ -668,13 +668,15 @@ Jnaric.prototype.execIPC = function (rq, cbOK, cbERR) {
     // 1. validate the request, run OK or ERROR callbacks 
     var self = this;
     var cbo = function (result) {
-        if(self.DEBUG) self.ErrorConsole.log("in execIPC... validateOK");
+        if(self.DEBUG) self.ErrorConsole.log("in execIPC... validate done");
         // 2. if validated to OK, run the method using the same fn        
-        if(!result) {
-            cbERR({id: rq.id, status: "EPERM", result: "permission denied"});
-        }
+        if(result !== true) {
+            cbERR({id: rq.id, status: "EPERM", result: ((typeof result == "string") ? result  : "permission denied")});
+            return;
+        } 
+        if(self.DEBUG) self.ErrorConsole.log("in execIPC... validateOK");
         var ipcm;
-        if( (ipcm = (rq.method in self.global.object.ipc)) || (rq.method in self.security)) { // __ipc
+        if(   (ipcm = (self.global.object.ipc.hasOwnProperty(rq.method))) || (self.security.ipc && self.security.ipc.hasOwnProperty(rq.method))) { // __ipc
 
             var cbo2 = function (result) {
                 // if(typeof(result) == "undefined") result = -999999999;
@@ -706,8 +708,8 @@ Jnaric.prototype.execIPC = function (rq, cbOK, cbERR) {
             };
 
 
-            if(ipcm) self.execf_thread(self.global.object.ipc[rq.method], [rq].concat(rq.args), cbo2, cbe2); 
-            else self.execf_thread(self.security[rq.method], [].concat(rq.args), cbo2, cbe2, undefined, self.security); 
+            if(!ipcm) self.execf_thread(self.security.ipc[rq.method], [rq].concat(rq.args), cbo2, cbe2, undefined, self.security); 
+            else self.execf_thread(self.global.object.ipc[rq.method], [rq].concat(rq.args), cbo2, cbe2); 
         
         } else {
             if(self.DEBUG) self.ErrorConsole.log("method IPC call failed with NO SUCH METHOD"); // for debug only
@@ -986,10 +988,10 @@ function kIPC(vm, uri, method, args, onok, onerr, timeout) {
     if (vm.security.signRequest) {
         // do somehow validate request
         var onSok = function (res){
-            if(res) { // XXX DOC the signRequest should modify the rq object itself and it should return true
+            if(res === true) { // XXX DOC the signRequest should modify the rq object itself and it should return true
                 afterSign();
             } else {
-                onerr({id: rq.id, status: "EPERM", result: "signRequest refused to sign request"});
+                onerr({id: rq.id, status: "EPERM", result: (res ? res : "signRequest refused to sign request")});
             }
         };
         
@@ -1495,7 +1497,7 @@ localStore.prototype.getChildList = function (URIorID) {
     if(typeof URIorID == "string") {
         var ID = window.localStorage.getItem(URIorID);
         if(!ID) {
-            if(window.console) console.log("localStore getChildList consistency error!!: "+URIorID);
+            if(DEBUG && window.console) console.log("localStore getChildList consistency error!!: "+URIorID);
             return;
         }
     } else {
@@ -1511,7 +1513,7 @@ localStore.prototype.setChildList = function (URIorID, schildList) {
     if(typeof URIorID == "string") {
         var ID = window.localStorage.getItem(URIorID);
         if(!ID) { 
-            if(window.console) console.log("localStore setChildList consistency error!!: "+URIorID);
+            if(DEBUG && window.console) console.log("localStore setChildList consistency error!!: "+URIorID);
             return;
         }
     } else {
@@ -1919,6 +1921,10 @@ eos_om = {
     
     "include": function (__tihs, src_uri, sstack) { 
         // TODO: DOC: XXX: should an include timeout or not??
+        // DOC: includes only once
+        if(!__tihs.includes) __tihs.includes={};
+        if(src_uri in __tihs.includes) return;
+        __tihs.includes[src_uri] = true;
         // ABI: sstack is a special stack to push to (for iframe includes)
         if(!sstack) {
             __tihs.cur_stack.EXCEPTION = false;
@@ -2039,7 +2045,8 @@ eos_om = {
         // now clean security object; 
         vm.security_backup = vm.security;
         vm.security_backup_global = vm.global.security;
-        vm.security = {};
+        vm.security = {ipc:{}, object: vm.sec_object};
+        
         // attach it to global
         vm.global.security = vm.security;
         // lock the VM Inbound-IPC
@@ -2231,10 +2238,10 @@ Jnaric.prototype.bind_om = function () {
     //delete this.global.load;
  
  
-    this.kconfig_r = ['init', 'terminal_id']; // access nothing
+    this.kconfig_r = ['init', 'terminal_id']; // access nothing DOC this! <- the only method to get terminal_id
     this.kconfig_w = [];
     
-    this.security = {}; // empty security
+    this.security = {ipc:{}}; // empty security
     this.global.security = this.security;
     this.security.changeSecurityURI = function (newURI) {
         return eos_om.changeSecurityURI(__tihs, newURI); // no return, no block
@@ -2395,6 +2402,13 @@ Jnaric.prototype.bind_om = function () {
     } else {
         this.global.object.canSerialize = false;
     }
+    
+    
+    // DOC: bind only 'standard' global methods to security.object
+    this.security.object = this.sec_object = {};
+    for(var ob in this.global.object) {
+        this.security.object[ob] = this.global.object[ob];
+    }    
     
     this.bind_storage(); // always try to bind storage
     

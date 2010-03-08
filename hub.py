@@ -18,7 +18,7 @@
 
 #########################################################################################
 
-
+# TODO: SWITCH database to postgres!! (psycopg)
 
 # - terminal registration support
 #   + terminal methods support
@@ -54,6 +54,7 @@ from orbited import json
 import string,time,thread,copy,sqlite3, traceback
 import simplejson
 
+INT_FS_LIST = ["bin", "test", "lib", "home"]
 REGISTRAR_DB = "/var/lib/eoshub/registrar.sqlite"
 TMP_DB = "/tmp/blob_tmp_db.sqlite"
 
@@ -79,7 +80,8 @@ ACK_TIMEOUT = 60 # seconds timeout to give up resending
 
 
 rq_pending = {}
-idsource = 0
+idsource = 0 # id source counter
+termsource=1 # terminal IDs counter
 
 sessions = {}
 terminals = {}
@@ -95,8 +97,8 @@ c.close()
 blobtmp = sqlite3.connect(TMP_DB);
 blobtmp.text_factory = str;
 c = blobtmp.cursor()
-c.execute('''create table if not exists tmp
-(key text UNIQUE, sessid text, data blob, time int)''')
+# c.execute('create table if not exists tmp (key text UNIQUE, sessid text, data blob, time int)')
+c.execute('create table tmp (key text UNIQUE, sessid text, data blob, time int)')
 blobtmp.commit()
 c.close()
 
@@ -150,6 +152,11 @@ def get_terminal_by_session( s ):
 def newId():
     global idsource
     idsource += 1
+    return idsource
+
+def newTermId():
+    global idsource
+    termsource += 1
     return idsource
 
 
@@ -345,7 +352,7 @@ class Hub(StompClientFactory):
                 # try to register the terminal
                 c = dbconn.cursor();
                 try:
-                    
+                    # TODO: register home folder for the user!
                     c.execute("insert into reg (name, key, identity, created, accessed) values (?,?,?,?,?)", (rq["args"][0],rq["args"][1],rq["args"][2], int(time.time()),int(time.time())))
                     dbconn.commit()
                     s = "OK"
@@ -398,7 +405,7 @@ class Hub(StompClientFactory):
                     rq2 = {
                            "id": genhash(10)+str(newId()), 
                            # "user_name": "none", # XXX get rid of this!!
-                           "terminal_id": "hub",
+                           "terminal_id": "",
                            #// optional but mandatory for local calls
                            # "object_name": "",
                            "caller_type": "",
@@ -513,9 +520,9 @@ class Hub(StompClientFactory):
             add_session(termname, session) 
             
             rq = {
-                   "id": genhash(10)+str(newId()), # just drop the id # XXX do we ever need this?? there is always an ID in STOMP!
+                   "id": genhash(10)+str(newTermId()), # just drop the id # XXX do we ever need this?? there is always an ID in STOMP!
                    # "user_name": "none", # XXX get rid of this!!
-                   "terminal_id": "hub",
+                   "terminal_id": "",
                    #// optional but mandatory for local calls
                    # "object_name": "",
                    "caller_type": "",
@@ -540,7 +547,7 @@ class Hub(StompClientFactory):
             if type(msg["body"]) == type(""): # for local static requests
                 rq = simplejson.loads(msg["body"])
             else:
-                rq = msg["body"] # for locally-binded ipc only
+                rq = msg["body"] # for locally-bound ipc only
             
             if "ack" in rq:
                 self.ack_rcv(rq["ack"])
@@ -616,6 +623,7 @@ class Hub(StompClientFactory):
                     self.send( msg["headers"]["session"] , self.processHUBRequest(rq, msg))
                     return
                 
+                
                 # if it is request: 
                 if ("status" in rq) and (rq["status"] == "REDIR"):
                     # handle redir
@@ -650,6 +658,11 @@ class Hub(StompClientFactory):
                         pass
                     self.send(msg["headers"]["session"], rq)                    
                     return 
+                
+                # now check if the request is for integrated storage subsystem
+                if term in INT_FS_LIST:
+                    self.send( msg["headers"]["session"], process_rq(rq))
+                    return
                 
                 rr = rq["uri"].split("/")[1:];
                 rr[0] = "~"
@@ -736,6 +749,7 @@ class BlobPipe(Resource):
             del self.requests[v]
     
     def blob_checkdrop(self):
+        # TODO: remove stale blobs from TMP
         deltime = time.time() - BLOB_TIMEOUT;
         c = blobtmp.cursor()
         c.execute("delete from tmp where time < ?", (deltime,));
@@ -1171,7 +1185,8 @@ class BlobPipe(Resource):
             if request: request.finish()
         self.requestHub.self_receive(GETPIPE_TERMNAME, rq)
 
-site = server.Site(BlobPipe())
+bp = BlobPipe()
+site = server.Site(bp)
 
 
 

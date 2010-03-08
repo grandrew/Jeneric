@@ -1,0 +1,135 @@
+// ACL control object for terminal-based security
+
+if(!object.data.acls) {
+    object.data.acls = {};
+    object.data.trustList = [];
+}
+
+MAXCACHE = 100;
+cache = {};
+cachelen = 0;
+
+// main interaction method: 
+// XXX Information leak here!!
+object.ipc.acl_validate = function (rq, terminal_id, acls, ttl) {
+    if(ttl < 1) return "acl recursion ttl expired";
+    ttl = ttl || 5;
+    var act = [];
+    for(var i =0; i< acls.length;i++) {
+        if(acls[i] in object.data.acls) {
+            if(object.data.acls[acls[i]].hasOwnProperty(terminal_id)) return true;
+            // now check if there are links to other ACLs:
+            for(var ta in object.data.acls[acls[i]]) {
+                if(ta.charAt(0) == "#") { // acl
+                    act.push(ta);
+                }
+            }
+        } 
+    }
+    if(act.length > 0) {
+        var r = object.ipc.acl_validate(null, terminal_id, act, --ttl);
+        if(r) return r;
+    }
+    // check cache
+    if(cache[JSON.stringify(acls)+terminal_id]) return true;
+    // todo: cache access denials?
+    // now check next host
+    
+    for(var i=0; i<object.data.trustList.length;i++) {
+        var r = object.execURI("/"+object.data.trustList[i]+"/security/ACL", "acl_validate", [terminal_id, acls, --ttl]) 
+        if(r === true) {
+            // add to cache
+            cache[JSON.stringify(acls)+terminal_id] = true;
+            cachelen++;
+            if(cachelen > MAXCACHE) {
+                for(ob in cache) {
+                    delete ob; // delete last object
+                    break;
+                }
+            }
+            return true;
+        } else {
+            return r;
+        }
+    }
+    return false; // a long way to return false... better cache requests at object's sec
+};
+
+
+
+// ACL lists control
+
+object.ipc.addACL = function (rq, aclname) { // : add new ACL to the list, either starting with "#" or not
+    if(aclname.charAt(0) != "#") aclname = "#"+aclname;
+    if(object.data.acls.hasOwnProperty(aclname)) throw "ACL with that name aready exists!";
+    object.data.acls[aclname] = {};
+    object.serialize();
+};
+
+object.ipc.deleteACL = function (rq, aclname) { // :
+    if(aclname.charAt(0) != "#") aclname = "#"+aclname;
+    if(object.data.acls.hasOwnProperty(aclname)) {
+        delete object.data.acls[aclname];
+        object.serialize();
+    }
+    else throw "ACL with that name does not exist";
+};
+
+object.ipc.listACL = function (rq) { //  : list all ACL names available 
+    var ob = [];
+    for(var o in object.data.acls) {
+        ob.push(o);
+    }
+    return ob;
+};
+
+
+
+// ACL content control
+
+object.ipc.ACLappend = function (rq, aclname, terminalID) { // : append a terminal_id to this ACL
+    if(aclname.charAt(0) != "#") aclname = "#"+aclname;
+    if(!object.data.acls.hasOwnProperty(aclname)) throw "no ACL with that name";
+    if(object.data.acls[aclname].hasOwnProperty(terminalID)) throw "member with that name already exists";
+    object.data.acls[aclname][terminalID] = null;
+    object.serialize();
+};
+
+object.ipc.ACLremove = function (rq, aclname, terminalID) { // : remove
+    if(aclname.charAt(0) != "#") aclname = "#"+aclname;
+    if(!object.data.acls.hasOwnProperty(aclname)) throw "no ACL with that name";
+    if(!object.data.acls[aclname].hasOwnProperty(terminalID)) throw "member with that name does not exist";
+    delete object.data.acls[aclname][terminalID];
+    object.serialize();
+};
+
+object.ipc.ACLlist = function (rq, aclname) { // : get a listing of this ACL's terminals 
+    if(aclname.charAt(0) != "#") aclname = "#"+aclname;
+    if(!object.data.acls.hasOwnProperty(aclname)) throw "no ACL with that name";
+    var l = [];
+    for(var o in object.data.acls[aclname]) {
+        l.push(o);
+    }
+};
+
+
+
+// Trusted connections control: allow access only from ~/security/icaclc
+
+object.ipc.setTrustList = function (rq, trustList) { // : list of terminal_id's for validate to ask
+    if(trustList instanceof Array) object.data.trustList = trustList;
+    else throw "trust list must be array of strings";
+    object.serialize();
+};
+
+object.ipc.getTrustList = function (rq) {
+    return object.data.trustList;
+};
+
+object.ipc.flushcache = function (rq) {
+    cache = {};
+    cachelen = 0;
+};
+
+// everything has been defined. unlock.
+initIPCLock.release();

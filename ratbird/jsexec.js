@@ -2120,7 +2120,7 @@ Jnaric.prototype.step_next = function (g_stack) {
     // now check for done; purge everybody who is done in the array tail
     while(ex.done) {
         
-        if(DEBUG) {
+        if(DEBUG>5) {
             var tabl = "";
             for(var i=0; i<g_stack.stack.length; i++) tabl = tabl + "x";
             this.ErrorConsole.log(tabl+"  -- done, popping: "+say_type(g_stack.stack[(g_stack.stack.length-1)].n.type)+" "+(g_stack.stack[(g_stack.stack.length-1)].TRY_WAIT ? "TRY_WAIT" : ""));
@@ -2158,7 +2158,7 @@ Jnaric.prototype.step_next = function (g_stack) {
     
     
     
-    if(DEBUG) {
+    if(DEBUG>5) {
         var tabl = "";
         for(var i=0; i<g_stack.stack.length; i++) tabl = tabl + "x";
         this.ErrorConsole.log(tabl+" Diving in: "+say_type(ex.n.type) + " Executor:"+(ex.Nodes ? say_type(ex.Nodes.type) : "--") + (g_stack.EXCEPTION ? " Exception: " + g_stack.EXCEPTION : "") + ((g_stack.EXCEPTION_OBJ && g_stack.EXCEPTION) ? " obj: " + g_stack.EXCEPTION_OBJ : ""));
@@ -2256,7 +2256,7 @@ Jnaric.prototype.step_next = function (g_stack) {
     
     if(ex.done) {
         if("e" in ex) {
-            if(DEBUG) {
+            if(DEBUG>4) {
                 try {
                     this.ErrorConsole.log(tabl+"  -- setting exec: "+ex["e"]+"("+v+")"+" on "+(ex.Nodes ? say_type(ex.Nodes.type) : "--"));
                 } catch (e) {
@@ -2269,7 +2269,7 @@ Jnaric.prototype.step_next = function (g_stack) {
             
         }
         if("v" in ex) {
-            if(DEBUG) {
+            if(DEBUG>4) {
                 try {
                     this.ErrorConsole.log(tabl+"  -- setting exec(v): "+ex["v"]+"("+this.getValue(v)+")"+" on "+(ex.Nodes ? say_type(ex.Nodes.type) : "--"));
                 } catch (e) {
@@ -2303,7 +2303,7 @@ Jnaric.prototype.step_next = function (g_stack) {
         
         if(ex.EXCEPTION == THROW) ex.throw_exec && ex.throw_exec();
         // pop() until found the TRY_WAIT
-        if(DEBUG) this.ErrorConsole.log("-- catch procedure started, next dive into TRY_WAIT or break the stack;");
+        if(DEBUG>4) this.ErrorConsole.log("-- catch procedure started, next dive into TRY_WAIT or break the stack;");
         var t_ex;
         do {
             t_ex = g_stack.stack.pop();
@@ -2344,7 +2344,7 @@ Jnaric.prototype.step_next = function (g_stack) {
                 ex_obj = ex.x.result;
             }
             
-            if(ex_obj.name) this.ErrorConsole.log("Exception ... "+ex_obj.name+" '"+ex_obj.message+" ("+ex_obj.result+")"+" Line: "+ex_obj.lineNumber+" File: "+ex_obj.fileName+"' Stack trace: "+__print_strace(e_stack));
+            if(ex_obj.name) this.ErrorConsole.log("Exception in "+this.uri+" ... "+ex_obj.name+" '"+ex_obj.message+" ("+ex_obj.result+")"+" Line: "+ex_obj.lineNumber+" File: "+ex_obj.fileName+"' Stack trace: "+__print_strace(e_stack));
             else if (ex_obj.toString instanceof this.FunctionObject) {
                 
                 var __onfinish = null;
@@ -2381,7 +2381,7 @@ Jnaric.prototype.step_next = function (g_stack) {
             }
             else {
                 //console.log("ex_obj is: "+typeof(ex_obj)+" .toString: "+!!ex_obj.toString+" type of "+typeof(ex_obj.toString));
-                this.ErrorConsole.log("Uncaught exception ... "+ex_obj+"' Stack trace: "+__print_strace(e_stack));
+                this.ErrorConsole.log("Uncaught exception in "+this.uri+" ... "+ex_obj+"' Stack trace: "+__print_strace(e_stack));
                 //console.log("onerror is: " +g_stack.onerror+ " main onerror: "+ this.onerror+ " PID: "+g_stack.pid);
             }
             
@@ -4172,6 +4172,8 @@ Jnaric.prototype.step_execute = function (n, x, stack) {
             }
         
         } else {
+            // XXX WARNING!! TODO HERE!!!
+            // getters/setters unsupported now
             f = new this.FunctionObject(stack.my.t, x.scope);
             u = (stack.my.t.type == GETTER) ? '__defineGetter__'
                                    : '__defineSetter__';

@@ -312,10 +312,56 @@ DENY until fixed
     
     
 + security.changeSecurityURI(newURI) - will change security URI to a new one, unloading previous one, loading new, and setting SecurityURI to a new value.
-- ipc security: exec with 'this' set to security object!
-- attach a copy of object
-- ability to deny requests via signRequest
++ ipc security: exec with 'this' set to security object:
+    + validateRequest // was
+    + signRequest // was
+    + validateResponse // was
+    + signResponse // was
++ ipc security: search for IPCmethods in 'security' object first // actually was but slightly modified
++ attach a copy of object 
+    - DOC here
++ ability to deny requests via signRequest (there actually was the ability to...)
+- result as permission denial message
+    + in signRequest
+    + in validateRequest
+    - document it
++ document the updated security API
++ add ACL capability to security object??
++ importCSS kernel method (it already exists, need to attach?)
 
++ cache ACLs somehow to act faster!
++ ability to flush cache?
++ ACL object: links in other ACLs, cyclic refs!?!
++ cyclic dependencies? recursion ttl in acl_validate parameter?
++ include: do not include files twice! -- just ignore it; for example, to make including in-line practical
+
+- security installation program? or include it by default?
+    + prettify eosinit init procedure via startup-array, test everything
+    + rename & move terminalbased to /os
+    + invent objects policy
+      + terminal: { ipcIn: {} }
+    - set 'readonly' security to general objects
+    - set terminalbased by default to all objects
+    + add ~/security ramstore
+      + set ACL control object
+    + add ~/insecure ramstore object
+      + set its policy
+    - how to say "if object does not exist"? -- make serializeable/restorable somehow!!
+    - remove anarchic, public from eosinit
+    - upload icaclc, icsecs
+    - set ACL object security: cache-flush, etc.
+    - set init security: allow everything (?)
+    - set console security: allow everything
+    - boot & test new security!!!
+
+- DOCument new "!" interface for denial in ACL lists
+- DOCument usage of "*" for denial access rule chains
+- TODO: terminalbased-security aware IC# should create a subfolder for each untrusted program based on its name?
+    x or set denial/allowance path? wildcard-enabled?
+- what happens if parent has another security type? how will 'inherit' behave?
+- chunked localStorage blobstore driver (to have ability to store reasonable amounts of data)
+- disable init= kernel parameter at production
+   
 - enhance/reduce logging for jsobject/eosinit: log only if KCONFIG("debug") is set; and set the level
     - or maybe introduce firebug/console-only setup??? like set DEBUG=<LEVEL> in firebug to enable logging?
     - check jsexec for (full) conformance with DEBUG variable

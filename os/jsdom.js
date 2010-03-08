@@ -142,8 +142,7 @@ Jnaric.prototype.bind_dom = function (wrapped_domElement) {
     */
     
     extendWindow(this.global);
-    
-    // TODO HERE: importCSS method
+   
     //  parse the CSS to apply only to descendants
     this.global.importCSS = function (uri) {
         return self._importCSS(self, uri, true);

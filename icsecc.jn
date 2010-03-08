@@ -1,0 +1,19 @@
+// icsecc
+
+function main(argv) {
+    if(argv.length == 1) {
+        // the GFX version
+        document.body.innerHTML = '<b>ICSECC:</b><br/>Graphics mode is unsupported yet.<br/>Try using command mode: icaclc [command] [arg1] [arg2]<button id="but1">OK</button>';
+        document.getElementById("but1").waitEvent("click");
+        document.body.innerHTML = "exit.";
+        // exit
+    } else {
+        printDOM("Please edit security description. Use CTRL-Enter to save & quit."); brDOM();
+        x = editDOM(object.execURI(argv[1], "securityGet", []));
+        object.execURI(argv[1], "securitySet", [x]);
+    }
+}
+
+include("~/lib/iclib");
+
+
