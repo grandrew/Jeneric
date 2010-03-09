@@ -29,9 +29,11 @@ if(object.FixedStorage) {
         // TODO: error checking?
         //ErrorConsole.log("ramstore: returning data: "+sdata.substr(offset, len) + " params: "+offset+" l "+len);
         if(!offset) offset = 0;
-        if(!len) len = object.data.data.length;
+         len = object.data.data.length;
         var blb = fx.getAsBlob(STDNAME);
-        var sblb = blb.slice(offset, len);
+        var sblb;
+        if(!len) sblb = blb.slice(offset);
+        else sblb = blb.slice(offset, len);
         
         return sblb;  // MUST return BLOB wrapped object!!
     }

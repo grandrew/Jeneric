@@ -44,7 +44,7 @@
 # test redir
 # test security??
 
-DEBUG  = 4
+DEBUG  = 5
 
 
 from stompservice import StompClientFactory
@@ -799,7 +799,7 @@ class BlobPipe(Resource):
             # COSTYL development warning here!
             if self.waitblob[key]["terminal_id"] == "data_write":
                 c = pgconn.cursor()
-                data_write(self.waitblob[key]["oid"], self.waitblob[key]["c"], self.waitblob[key]["size"], [data])
+                data_write(self.waitblob[key]["oid"], c, self.waitblob[key]["size"], [data])
                 pgconn.commit()
                 c.close()
                 ct = blobtmp.cursor()
@@ -1087,6 +1087,7 @@ class BlobPipe(Resource):
             blob = request.content.read(); # the body of request, Google-Gears specific
             
             if DEBUG>3:print "blobsend: GOT POST BODY length: ", len(blob) # ############################################
+            if DEBUG>4 and len(blob)<100: print "Blob contents:", repr(blob)
             try:
                 blobid = request.args['blobid'][0]
                 sess = request.args['blob_session'][0]

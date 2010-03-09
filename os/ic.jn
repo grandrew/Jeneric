@@ -202,7 +202,7 @@ function set_param_box (el) {
     el.appendChild(d);
     //need more fixes for FF, Opera, others.. for 'float' tag
     d.style.cssFloat = "right";// TODO: need to fix IE!
-    d.style.styleFloat = "right";// this is IE way! DOC: currenty we dont fix css
+    d.style.styleFloat = "right";// this is IE way! DOC: currenty we dont fix css
     d.style.visibility = "hidden";
     
     d.innerHTML = "x";
@@ -412,7 +412,7 @@ while(true) {
         }
         
         try {
-            execURI(p2, "write", [data], 20000);
+            execURI(p2, "write", [data], 20000); // TODO: inefficient: will send full request then fail and resend...
         } catch (e) {
             printDOM("copy: trying to create new ramstore"); brDOM();
             try {
