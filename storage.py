@@ -221,7 +221,7 @@ def data_read(oid, arg):
     if len(arg) == 2:
         lo.seek(int(arg[0]))
         data = lo.read(int(arg[1]))
-    
+    #print "READ: Will return data of len", len(data)
     lo.close()
     try:
         data.decode("UTF-8")
@@ -268,12 +268,14 @@ def data_write(oid, c, size, arg):
     else:
         seek = int(arg[1])
         lo.seek(seek)
+        print "Seeking to", seek
         lo.write(data)
         if seek+len(data) > size:
             size = size + (size - seek + len(data))
             c.execute("UPDATE files SET size=%s,mdate=%s WHERE oid=%s", (size,int(time.time()), oid))
         else:
             size = size # ...
+    print "File size is:", size
     lo.close()
     return "";
     

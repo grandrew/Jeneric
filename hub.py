@@ -44,7 +44,7 @@
 # test redir
 # test security??
 
-DEBUG  = 0
+DEBUG  = 4
 
 
 from stompservice import StompClientFactory
@@ -991,7 +991,7 @@ class BlobPipe(Resource):
             #except:
             #    if rq["id"] in self.pipes: del pipes[rq["id"]]
             #    return # just ignore malformed response
-            print "Blobid:", blobid, "RQ", repr(rq)
+            rqid = rq["id"]
 
 
             # slightly inefficient memory usage
@@ -1009,49 +1009,53 @@ class BlobPipe(Resource):
             };
             rq2["hub_oid"] = rq2["id"] # for compat
             
+            # at this stage rq["id"] get messed...
             rarg = self.pipes[rq["id"]]["arg"]
             rarg.update(rq2)
             rq2 = rarg
+            
+            
 
 
             if isblob:
                 b = self.get_blob(None, blobid)
                 if not b is None:
-                    print "blobIS there! trying to get", blobid, " POS ", self.pipes[rq["id"]]["pos"]
-                    if self.pipes[rq["id"]]["pos"] == READBYTES:
+                    print "blobIS there! trying to get", blobid, " POS ", self.pipes[rqid]["pos"]
+                    if self.pipes[rqid]["pos"] == READBYTES:
                         # get type and set response header
                         ctype = getType(file=cStringIO.StringIO(b))
-                        self.pipes[rq["id"]]["request"].setHeader("Content-Type", str(ctype))
+                        self.pipes[rqid]["request"].setHeader("Content-Type", str(ctype))
                         print "SETTING CONTENT-TYPE to ", ctype
-                    self.pipes[rq["id"]]["request"].write(b);
+                    self.pipes[rqid]["request"].write(b);
                     if len(b) < READBYTES:
-                        self.pipes[rq["id"]]["request"].finish();
-                        del self.pipes[rq["id"]]
+                        self.pipes[rqid]["request"].finish();
+                        del self.pipes[rqid]
                         print "FINISH", blobid
                     else:
                         # request next block
-                        self.pipes[rq2["id"]] = {"rq": rq2, "request": self.pipes[rq["id"]]["request"], "pos": self.pipes[rq["id"]]["pos"]+READBYTES, "ts":time.time(), "uri": self.pipes[rq["id"]]["uri"], "dir": 0, "arg": rarg, "abort": self.pipes[rq["id"]]["abort"]}
-                        self.requestHub.self_receive(GETPIPE_TERMNAME, rq2) ## NO!! do not send to session
+                        self.pipes[rq2["id"]] = {"rq": rq2, "request": self.pipes[rqid]["request"], "pos": self.pipes[rqid]["pos"]+READBYTES, "ts":time.time(), "uri": self.pipes[rqid]["uri"], "dir": 0, "arg": rarg, "abort": self.pipes[rqid]["abort"]}
                         print "requesting NEXT block!", blobid
-                        del self.pipes[rq["id"]]
+                        self.requestHub.self_receive(GETPIPE_TERMNAME, rq2) # NO!! do not send to session
+                        del self.pipes[rqid]
                         
                 else:
                     # wait for blob to arrive here!
                     print "will wait for blob", blobid
                     self.waitblob[blobid] = rq # TODO: re-invoke blobreceived, delete from waitblob
             else:
-                self.pipes[rq["id"]]["request"].write(blobid);
+                # we use rqid instead of rq["id"] since it is messed (programming error?)
+                self.pipes[rqid]["request"].write(blobid); # blobid is not a blob id here ;-)
                 if len(blobid) < READBYTES:
-                    self.pipes[rq["id"]]["request"].finish();
-                    del self.pipes[rq["id"]]
+                    self.pipes[rqid]["request"].finish();
+                    del self.pipes[rqid]
                 else:
                     # request next block
                     # COPYPASTE WARNING HERE!
 
-                    self.pipes[rq2["id"]] = {"rq": rq2, "request": self.pipes[rq["id"]]["request"], "pos": self.pipes[rq["id"]]["pos"]+READBYTES, "ts": time.time(), "uri": self.pipes[rq["id"]]["uri"], "dir": 0, "arg": rarg, "abort": self.pipes[rq["id"]]["abort"]}
+                    self.pipes[rq2["id"]] = {"rq": rq2, "request": self.pipes[rqid]["request"], "pos": self.pipes[rqid]["pos"]+READBYTES, "ts": time.time(), "uri": self.pipes[rqid]["uri"], "dir": 0, "arg": rarg, "abort": self.pipes[rqid]["abort"]}
                     self.requestHub.self_receive(GETPIPE_TERMNAME, rq2) ## NO!! do not send to session
                     
-                    del self.pipes[rq["id"]]
+                    del self.pipes[rqid]
                     #print "rq2 is", rq2["id"], (rq2["id"] in self.pipes)
                     # END COPYPASTE WARNING!!!@!@
     def preinit(self):
@@ -1189,6 +1193,11 @@ class BlobPipe(Resource):
         rarg.update(rq)
         
         rq = rarg
+        # this is COSTYL development!
+        if "status" in rq: 
+            del rq["status"]
+            print "send_blob(): ASSERT!! programming error in rarg"
+        if "result" in rq: del rq["result"]
         
         #fd.seek(pos)
         data = fd.read(size)
@@ -1206,6 +1215,7 @@ class BlobPipe(Resource):
         if len(data) == size: self.pipes[rq["id"]] = {"pos": pos+size, "ts": time.time(), "uri": uri, "isblob": isblob, "fd": fd, "dir": 1, "request" : request, "arg": rarg};
         else: 
             if request: request.finish()
+        print "SEND_BLOB: issuing next WRITE operation!:", rq
         self.requestHub.self_receive(GETPIPE_TERMNAME, rq)
 
 import storage
