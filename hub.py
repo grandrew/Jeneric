@@ -19,6 +19,7 @@
 #########################################################################################
 
 # TODO: SWITCH database to postgres!! (psycopg)
+# TODO: WARNING: deny these terminalnames to be registered: http_reuest, data_write
 
 # - terminal registration support
 #   + terminal methods support
@@ -53,8 +54,9 @@ from random import random,seed,choice
 from orbited import json
 import string,time,thread,copy,sqlite3, traceback
 import simplejson
+from storage import * # import storage submodule (JEFS1)
 
-INT_FS_LIST = ["bin", "test", "lib", "home"]
+INT_FS_LIST = ["bin", "home", "lib"] # XXX TODO HERE: add "test" terminal
 REGISTRAR_DB = "/var/lib/eoshub/registrar.sqlite"
 TMP_DB = "/tmp/blob_tmp_db.sqlite"
 
@@ -97,8 +99,10 @@ c.close()
 blobtmp = sqlite3.connect(TMP_DB);
 blobtmp.text_factory = str;
 c = blobtmp.cursor()
-# c.execute('create table if not exists tmp (key text UNIQUE, sessid text, data blob, time int)')
-c.execute('create table tmp (key text UNIQUE, sessid text, data blob, time int)')
+
+# TODO for move to pgsql: do NOT create table each time
+c.execute('create table if not exists tmp (key text UNIQUE, sessid text, data blob, time int)')
+#c.execute('create table tmp (key text UNIQUE, sessid text, data blob, time int)')
 blobtmp.commit()
 c.close()
 
@@ -155,9 +159,9 @@ def newId():
     return idsource
 
 def newTermId():
-    global idsource
+    global termsource
     termsource += 1
-    return idsource
+    return termsource
 
 
 def rq_append(rq, oldid):
@@ -446,7 +450,7 @@ class Hub(StompClientFactory):
         elif m == "listChildren":
             s = "OK"
             ii = 0
-            ll = []
+            ll = [] + INT_FS_LIST
             # TODO: add sorted list terminal
             #      it will provide listChildren method that will provide some sort of categorization
             #      like assorted/0-50,50-100, etc; alphabet/a_d,e_h, etc; type, reg, etc. etc.
@@ -454,6 +458,7 @@ class Hub(StompClientFactory):
             #      also SORTED terminal/link should always be added first!
             #      pluggable modules needed!! ;-)
             # TODO: linked terminal session -> register some terminal app as a link to provide direct controlled access (money!)
+            
             for ob in sessions:
                 if ob != GETPIPE_TERMNAME: ll.append(ob)
                 ii += 1
@@ -620,7 +625,8 @@ class Hub(StompClientFactory):
                 if rq["uri"] == "/":
                     rq["terminal_id"] = terminal # just change it
                     # process the request and send the response
-                    self.send( msg["headers"]["session"] , self.processHUBRequest(rq, msg))
+                    hres = self.processHUBRequest(rq, msg)
+                    self.send( msg["headers"]["session"] , hres)
                     return
                 
                 
@@ -660,8 +666,12 @@ class Hub(StompClientFactory):
                     return 
                 
                 # now check if the request is for integrated storage subsystem
+
                 if term in INT_FS_LIST:
-                    self.send( msg["headers"]["session"], process_rq(rq))
+                    pres = process_rq(rq)
+                    pres["terminal_id"] = term
+                    pres["id"] = rq["hub_oid"] # XXX redundancy issue here too
+                    self.send( msg["headers"]["session"], pres) # JEFS1
                     return
                 
                 rr = rq["uri"].split("/")[1:];
@@ -783,10 +793,21 @@ class BlobPipe(Resource):
                 self.requests[key][REQUEST].write(data);
             self.requests[key][REQUEST].finish();
             del self.requests[key];
-
+        print "add_blob: adding blob of key", key
         if key in self.waitblob:
             print "BLOB is here! doing DO"
-            self.blobreceived(self.waitblob[key])
+            # COSTYL development warning here!
+            if self.waitblob[key]["terminal_id"] == "data_write":
+                c = pgconn.cursor()
+                data_write(self.waitblob[key]["oid"], self.waitblob[key]["c"], self.waitblob[key]["size"], [data])
+                pgconn.commit()
+                c.close()
+                ct = blobtmp.cursor()
+                # another COSTYL warning here!
+                ct.execute("DELETE FROM tmp WHERE key=?", (key,))
+                blobtmp.commit()
+                ct.close()
+            else: self.blobreceived(self.waitblob[key])
             del self.waitblob[key]
 
     def get_blob(self, sess, key):
@@ -949,7 +970,8 @@ class BlobPipe(Resource):
                 print "Closing request"
             # warning! different ABI here from the below!
             self.send_blob(self.pipes[rq["id"]]["uri"], self.pipes[rq["id"]]["fd"], self.pipes[rq["id"]]["isblob"], self.pipes[rq["id"]]["pos"], READBYTES, None, self.pipes[rq["id"]]["arg"])
-            del self.pipes[rq["id"]]
+            if rq["id"] in self.pipes: del self.pipes[rq["id"]] # may have been removed?
+            else: print "WARN! pipes cleaned out before we do!"
         else:
             
             if self.pipes[rq["id"]]["abort"]["ABORT"]: # esoteric method of aborting
@@ -969,6 +991,7 @@ class BlobPipe(Resource):
             #except:
             #    if rq["id"] in self.pipes: del pipes[rq["id"]]
             #    return # just ignore malformed response
+            print "Blobid:", blobid, "RQ", repr(rq)
 
 
             # slightly inefficient memory usage
@@ -1185,7 +1208,12 @@ class BlobPipe(Resource):
             if request: request.finish()
         self.requestHub.self_receive(GETPIPE_TERMNAME, rq)
 
+import storage
+
+global bp
 bp = BlobPipe()
+storage.bp = bp
+
 site = server.Site(bp)
 
 

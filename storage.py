@@ -1,10 +1,13 @@
 # storage.py - a filelike-object storage database plug-in
 # to be imported bu main hub module
 
+# JEFS1
+
 # TODO: 
-# - default object control (create default objects with full access given to terminal named admin)
-#   - INT_FS_LIST = ["bin", "test", "lib", "home"]
-# - test objects
+# + default object control (create default objects with full access given to terminal named admin)
+#   + INT_FS_LIST = ["bin", "test", "lib", "home"]
+# + insert request processing 
+# T? test objects -- additional Blob object testing required!
 # - test ACLs
 # ---
 # - terminal registration home folder object & ACL object creation
@@ -16,6 +19,13 @@
 # - listing size LIMIT (childList limit?)
 # - switch terminal registration to postgres interface in hub.py
 # - create terminal registration script with no restrictions (like 8-char limit and no dots)
+# - filestore object description protocol
+#   - implement protocol
+# - add terminal_id to http_request protocol: when getting via HTTP request, watch for session
+#   (cookie-based? or maybe GET-based?)
+#    check whether we already do authenticate with STOMP session?
+# - offtop: add default security policy to default terminal object to allow listing for all terminals
+# - see problem with icsecc in GUI mode
 
 # + createObject(fullURI, ownerTerminalList, methodList) 
 #   - check if exists, silently fail
@@ -26,18 +36,24 @@
 
 
 import psycopg2, httplib, time, string
+from random import choice # for genhash
 
-conn = psycopg2.connect("dbname=jeneric_data user=jeneric_data")
+pgconn = psycopg2.connect("dbname=jeneric_data user=jeneric_data")
 
 MAX_READ_SIZE = 400000 # max read slice size in bytes!
 # JENERIC_TMP = "/tmp/jeneric/"
 
+# TODO: this shoyuld be moved to utility funtctions! (copy from hub.py)
+def genhash(length=8, chars=string.letters + string.digits):
+    return ''.join([choice(chars) for i in range(length)])
+
+
 # one-time call routine
 def init_db():
     #
-    cur = conn.cursor()
+    cur = pgconn.cursor()
     cur.execute("CREATE TABLE files (uri varchar PRIMARY KEY, oid bigint, parent_oid bigint, size integer, cdate integer, mdate integer, adate integer);")
-    cur.execute("CREATE TABLE childlist (uri varchar PRIMARY KEY, child_uri varchar, oid bigint, child_oid bigint);")
+    cur.execute("CREATE TABLE childlist (uri varchar, child_uri varchar, oid bigint, child_oid bigint);")
     # files: uri, oid, size, cdate, mdate,adate
     # childlist: uri, child_uri, oid, child_oid
     
@@ -53,15 +69,15 @@ def init_db():
     cur.execute("CREATE TABLE inherit (uri varchar, method varchar, parent_uri varchar)")
     # acls
     cur.execute("CREATE TABLE acls (aclname varchar, terminal_id varchar, aclc_uri varchar)")
-    conn.commit()
+    pgconn.commit()
     cur.close()
 def init_objects():
-    ownerTerminalList = ["test", "grandrew", "admin"] # hard-coded terminals
+    ownerTerminalList = ["test", "grandrew", "admin"] # hard-coded admin terminals
     methodList = ["securitySet", "securityGet", "read", "write", "describe", "listChildren", "createChild", "deleteChild"] # everything
     objectlist = ["bin", "test", "lib", "home"]
     for ob in objectlist:
         createObject("/"+ob, ownerTerminalList, methodList)
-    conn.commit()
+    pgconn.commit()
     
 
 #init_db() # do not init DB each time we launch... use interactive mode insted!!
@@ -97,7 +113,7 @@ def validate(rq,c):
     # else, check if there are some ACLs defined:
     
     c.execute("SELECT aclname FROM acl_deny WHERE uri=%s AND method=%s", (rq["uri"], rq["method"]))
-    c2 = conn.cursor()
+    c2 = pgconn.cursor()
     d=c.fetchone()
     while d:
         # TODO: multiple ACL inheritance?
@@ -107,13 +123,14 @@ def validate(rq,c):
     
     
     c.execute("SELECT aclname FROM acl_allow WHERE uri=%s AND method=%s", (rq["uri"], rq["method"]))
-    c2 = conn.cursor()
+    c2 = pgconn.cursor()
     d=c.fetchone()
     while d:
         # TODO: multiple ACL inheritance?
         c2.execute("SELECT * FROM acls WHERE aclname=%s AND terminal_id=%s", (d[0],rq["terminal_id"]))
         if c2.fetchone(): return True
         d=c.fetchone()
+    return False
     
     
 def data_securitySet(oid, uri, sec, c):
@@ -134,7 +151,7 @@ def data_securitySet(oid, uri, sec, c):
             if t[ob] == "inherit":
                 # TODO: reasonable caching!
                 parent_uri = string.join(uri.split("/")[:-1], "/")
-                c.execute("INSERT INTO inherit (uri,oid,method,parent_uri) VALUES (%s,%s,%s,%s)", (uri,oid,ob,parent_uri))
+                c.execute("INSERT INTO inherit (uri,method,parent_uri) VALUES (%s,%s,%s)", (uri,ob,parent_uri))
             else: # it is a list
                 for tname in t[ob]:
                     if tname[0] == "!":
@@ -148,7 +165,7 @@ def data_securitySet(oid, uri, sec, c):
 
 def data_securityGet(oid, uri, c):
     sec = { "ipcIn": {}}
-    c.execute("SELECT parent_uri FROM inherit WHERE uri=%s AND method=%s", (rq["uri"], "*"))
+    c.execute("SELECT parent_uri FROM inherit WHERE uri=%s AND method=%s", (uri, "*"))
     d = c.fetchone();
     if d:
         return { "ipcIn": "inherit" }
@@ -168,33 +185,33 @@ def data_securityGet(oid, uri, c):
     d = c.fetchone();
     while d:
         if not d[0] in sec["ipcIn"]: sec["ipcIn"][d[0]] = []
-        sec["ipcIn"][d[0]].append(d[0])
+        sec["ipcIn"][d[0]].append(d[1])
         d = c.fetchone();
     
     c.execute("SELECT method,terminal_id FROM deny WHERE uri=%s", (uri,))
     d = c.fetchone();
     while d:
         if not d[0] in sec["ipcIn"]: sec["ipcIn"][d[0]] = []
-        sec["ipcIn"][d[0]].append("!"+d[0])
+        sec["ipcIn"][d[0]].append("!"+d[1])
         d = c.fetchone();
     
     c.execute("SELECT method,aclname FROM acl_deny WHERE uri=%s", (uri,))
     d = c.fetchone();
     while d:
         if not d[0] in sec["ipcIn"]: sec["ipcIn"][d[0]] = []
-        sec["ipcIn"][d[0]].append(d[0])
+        sec["ipcIn"][d[0]].append(d[1])
         d = c.fetchone();
     
     c.execute("SELECT method,aclname FROM acl_allow WHERE uri=%s", (uri,))
     d = c.fetchone();
     while d:
         if not d[0] in sec["ipcIn"]: sec["ipcIn"][d[0]] = []
-        sec["ipcIn"][d[0]].append("!"+d[0])
+        sec["ipcIn"][d[0]].append("!"+d[1])
         d = c.fetchone();
     return sec
     
 def data_read(oid, arg):
-    lo = conn.lobject(oid, "r");
+    lo = pgconn.lobject(oid, "r");
     if len(arg) == 0:
         data = lo.read();
     if len(arg) == 1:
@@ -216,22 +233,35 @@ def data_read(oid, arg):
         blobid = "Blob(%s.%s)" % (sess, key)
         #file(JENERIC_TMP + blobid, 'w').write(data)
         # WRANING! global link here!
-        bp.add_blob(sess, key, data);
+        bp.add_blob(sess, blobid, data);
         return blobid;
     
 def data_write(oid, c, size, arg):  
     
     if arg[0][0:5] == "Blob(" and arg[0][-1] == ")":
-        # we need to get blob via http as it is more likely to be not available now
-        hconn = httplib.HTTPConnection("localhost:9000")
-        hconn.request("GET", "/blobget?blobid=%s&blob_session=%s" % (blobid, sess))
-        r = hconn.getresponse()
-        if r.status != 200:
-            raise TypeError
-        data = r.read()
+        # WARNING: we count on the fact that blob will not be available at the moment
+        # #hpgconn = httplib.HTTPConnection("localhost:8100")
+        # ### XXX !! WARNING!!! this will block!!???
+        blobid = arg[0]
+        xx,sess = arg[0][5:-1].split(".")
+        # #hpgconn.request("GET", "/blobget?blobid=%s&blob_session=%s" % (arg[0], sess))
+        # #r = hpgconn.getresponse()
+        # if r.status != 200:
+        #   print "Status:", r.status, r.read()
+        #   raise TypeError
+        # data = r.read()
+        
+        # in case of http_request, te blob should already be there!
+        data = bp.get_blob(None, blobid)
+        # in the next iteration, we will receive the request with blob in-line
+        # this is a new technique that should probably be adopted for BlobPipe too
+        if not data:
+            print "data_write: Adding key of", blobid
+            bp.waitblob[blobid] = {"terminal_id": "data_write", "oid": oid, "c":c,"size":size}
+            return -2 # DOC: means we are left in waiting phase
     else:
         data = str(arg[0])
-    lo = conn.lobject(oid, "w")
+    lo = pgconn.lobject(oid, "w")
     if len(arg) == 1:
         lo.write(data)
         c.execute("UPDATE files SET size=%s,mdate=%s WHERE oid=%s", (len(data), int(time.time()), oid))
@@ -252,50 +282,54 @@ def data_listChildren(oid, c, arg):
     childlist = []
     d=c.fetchone()
     while d:
-        childlist.append(d[0])
+        childlist.append(d[0].split("/")[-1])
         d=c.fetchone()
     return childlist
     
 def data_createChild(oid, uri, name, c):
-    lo = conn.lobject()
+    lo = pgconn.lobject()
     c.execute("INSERT INTO files (uri,oid,parent_oid,size,cdate,mdate,adate) VALUES (%s,%s,%s,%s,%s,%s,%s)", (uri+"/"+name, lo.oid, oid, 0, int(time.time()), int(time.time()), int(time.time())))
-    if oid > -1: c.execute("INSERT INTO childlist (uri,child_uri,oid,child_oid) VALUES (%s,%s,%s)", (uri, uri+"/"+name, oid, lo.oid))
+    if oid > -1: c.execute("INSERT INTO childlist (uri,child_uri,oid,child_oid) VALUES (%s,%s,%s,%s)", (uri, uri+"/"+name, oid, lo.oid))
     # set default security to inherit
     # set parent in inherit
-    if oid > -1: c.execute("INSERT INTO inherit (uri,oid,method,parent_uri) VALUES (%s,%s,%s,%s)", (uri+"/"+name,lo.oid,"*",uri)) # inherit all by default
+    if oid > -1: c.execute("INSERT INTO inherit (uri,method,parent_uri) VALUES (%s,%s,%s)", (uri+"/"+name,"*",uri)) # inherit all by default
     
     
-def data_deleteChild(oid, uri, c):
+def data_deleteObject(oid, uri, c):
     c.execute("DELETE FROM files WHERE uri=%s", (uri,))
     c.execute("DELETE FROM childlist WHERE child_uri=%s", (uri,))
-    c.execute("DELETE FROM allow WHERE oid=%s", (oid,))
-    c.execute("DELETE FROM deny WHERE oid=%s", (oid,))
-    c.execute("DELETE FROM inherit WHERE oid=%s", (oid,))
-    c.execute("DELETE FROM acl_deny WHERE oid=%s", (oid,))
-    c.execute("DELETE FROM acl_allow WHERE oid=%s", (oid,))
+    c.execute("DELETE FROM allow WHERE uri=%s", (uri,))
+    c.execute("DELETE FROM deny WHERE uri=%s", (uri,))
+    c.execute("DELETE FROM inherit WHERE uri=%s", (uri,))
+    c.execute("DELETE FROM acl_deny WHERE uri=%s", (uri,))
+    c.execute("DELETE FROM acl_allow WHERE uri=%s", (uri,))
     
 def data_describe(oid, arg):
     return "" #TODO
 
-def process_rq(rq):
+def cleanrq(rq):
     del rq["args"]
-    c = conn.cursor()
+    return rq
+    
+def process_rq(rq):
+    
+    uri = rq["uri"]
+    c = pgconn.cursor()
+    c.execute("SELECT oid,size FROM files WHERE uri=%s", (uri,));
+    d = c.fetchone();
+    if d is None:
+        rq["status"] = "EEXCP"
+        rq["result"] = "object not found by URI" # TODO: normalize error messages!
+        c.close()
+        return cleanrq(rq)
+    
     r = validate(rq, c)
     if r != True:
         rq["status"] = "EPERM"
         if r: rq["result"] = r;
         else: rq["result"] = "permission denied"
-        return rq
-    c.close()
-    uri = rq["uri"]
-    c = conn.cursor()
-    c.execute("SELECT oid,size FROM files WHERE uri=%s", (uri,));
-    d = c.fetchone();
-    if d is None:
-        rq["status"] == "EEXCP"
-        rq["result"] == "object not found by uri"
-        c.close()
-        return rq
+        return cleanrq(rq)
+    
     
     rq["status"] = "OK"
     
@@ -336,40 +370,49 @@ def process_rq(rq):
         elif rq["method"] == "flushcache":
             rq["result"] = "";
         else:
-            rq["status"] == "EEXCP"
-            rq["result"] == "no such method"
+            rq["status"] = "EEXCP"
+            rq["result"] = "no such method"
             c.close()
-            return rq        
+            return cleanrq(rq)
     else:
         if rq["method"] == "read":
             size = int(d[1])
             if (len(rq["args"]) == 0 and size > MAX_READ_SIZE) or (len(rq["args"]) == 1 and size-int(rq["args"][0]) > MAX_READ_SIZE) or (len(rq["args"]) == 2 and int(rq["args"][1]) > MAX_READ_SIZE):
-                rq["status"] == "EEXCP"
-                rq["result"] == "object read size too big for a single request, try reducing slice"
+                rq["status"] = "EEXCP"
+                rq["result"] = "object read size too big for a single request, try reducing slice"
                 c.close()
-                return rq
+                return cleanrq(rq)
             rq["result"] = data_read(d[0], rq["args"]);
         elif rq["method"] == "write":
             rq["result"] = data_write(d[0], c, int(d[1]), rq["args"]);
         elif rq["method"] == "listChildren":
-            rq["result"] = data_listChildren(d[0], rq["args"]);
+            rq["result"] = data_listChildren(d[0], c, rq["args"]);
         elif rq["method"] == "createChild":
-            if rq["args"][2] != "~/sys/filestore":
-                rq["status"] == "EPERM"
-                rq["result"] == "can only create type ~/sys/filestore"
-                c.close()
-                return rq
+            # currently, it treally does not matter what object type w're trying to create, just create filestore one...
+            #if rq["args"][2] != "~/sys/filestore":
+            #   rq["status"] == "EPERM"
+            #   rq["result"] == "can only create type ~/sys/filestore"
+            #   c.close()
+            #   return cleanrq(rq)
             # first, check that object exists and child with that name does not exist
+            
             name = rq["args"][0]
             c.execute("SELECT uri FROM childlist WHERE uri=%s AND child_uri=%s", (uri, uri+"/"+name))
             if c.fetchone():
-                rq["status"] == "EEXCP"
-                rq["result"] == "duplicate child name"
+                rq["status"] = "EEXCP"
+                rq["result"] = "duplicate child name"
                 c.close()
-                return rq        
+                return cleanrq(rq)
             rq["result"] = data_createChild(d[0], uri, name, c);
         elif rq["method"] == "deleteChild":
-            rq["result"] = data_deleteChild(d[0], rq["args"][0], c);
+            name = rq["args"][0]
+            c.execute("SELECT uri FROM childlist WHERE uri=%s AND child_uri=%s", (uri, uri+"/"+name))
+            if not c.fetchone():
+                rq["status"] = "EEXCP"
+                rq["result"] = "object not found by URI" # TODO: normalize error messages!
+                c.close()
+                return cleanrq(rq)
+            rq["result"] = data_deleteObject(d[0], uri+"/"+name, c);
         elif rq["method"] == "securityGet":
             rq["result"] = data_securityGet(d[0], uri, c);
         elif rq["method"] == "securitySet":
@@ -377,19 +420,19 @@ def process_rq(rq):
         elif rq["method"] == "describe":
             rq["result"] = data_describe(d[0], rq["args"]);
         else:
-            rq["status"] == "EEXCP"
-            rq["result"] == "no such method"
+            rq["status"] = "EEXCP"
+            rq["result"] = "no such method"
             c.close()
-            return rq
-    conn.commit();
+            return cleanrq(rq)
+    pgconn.commit();
     c.close()
-    return rq;
+    return cleanrq(rq);
     # TODO: terminal registration home folder object & ACL object creation
     # TODO: addAsChild...
 
 def createObject(fullURI, ownerTerminalList, methodList):
     # XXX will not fail when object already exists
-    c = conn.cursor()
+    c = pgconn.cursor()
     # TODO path control here
     lURI = fullURI.split("/")
     parent = string.join(lURI[:-1], "/")
@@ -413,7 +456,7 @@ def createObject(fullURI, ownerTerminalList, methodList):
             sec["ipcIn"][m].append(t)
     
     data_securitySet(oid, fullURI, sec, c)
-    conn.commit()
+    pgconn.commit()
     c.close();
 
 # SUBSCRIBER_IDENTITIES = { "/bin": "xFcGt^", "/home": "pltcm[jev", "/test":"'njntcn,eltn"}
@@ -433,15 +476,15 @@ def createObject(fullURI, ownerTerminalList, methodList):
 
 # class Hub(StompClientFactory):
     # identities = SUBSCRIBER_IDENTITIES
-    # def recv_connected(self, msg):
+    # def recv_pgconnected(self, msg):
         # print 'Connected; Subscribing to hub'
         # # get sessions for all identities
         # # do not forget to ping periodically
 
 
-    # def clientConnectionLost(self, connector, reason):
+    # def clientConnectionLost(self, pgconnector, reason):
         # print 'Connection Lost. Reason:', reason
-        # self.clientConnectionFailed(connector, reason)
+        # self.clientConnectionFailed(pgconnector, reason)
     
     # def recv_message(self,msg):
         # # TODO: error s possible here

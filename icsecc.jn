@@ -9,8 +9,9 @@ function main(argv) {
         // exit
     } else {
         printDOM("Please edit security description. Use CTRL-Enter to save & quit."); brDOM();
-        x = editDOM(object.execURI(argv[1], "securityGet", []));
-        object.execURI(argv[1], "securitySet", [x]);
+        // TODO: properly indent the security code
+        x = editDOM(JSON.stringify(object.execURI(argv[1], "securityGet", [])));
+        object.execURI(argv[1], "securitySet", [JSON.parse(x)]);
     }
 }
 
