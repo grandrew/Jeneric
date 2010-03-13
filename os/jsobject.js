@@ -1113,12 +1113,22 @@ function eos_wakeObject(parent, name, serID) {
             obj.evaluate(type_src.result, dump.TypeURI); // XXX TYPE SRC CODE MUST RELEASE MAIN THREAD for serialization..
                                            // OR IT WILL DEADLOCK THE SYSTEM IPC FOR THAT OBJECT
             
-            obj.global.object.data = JSON.parse(dump.Data); // set data variable directly
+            if(dump.Data) {
+                try {
+                    obj.global.object.data = JSON.parse(dump.Data); // set data variable directly
+                } catch (e) {
+                    obj.ErrorConsole.log("Could not load JSON object data (TQLW wakeup)");
+                }
+            }
 
-            obj.onfinish = function () {
-                // XXX this should set the wakeupIPCLock to false
-                obj.execf_thread(obj.security.setSecurityState, [JSON.parse(dump.SecurityProp)], dummy, dummy_assert); 
-            };
+            if(dump.SecurityProp) { // if any security preferences registered...?
+                obj.onfinish = function () {
+                    // XXX this should set the wakeupIPCLock to false
+                    obj.execf_thread(obj.security.setSecurityState, [JSON.parse(dump.SecurityProp)], dummy, dummy_assert); 
+                };
+            } else {
+            
+            }
         };
         kIPC(__eos_objects["terminal"], obj.TypeURI, "read", [], onfs, onerror);
     };
@@ -1633,7 +1643,7 @@ Jnaric.prototype.serialize = function (onfinish, onerror) {
     };
 
     // TODO: error checking (like it does not exist...)
-    self.execf_thread(self.security.getSecurityState, [], onGetSec, onGetSecError); 
+    self.execf_thread(self.security.getSecurityState, [], onGetSec, onGetSecError, undefined, self.security); 
     //};
     
     /*

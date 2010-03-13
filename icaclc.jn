@@ -3,18 +3,19 @@
 function main(argv) {
     if(argv.length == 1) {
         // the GFX version
-        document.body.innerHTML = 'ICACLC<br/>Graphics mode is unsupported yet.<br/>Try using command mode: icaclc [command] [arg1] [arg2]<button id="but1">OK</button>';
+        document.body.innerHTML = 'ICACLC<br/>Graphics mode is unsupported yet.<br/>Try using command mode: icaclc [path_to_object] [command] [arg1] [arg2]<button id="but1">OK</button>';
         document.getElementById("but1").waitEvent("click");
         document.body.innerHTML = "exit.";
         // exit
     } else {
         // the console version
-        switch ( argv[1] ) {
+        var obj = argv[1]
+        switch ( argv[2] ) {
             case "addacl":
-                object.execURI("~/security/ACL", "addACL", [argv[2]]);
+                object.execURI(obj+"/security/ACL", "addACL", [argv[3]]);
                 break;
             case "delacl":
-                object.execURI("~/security/ACL", "deleteACL", [argv[2]]);
+                object.execURI(obj+"/security/ACL", "deleteACL", [argv[3]]);
                 break;
             case "listacl":
                 var r = object.execURI("~/security/ACL", "listACL", []);
@@ -23,28 +24,28 @@ function main(argv) {
                 }
                 break;
             case "addid":
-                object.execURI("~/security/ACL", "ACLappend", [argv[2], argv[3]]);
+                object.execURI(obj+"/security/ACL", "ACLappend", [argv[3], argv[4]]);
                 break;
             case "delid":
-                object.execURI("~/security/ACL", "ACLremove", [argv[2], argv[3]]);
+                object.execURI(obj+"/security/ACL", "ACLremove", [argv[3], argv[4]]);
                 break;
             case "listid":
-                var r = object.execURI("~/security/ACL", "ACLlist", [argv[2]]);
+                var r = object.execURI(obj+"/security/ACL", "ACLlist", [argv[3]]);
                 for(var i=0;i<r.length;i++) {
                     printDOM(r[i]); brDOM();
                 }
                 break;
             case "tlset":
-                object.execURI("~/security/ACL", "setTrustList", argv.slice(2));
+                object.execURI(obj+"/security/ACL", "setTrustList", argv.slice(3));
                 break;
             case "tlget":
-                printDOM(JSON.stringify(object.execURI("~/security/ACL", "getTrustList", [])));
+                printDOM(JSON.stringify(object.execURI(obj+"/security/ACL", "getTrustList", [])));
                 break;
             case "cflush":
-                printDOM(JSON.stringify(object.execURI("~/security/ACL", "flushcache", [])));
+                printDOM(JSON.stringify(object.execURI(obj+"/security/ACL", "flushcache", [])));
                 break;
             default:
-                printDOM("Avaliable commands: addacl #aclname; delacl #aclname; listacl; addid #aclname terminal_id; delid #aclname terminal_id; listid #aclname; tlset terminal_id ...; tlget; cflush");
+                printDOM("USAGE: icaclc <path_to_object> <command_and_args>\nAvaliable commands: addacl #aclname; delacl #aclname; listacl; addid #aclname terminal_id; delid #aclname terminal_id; listid #aclname; tlset terminal_id ...; tlget; cflush");
         }
     }
 }

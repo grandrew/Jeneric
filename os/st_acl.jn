@@ -110,6 +110,7 @@ object.ipc.ACLlist = function (rq, aclname) { // : get a listing of this ACL's t
     for(var o in object.data.acls[aclname]) {
         l.push(o);
     }
+    return l
 };
 
 

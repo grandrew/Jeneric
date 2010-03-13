@@ -89,10 +89,15 @@ sessions = {}
 terminals = {}
 
 
-dbconn = sqlite3.connect(REGISTRAR_DB);
+#dbconn = sqlite3.connect(REGISTRAR_DB);
+dbconn = psycopg2.connect("dbname=jeneric_reg user=jeneric_data")
+
 c = dbconn.cursor()
-c.execute('''create table if not exists reg
-(name text UNIQUE, key text, identity text, created int, accessed int)''')
+#c.execute('''create table if not exists reg (name text UNIQUE, key text, identity text, created int, accessed int)''')
+try:
+    c.execute("create table reg (name varchar PRIMARY KEY, key varchar, identity varchar, created int, accessed int)")
+except:
+    pass; # error-exists
 dbconn.commit()
 c.close()
 
@@ -357,8 +362,11 @@ class Hub(StompClientFactory):
                 c = dbconn.cursor();
                 try:
                     # TODO: register home folder for the user!
-                    c.execute("insert into reg (name, key, identity, created, accessed) values (?,?,?,?,?)", (rq["args"][0],rq["args"][1],rq["args"][2], int(time.time()),int(time.time())))
+                    #c.execute("insert into reg (name, key, identity, created, accessed) values (?,?,?,?,?)", (rq["args"][0],rq["args"][1],rq["args"][2], int(time.time()),int(time.time())))
+                    c.execute("insert into reg (name, key, identity, created, accessed) values (%s,%s,%s,%s,%s)", (rq["args"][0],rq["args"][1],rq["args"][2], int(time.time()),int(time.time())))
                     dbconn.commit()
+                    # now register home folder
+                    createObject("/home/"+name, [name], METHODS_FULL_ACCESS)
                     s = "OK"
                     r = "registered"
                 except sqlite3.Error, e:
@@ -377,11 +385,14 @@ class Hub(StompClientFactory):
             if len(s) == 0:
                 c = dbconn.cursor();
                 try:
-                    c.execute("update or fail reg set key=? where name=? and key=?", (key_new, name, key_old))
+                    #c.execute("update or fail reg set key=? where name=? and key=?", (key_new, name, key_old))
+                    c.execute("update reg set key=%s where name=%s and key=%s", (key_new, name, key_old))
+                    if c.rowcount < 1: raise TypeError;
                     dbconn.commit()
                     s = "OK"
                     r = "changed"
-                except sqlite3.Error, e:
+                #except sqlite3.Error, e:
+                except:
                     # deny registration with errror
                     s = "EEXCP"
                     r = "incorrect credentials"
@@ -402,7 +413,8 @@ class Hub(StompClientFactory):
                 r = "wrong name/key pair"
                 try:
                 #if 1:
-                    c.execute('select * from reg where name=? and key=?', (name, key))
+                    #c.execute('select * from reg where name=? and key=?', (name, key))
+                    c.execute('select * from reg where name=%s and key=%s', (name, key))
                     termname = c.fetchone()[0]
                     add_session(termname, msg["headers"]["session"]) 
                     
@@ -508,12 +520,13 @@ class Hub(StompClientFactory):
                 try:
                     name = rq["terminal_id"]
                     key = rq["terminal_key"]
-                    c.execute('select * from reg where name=? and key=?', (name, key))
+                    #c.execute('select * from reg where name=? and key=?', (name, key))
+                    c.execute('select * from reg where name=%s and key=%s', (name, key))
                     termname = c.fetchone()[0]
-                except sqlite3.Error, e:
-                    print "Could not authenticate terminal:", e.args[0]
+                #except sqlite3.Error, e:
+                #    print "Could not authenticate terminal:", e.args[0]
                 except TypeError:
-                    print "Terminal with id", rq["terminal_id"], "not found in database"
+                    print "Terminal with supplied credentials for id", rq["terminal_id"], "not found in database"
                 except:
                     print "Other general error:"
                     traceback.print_exc()

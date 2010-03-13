@@ -172,6 +172,7 @@ ASSORTED TODO ITEMS
 - kernel improvement: profiler
 - idea: in ErrorConsole.log print time and issuing vm uri, at least for firebug console output
 - jsdom: mousewheel support! see http://markup-javascript.com/2009/05/24/krossbrauzernyj-mousewheel-obrabotka-sobytiya-skrolinga/
+- inference-engine based configuration control and naming (entitle configuration options and provide CyCL-like description - in case the option be renamed, use the description instead!)
 
 - i18n support
 
@@ -354,6 +355,12 @@ DENY until fixed
     - set console security: allow everything
     - boot & test new security!!!
 
+- PROBLEM!!! we can not have two terminals authenticated at once!!!
+    - technically can not
+    - what happens if we do? different files?
+    - how to ever differentiate between them??
+    - back to oldies... :-\
+    
 - DOCument new "!" interface for denial in ACL lists
 - DOCument usage of "*" for denial access rule chains
 - TODO: terminalbased-security aware IC# should create a subfolder for each untrusted program based on its name?
@@ -361,7 +368,7 @@ DENY until fixed
 - what happens if parent has another security type? how will 'inherit' behave?
 - chunked localStorage blobstore driver (to have ability to store reasonable amounts of data)
 - disable init= kernel parameter at production
-   
+- store numeric IDs to announce as, and, if free, use that. (or behave as sessions ID - random???)   
 - enhance/reduce logging for jsobject/eosinit: log only if KCONFIG("debug") is set; and set the level
     - or maybe introduce firebug/console-only setup??? like set DEBUG=<LEVEL> in firebug to enable logging?
     - check jsexec for (full) conformance with DEBUG variable

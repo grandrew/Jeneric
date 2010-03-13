@@ -111,105 +111,18 @@ function jeneric_init(elemt) {
     }; 
 
     
-
-    // NOW CREATE SYS OBJECT
-/*
-    _sys_vm = new Jnaric();
-
-    _sys_vm.name = "sys";
-    _sys_vm.TypeURI = "~/sys/ramstore";
-    _sys_vm.SecurityURI = "~/sys/anarchic"; // no IPC for terminal at all
-    _sys_vm.parent = _terminal_vm; 
-                              
-    _sys_vm.uri = _sys_vm.parent.uri + "/"+_sys_vm.name; 
-                             
-    _sys_vm.serID = -1; // can never be serialized
-    _sys_vm.childList = {}; 
-
-    //_sys_vm.global.initIPCLock = true; // THIS to be flushed by security validateRequest method init
-    //_sys_vm.global.wakeupIPCLock = true; // THIS to be flushed by a call to setSecurityState method
-    _sys_vm.global.initIPCLock = new _sys_vm.global.Lock(); // THIS to be flushed by security validateRequest method init
-    _sys_vm.global.initIPCLock.goflag = 0; // set the lock
-    _sys_vm.global.wakeupIPCLock = new _sys_vm.global.Lock(); 
-    _sys_vm.global.wakeupIPCLock.goflag = 0; // set the lock
-
-    // BINDING part
-    _sys_vm.bind_dom(); // XXX not ever bind DOM???
-    _sys_vm.bind_om(); // bind the protected EOS object model
-
-    // TWEAKINIT part
-
-    _sys_vm.load("os/anarchic.jn");
-    _sys_vm.load("os/tmpstore.jn"); // XXX CHEATING!
-
-
-    // register it
-    _terminal_vm.childList["sys"] = _sys_vm;
-    __eos_objects["~/sys"] = _sys_vm;
-    
-    _sys_vm.onfinish = function () {
-        _sys_vm.onfinish = ffoo;
-        _sys_vm.evaluate("wakeupIPCLock.release();"); 
-    }; 
-    
-*/
-
-    
-    
-
-
-    // NOW CREATE anarchic OBJECT
-
-
-    // TODO: beautify it ;-)
-    //       1. create a struct {objname: url,} 2. use object count or length in THE tweak part
-    /*
-    _anarchic_vm = manualRamstoreObject("anarchic", _sys_vm);
-    _anarchic_vm.onfinish = function () {
-        _anarchic_vm.onfinish = ffoo;
-    //    _anarchic_vm.evaluate("sdata = fetchUrl('anarchic.jn');wakeupIPCLock=false;");
-        _anarchic_vm.evaluate("sdata = fetchUrl('os/anarchic.jn');wakeupIPCLock.release();");  
-    }; // WARNING!? XXX precedence test heeded here!!!!!!
-
-    // NOW CREATE ramstore OBJECT
-    _ramstore_vm = manualRamstoreObject("ramstore", _sys_vm);
-    _ramstore_vm.onfinish = function () { 
-        _ramstore_vm.onfinish = ffoo;
-        _ramstore_vm.evaluate("sdata = fetchUrl('os/ramstore.jn');wakeupIPCLock.release();"); 
-    }; // WARNING!? XXX precedence test heeded here!!!!!!
-
-    // NOW CREATE public security model OBJECT
-    _public_vm = manualRamstoreObject("public", _sys_vm);
-    _public_vm.onfinish = function () { 
-        _public_vm.onfinish = ffoo;
-        _public_vm.evaluate("sdata = fetchUrl('os/public.jn');wakeupIPCLock.release();"); 
-    }; 
-
-
-    // create ic.jn object
-    _ic_vm = manualRamstoreObject("ic", _sys_vm);
-    _ic_vm.onfinish = function () {
-        _ic_vm.onfinish = ffoo;
-        _ic_vm.evaluate("sdata = fetchUrl('os/ic.jn');wakeupIPCLock.release();"); 
-    }; 
-
-    // create totinit.jn object
-    _init_vm = manualRamstoreObject("init", _sys_vm);
-    _init_vm.onfinish = function () {
-        _init_vm.onfinish = ffoo;
-        _init_vm.evaluate("sdata = fetchUrl('os/totinit.jn');wakeupIPCLock.release();"); 
-    }; 
-    */
     
     var init_objects = [
         {name: "sys", parentURI: "~", security: "os/readonly.jn" }, 
+        // XXX anarchic should be removed on production
         {name: "anarchic", parentURI: "~/sys", contenturl: "os/anarchic.jn", security: "os/readonly.jn" },
         {name: "security", parentURI: "~", typeurl: "os/ramstore.jn", security: "os/st.jn" }, // security folder SHOULD be serializable!
         //{name: "insecure", parentURI: "~", typeurl: "os/ramstore.jn", security: "os/st.jn" }, // should be made serializeable too!
         
         // TODO: if object does not exist!
         {name: "terminal", parentURI: "~/security", contenturl: "os/st.jn", security: "os/readonly.jn" },
-        {name: "ACL", parentURI: "~/security", typeurl: "os/st_acl.jn", security: "os/st.jn" }, 
+        {name: "ACL", parentURI: "~/security", typeurl: "os/st_acl.jn", typeuri: "~/security/acltype", security: "os/st.jn" }, 
+        {name: "acltype", parentURI: "~/security", contenturl: "os/st_acl.jn", security: "os/readonly.jn" },
         
         {name: "ramstore", parentURI: "~/sys", contenturl: "os/ramstore.jn", security: "os/readonly.jn" },
         //{name: "public", parentURI: "~/sys", url: "os/public.jn" },
@@ -220,6 +133,7 @@ function jeneric_init(elemt) {
     
     for(var ix=0; ix < init_objects.length; ix++) {
         nvm = manualRamstoreObject(init_objects[ix].name, __eos_objects[init_objects[ix].parentURI], init_objects[ix].typeurl, init_objects[ix].security);
+        if(init_objects[ix].typeuri) nvm.TypeURI=init_objects[ix].typeuri;
         (function () {
             var n = nvm;
             if(init_objects[ix].contenturl) {
@@ -243,52 +157,6 @@ function jeneric_init(elemt) {
 
 
 
-
-
-
-
-    ////////////////////////////////////////////////////////////////////////////////////
-    // okay, now deserialize 'var' ramstore object and its childlist!
-/*
-    _var_vm = new Jnaric();
-
-    _var_vm.name = "var";
-    _var_vm.TypeURI = "~/sys/ramstore";
-    _var_vm.SecurityURI = "~/sys/anarchic"; // no IPC for terminal at all
-    _var_vm.parent = _terminal_vm; 
-                              
-    _var_vm.uri = _var_vm.parent.uri + "/var"; 
-                          
-    _var_vm.serID = -1; // can never be serialized
-    _var_vm.childList = {}; 
-
-    //_var_vm.global.initIPCLock = true; // this will be normally unset
-    //_var_vm.global.wakeupIPCLock = true; // this will emulate like we're deserializing and will lock IPC until we explicitly unlock
-
-    _var_vm.global.initIPCLock = new _var_vm.global.Lock(); // THIS to be flushed by security validateRequest method init
-    _var_vm.global.initIPCLock.goflag = 0; // set the lock
-    _var_vm.global.wakeupIPCLock = new _var_vm.global.Lock(); 
-    _var_vm.global.wakeupIPCLock.goflag = 0; // set the lock
-
-
-    // BINDING part
-    _var_vm.bind_dom(); // XXX not ever bind DOM???
-    _var_vm.bind_om(); // bind the protected EOS object model
-
-    // TWEAKINIT part
-
-    _var_vm.load("os/anarchic.jn");
-    _var_vm.load("os/ramstore.jn");
-        
-    _terminal_vm.childList["var"] = _var_vm;
-    __eos_objects[_var_vm.uri] = _var_vm;
-
-    _var_vm.onfinish = function () {
-        _var_vm.onfinish = ffoo;
-        _var_vm.evaluate("wakeupIPCLock.release();"); 
-    }; 
-*/
-
     _stor = getFixedStorage();
     if(_stor) {
         // if fixed storage is accessible
@@ -301,9 +169,14 @@ function jeneric_init(elemt) {
           for(var ob in ncl) {
             delete __eos_objects["~/security/"+ob]; // make sure to clean out auto-created object equivalents!
           }
+          
           __eos_objects["~/security"].ErrorConsole.log("restoring ~/security childList...");
-          __eos_objects["~/security"].childList = ncl;
+          for(var obc in ncl) {
+            __eos_objects["~/security"].childList[obc] = ncl[obc];
+          }
           __eos_objects["~/security"].serID = parseInt(d.rowid);
+        } else {
+            __eos_serial_weak.push(__eos_objects["~/security"]);
         }
         
 
@@ -312,6 +185,11 @@ function jeneric_init(elemt) {
           _terminal_vm.ErrorConsole.log("restoring ~ childList...");
           // MERGE instead of RESTORE
           var termcl = JSON.parse(d.ChildList);
+          /*
+          for(var ob in termcl) {
+            if(ob != "security") delete __eos_objects["~/"+ob]; // make sure to clean out auto-created object equivalents!
+          }
+          */
           for(var obc in termcl) {
               _terminal_vm.childList[obc] = termcl[obc];
           }

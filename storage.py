@@ -5,27 +5,38 @@
 
 # TODO: 
 # + default object control (create default objects with full access given to terminal named admin)
-#   + INT_FS_LIST = ["bin", "test", "lib", "home"]
+#   + INT_FS_LIST = ["bin", "lib", "home"]
+#   - discussion(discuss?), bbs ?
+#   -? types (must copy from there in TQLW) -- types is equivalent to bin in our case...
+#   - test
 # + insert request processing 
-# T? test objects -- additional Blob object testing required!
-# - test ACLs
+# + test objects -- additional Blob object testing required!
 # ---
-# - terminal registration home folder object & ACL object creation
-#   - terminal md5 password challenge
-# - register /home object, set listing-only allowed
-# +T /home/<termid>/ACL
+# + switch terminal registration to postgres interface in hub.py
+# + terminal registration home folder object & ACL object creation
+# + register /home object, 
+#    + set listing-only allowed (?!)
+# + test /home
+# - test /home/<termid>/ACL
+# ---
 # - user resource monitoring?: report no space available
 #       SELECT SUM(size) AS total FROM files WHERE uri=%s;
+#       size calculation seems to be not working correctly in write()
+#       grow by 1 bit per second ;-)
 # - listing size LIMIT (childList limit?)
-# - switch terminal registration to postgres interface in hub.py
 # - create terminal registration script with no restrictions (like 8-char limit and no dots)
-# - filestore object description protocol
+# - filestore object description protocol (see everything I wanted/written somewhere)
 #   - implement protocol
+#   - security type there too
+#   - listChildren: SQL ? like by date, limit, match, etc.?
 # - add terminal_id to http_request protocol: when getting via HTTP request, watch for session
 #   (cookie-based? or maybe GET-based?)
 #    check whether we already do authenticate with STOMP session?
 # - offtop: add default security policy to default terminal object to allow listing for all terminals
+#    - for other objects, add listing disabled (private or home object?)
 # - see problem with icsecc in GUI mode
+# - register /bbs or /discussion
+# - go command: install std environment, ... see jaq
 
 # + createObject(fullURI, ownerTerminalList, methodList) 
 #   - check if exists, silently fail
@@ -34,14 +45,57 @@
 #   + search for parent and set parent oid(?)?
 #   + append ourself to childList of a found parent (if any - in the case of absense we are on top)
 
+"""
 
-import psycopg2, httplib, time, string
+>>> import time
+>>> time.time()
+1268347288.781671
+>>> R=time.time()
+>>> 1024*1024*2
+2097152
+>>> 1024*1024*2*8
+16777216
+>>> SB=1024*1024*2*8
+>>> s():
+  File "<stdin>", line 1
+    s():
+       ^
+SyntaxError: invalid syntax
+>>> def s():
+...  return SB/8
+... 
+>>> s()
+2097152
+>>> s()/1024
+2048
+>>> time.time()-R
+162.67200398445129
+>>> int(time.time()-R)
+171
+>>> SR=SB
+>>> SB = SR + int(time.time()-R)
+>>> SB
+16777422
+>>> s()
+2097177
+>>> def c():
+...   return (SR + int(time.time()-R))/8
+... 
+>>> c()
+2097188
+
+
+"""
+
+import psycopg2, httplib, time, string,simplejson
 from random import choice # for genhash
 
 pgconn = psycopg2.connect("dbname=jeneric_data user=jeneric_data")
 
 MAX_READ_SIZE = 400000 # max read slice size in bytes!
 # JENERIC_TMP = "/tmp/jeneric/"
+
+METHODS_FULL_ACCESS = ["securitySet", "securityGet", "read", "write", "describe", "listChildren", "createChild", "deleteChild"] # everything
 
 # TODO: this shoyuld be moved to utility funtctions! (copy from hub.py)
 def genhash(length=8, chars=string.letters + string.digits):
@@ -73,13 +127,34 @@ def init_db():
     cur.close()
 def init_objects():
     ownerTerminalList = ["test", "grandrew", "admin"] # hard-coded admin terminals
-    methodList = ["securitySet", "securityGet", "read", "write", "describe", "listChildren", "createChild", "deleteChild"] # everything
+    methodList = METHODS_FULL_ACCESS
     objectlist = ["bin", "test", "lib", "home"]
     for ob in objectlist:
         createObject("/"+ob, ownerTerminalList, methodList)
     pgconn.commit()
-    
+def secg(uri):
+    c = pgconn.cursor()
+    c.execute("SELECT oid,size FROM files WHERE uri=%s", (uri,));
+    d = c.fetchone();
+    if d is None:
+        print "Error: no such uri"
+        return
+    print simplejson.dumps(data_securityGet(d[0], uri, c));
+    c.close()
 
+def secs(uri,sjs):
+    c = pgconn.cursor()
+    c.execute("SELECT oid,size FROM files WHERE uri=%s", (uri,));
+    d = c.fetchone();
+    if d is None:
+        print "Error: no such uri"
+        return
+    struct = simplejson.loads(sjs)
+    print data_securitySet(d[0], uri, struct, c);
+    pgconn.commit()
+    c.close()
+
+    
 #init_db() # do not init DB each time we launch... use interactive mode insted!!
 
 def validate(rq,c):
@@ -338,7 +413,9 @@ def process_rq(rq):
     # only two objects available: filestore-like and ACL 
     
     # XXX: TODO: safe path manipulation?
-    if uri.split("/")[1] == "home" and uri.split("/")[3] == "ACL":
+    # WARNING!!! ACL object should really exist for the security and other things to work!
+    #            also, the security rules must be set for ACL to work correctly!
+    if len(uri.split("/")) == 4 and uri.split("/")[1] == "home" and uri.split("/")[3] == "ACL":
         # acl way
         if rq["method"] == "addACL":
             pass # in fact, does nothing XXX investigate this!!
@@ -456,7 +533,8 @@ def createObject(fullURI, ownerTerminalList, methodList):
         sec["ipcIn"][m] = []
         for t in ownerTerminalList:
             sec["ipcIn"][m].append(t)
-    
+    sec["ipcIn"]["listChildren"]=["*"] # allow listing for all
+    sec["ipcIn"]["read"]=["*"] # allow read for all
     data_securitySet(oid, fullURI, sec, c)
     pgconn.commit()
     c.close();
