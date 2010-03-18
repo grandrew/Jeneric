@@ -1,18 +1,6 @@
 /*
- - the general object structure, 
- - serializer init, 
- - comet init 
- - terminal creation
-    - set vm.parent to ""
-    - set vm.uri to "~"
- - some basic types and security??? -> additional files for vm.load()
-    - getMethodList ?? describeObject ?? or is it security code??
- - create a DIV to bind terminal object to.
-*/
 
-/*
-
-TODO: cache .jn files, do not load them every time!
+TODO: cache .jn files, do not load them every time! (MANIFEST?)
 
 */
 
@@ -45,7 +33,7 @@ _isFF = ((navigator.product === "Gecko") && (navigator.userAgent.toLowerCase().i
 _isIE = (navigator.userAgent.indexOf("MSIE") != -1);
 _isIE8 = (navigator.userAgent.indexOf("MSIE 8") != -1);
 if(window.opera && opera.postError) console = { log: opera.postError };
-
+function fake () {}
 
 //////////////////////////////////////////////////////////////////////////////
 // JENERIC INIT
@@ -64,18 +52,12 @@ function jeneric_init(elemt) {
     _terminal_vm.serID = -1; // set to real value, if exists
     _terminal_vm.childList = {}; // init the CL later
 
-    //_terminal_vm.global.initIPCLock = true; // THIS to be flushed by security validateRequest method init
-    //_terminal_vm.global.wakeupIPCLock = false; 
     _terminal_vm.global.initIPCLock = new _terminal_vm.global.Lock(); // THIS to be flushed by security validateRequest method init
     _terminal_vm.global.initIPCLock.goflag = 0; // set the lock
     _terminal_vm.global.wakeupIPCLock = new _terminal_vm.global.Lock(); 
 
 
-    // BINDING part
-    //var dmb = document.createElement("DIV");
-    //dmb.style.width = "100%";
-    //document.body.appendChild(dmb);
-
+ 
     var d = new DOMImplementation(); // SLOW??
     ddocument = d.loadXML("<div/>"); // SLOW???
     _dmb = ddocument.documentElement;
@@ -194,6 +176,17 @@ function jeneric_init(elemt) {
               _terminal_vm.childList[obc] = termcl[obc];
           }
           _terminal_vm.serID = parseInt(d.rowid); // ok.
+          // now restore security state, if any
+          if(d.SecurityProp && d.SecurityProp.length > 0) {
+            _terminal_vm.onfinish = function () {
+                try {
+                    __eos_objects["~"].execf_thread(__eos_objects["~"].security.setSecurityState, [JSON.parse(d.SecurityProp)], fake, fake, undefined,__eos_objects["~"].security);
+                } catch (e) {
+                    if(window.console) console.log("ERROR restoring security state of terminal object: "+e);
+                    _EEE = e;
+                }
+            };
+          }
 
         } else {
             __eos_serial_weak.push(_terminal_vm); // 
@@ -300,13 +293,33 @@ function randomString( string_length ) {
 }
 
 
+function createCookie(name,value,days) {
+	if (days) {
+		var date = new Date();
+		date.setTime(date.getTime()+(days*24*60*60*1000));
+		var expires = "; expires="+date.toGMTString();
+	}
+	else var expires = "";
+	document.cookie = name+"="+value+expires+"; path=/";
+}
+
+function readCookie(name) {
+	var nameEQ = name + "=";
+	var ca = document.cookie.split(';');
+	for(var i=0;i < ca.length;i++) {
+		var c = ca[i];
+		while (c.charAt(0)==' ') c = c.substring(1,c.length);
+		if (c.indexOf(nameEQ) == 0) return c.substring(nameEQ.length,c.length);
+	}
+	return null;
+}
 
 // do announce with new credentials if the hubConnectionChanged hook is received
 //       this is rather a terminal issue!
 hubConnection = {
     receive: null, // to be set by jsobject
     fresh: true,
-    ___SESSIONKEY: randomString(KEY_LENGTH),
+    ___SESSIONKEY: (readCookie("session") ? readCookie("session") : randomString(KEY_LENGTH)),
     stomp: new STOMPClient(),
     rqe: {},
     acks: {},
@@ -361,27 +374,15 @@ hubConnection = {
             clearInterval(hubConnection.si);
             hubConnection.si = setInterval(hr, RQ_RESEND_INTERVAL); 
             
+            // set session key cookie 
+            createCookie("session", hubConnection.___SESSIONKEY);
+            
         };
         
         var self = this;
 
         this.stomp.onmessageframe = function(frame) {
-            // here to receive the messages. 
-            // take care of 'session lost' errors!
-            /*
-            // in fact, headers do not work in Orbited in this configureation 
-            if(frame.headers.error && frame.headers.error == "NOSESSION") {
-                hubConnection.announce();
-                return;
-            }
-            */
-            // now receive ack
-            /*
-            if(frame.headers.ack) {
-                self.ack_rcv(frame.headers.ack);
-                return;
-            }
-            */
+
                         
             // now decode body
             var blobCount = {n:0};
@@ -703,9 +704,7 @@ function blob_parse (key, value, blobCount, rqh) {
         // the last check
         //if (d[0] == key) { // XXX the blob should just be properly escaped!
             // now wait for Blob... (try to http/get it)
-            // TODO HERE
-            // callee may have no support for blobs. In this case, we should get not the Blob but
-            // mime or uu-encoded text string (suitable for src substitution, for example) - but treat it as Blob object
+
             blobCount.n += 1;
             // now get blob
             

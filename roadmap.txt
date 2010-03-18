@@ -287,24 +287,11 @@ URGENT:
 - BUG: some strange info at the end of stack traces found :-\
 - ic: better parse of errors when program launch (maybe attach to errorLog??)
 
+BUG: no stack trace in exception available
+BUG: document.appendChild(document.createElement("DIV")) should result in "Node cannot be inserted at the specified point in the hierarchy"
++T BUG: terminal_auth does not write key; also session is not saved on hub so terminal drops authentication
+      solution: save session on hub forever - in case terminal goes online with same session
 
-
-
-
-SECURITY FIRST HERE!!!
-INDUSTRIAL DB FIRST HERE!!
-DENY until fixed
-    - object - disallow everything except for flash, set params to not call external JS
-        - disallow changing of flash-protecting values
-        + disallow setting of 'data' property
-    - embed object
-    - AllowScriptAccess http://kb2.adobe.com/cps/164/tn_16494.html
-    - http://blog.monstuff.com/archives/000280.html - cross-domain flash access
-- also nota 'audio' and 'video' tags!
-    
-
-- implement advanced HTML control element: highlighting code editor (as TMP workaround?, double iframes!, expose codeMirror API)
-- flash control element insertion kernel method!
 
 - property transfer: if a prop is large string: do not retry transferring if transfer is in progress...
     this is a substantial bug that should be fixed at alpha-beta stage...
@@ -336,24 +323,26 @@ DENY until fixed
 + cyclic dependencies? recursion ttl in acl_validate parameter?
 + include: do not include files twice! -- just ignore it; for example, to make including in-line practical
 
-- security installation program? or include it by default?
++ security installation program? or include it by default?
     + prettify eosinit init procedure via startup-array, test everything
     + rename & move terminalbased to /os
     + invent objects policy
       + terminal: { ipcIn: {} }
-    - set 'readonly' security to general objects
+    + set 'readonly' security to general objects
     - set terminalbased by default to all objects
     + add ~/security ramstore
       + set ACL control object
     + add ~/insecure ramstore object
       + set its policy
     - how to say "if object does not exist"? -- make serializeable/restorable somehow!!
+        - no! need to run 'installer wizard' program - to create real objects
     - remove anarchic, public from eosinit
-    - upload icaclc, icsecs
+    + upload icaclc, icsecc
     - set ACL object security: cache-flush, etc.
     - set init security: allow everything (?)
     - set console security: allow everything
-    - boot & test new security!!!
+        - via wizard installer
+    + boot & test new security!!!
 
 - PROBLEM!!! we can not have two terminals authenticated at once!!!
     - technically can not
@@ -361,11 +350,55 @@ DENY until fixed
     - how to ever differentiate between them??
     - back to oldies... :-\
     
-- DOCument new "!" interface for denial in ACL lists
-- DOCument usage of "*" for denial access rule chains
++ DOCument new "!" interface for denial in ACL lists
++ DOCument usage of "*" for denial access rule chains
+
++ what happens if parent has another security type? how will 'inherit' behave?
+    + added try/catch block on validateRequest
+
+BUG: terminal_auth from unauthenticated terminal does not seem to work correct
+- need APPEND ability for write() requests: offset -1 means "append from last byte"
+    - ramstore
+    - filestore
+    - storage.py
+- read offset from LAST byte: read offset from negative values
+- DOCument write requests!
+- logout call for terminal
 - TODO: terminalbased-security aware IC# should create a subfolder for each untrusted program based on its name?
     x or set denial/allowance path? wildcard-enabled?
-- what happens if parent has another security type? how will 'inherit' behave?
+- flash setup kernel DOM method...
+    - AllowScriptAccess http://kb2.adobe.com/cps/164/tn_16494.html
+    - http://blog.monstuff.com/archives/000280.html - cross-domain flash access
+- also nota 'audio' and 'video' tags!
+    
+
+- implement advanced HTML control element: highlighting code editor (as TMP workaround?, double iframes!, expose codeMirror API)
+- flash control element insertion kernel method!
+
+- jsexec optimization: do not switch context for EACH step, rather do this for each BURST group    
+- stabilize init procedure (to look for init in ~/var or something?)
+- object description protocol (at least for storage objects + naming) type, length, content-type
+    - link should always report type 'link' (kernel feature?)    
+- cute "OK" check for POSTs (to indicate the POST was OK)
+    - more: output "Got file (tick) \n You may close your window now.\n writing to destination... 10%.. 20%.. ... complete!"
+- highlighting editor
+- ls -la: object description
+- objects manipulating toolkit
+- write standard tools: mv(?), rm, mkdir, rmdir, cp, cr - create object of certain type/sec, ul - upload something, cl - copy local (gears get)
+    - friend group search
+- terminal ipc method ping 
+    - and 'ping' program (may just ping via calling nonexistent method)
+- better console library (iclib)
+- mp3 player
+- offline service manifest file! https://developer.mozilla.org/en/Offline_resources_in_Firefox#Specifying_a_cache_manifest
+- DEAUTH ability! ??? -- should be performed by terminal object
+    
+    
+# - register /bbs or /discussion OR /talk !! (lang - RU, EN, etc...)
+    
+    
+    
+    
 - chunked localStorage blobstore driver (to have ability to store reasonable amounts of data)
 - disable init= kernel parameter at production
 - store numeric IDs to announce as, and, if free, use that. (or behave as sessions ID - random???)   
@@ -377,10 +410,9 @@ DENY until fixed
     - localStorage consistency logging: compare getChildList behaviour!
 - add copyright notice to each source file
     - and clean headers
-- cookie session auth
-    - and store terminal IDs for a week or two??
-- i've created a temporary session folder for you at /session/(termname)/ (provided by HUB)
-    - make sessions persistent through page reloads (?cookie)
++ cookie session auth
+    + and store terminal IDs for a week or two?? -- forever
++ make sessions persistent through page reloads (?cookie)
 - how to change security model of an object?? - only a super-puper user may do that; or the security code itself
     - terminal has initial security. It must to allow or to disallow the setting of security by object parent (at inittime or runtime)
     - denote every single kernel feature and allow security code to manage it (we need a wiki page on that)
@@ -398,43 +430,20 @@ DENY until fixed
     - allow "kernel driver" native code injection
 - encrypt passwords
     - use md5 hashing for auth, register and storing passwords http://pajhome.org.uk/crypt/md5/advancedauth.html#alternative
-- security to return optional "reason" value: true or text that will be set to "deny reason" for EPERM, etc.
-    - modify EPERM error transfer
++ security to return optional "reason" value: true or text that will be set to "deny reason" for EPERM, etc.
+ - modify EPERM error transfer (?)
 - hub leaks memory when client actively reannounces :-\ - should stop the bad-behaving client from flooding the base
 
-- stabilize init procedure (to look for init in /var or something?)
-- object description protocol (at least for storage objects + naming) type, length, content-type
-    - link should always report type 'link' (kernel feature?)
-- cute "OK" check for POSTs (to indicate the POST was OK)
-    - more: output "Got file (tick) \n You may close your window now.\n writing to destination... 10%.. 20%.. ... complete!"
-
-
-- highlighting editor
-- ls -la: object description
-- objects manipulating toolkit
-- write standard tools: mv(?), rm, mkdir, rmdir, cp, cr - create object of certain type/sec, ul - upload something, cl - copy local (gears get)
-    - friend group search
-- terminal ipc method ping 
-    - and 'ping' program (may just ping via calling nonexistent method)
-- better console library (iclib)
-- mp3 player
-- offline service manifest file! https://developer.mozilla.org/en/Offline_resources_in_Firefox#Specifying_a_cache_manifest
 
 
 
 - html templating support via core extension (require STL to get this to work; it will be later replaced by userspace library since userspace will be _as fast as kernel_)
     - or maybe kernel driver?
 - stress-test the jeneric object database (serializer, swapout, etc. - memory consumption, object limits.. (KCONFIG?))
-- jsexec optimization: do not switch context for EACH step, rather do this for each BURST group
+
 
 - database access methods
     (or kernel driver object?? - terminal security model that allows for native code "RING0" injection)
-
-- industrial database
-    - stress-test what if we use FF/Chrome storage
-    - PUBLIC security model for INDUSTRIAL #1
-    - think through how to build a standalone storage (maybe using full JN protocol + security model?)
-    - use either solution
     
 - start integration proposal
 
@@ -449,6 +458,7 @@ DENY until fixed
 - print_traceback() kernel method
 - ie8: out of stack space when running codemirror
 - store an immutable? ID object at ~/sys/uuid that holds the machine UUID stored in unexpirable cookie see http://www.broofa.com/Tools/Math.uuid.js
+    - no!!! use publicly(?) accessible UUID through terminal IPC interface! (or hub-only allowed, use md5 challenging to verify)
 - fix array.sort and JSON.stringify(replacer/reviver) (maybe others??) - WONTFIX for pre-alpha release
 - make sure 'move' call really exists for the object tree (
   - and document all tree calls)
@@ -486,7 +496,7 @@ DENY until fixed
 
 - need to re-announce (or ping) if connection lost 101 ???
 - BlobObject slice poor perf bugfix for Chrome (do not slice if we want full object)
-- totally-rename wrappedString to ___wrppedString for more security
+x totally-rename wrappedString to ___wrppedString for more security
 - file GEARS bug: when doing slice of size more than blob size -> the LENGTH is set to parameter sent to slice rather than real (0)
 
 - normalize source code

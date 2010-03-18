@@ -27,6 +27,11 @@ function read(rq, offset, len) {
 function write(rq, data, offset) {
     // TODO: error checking?
     if(typeof offset != "undefined") {
+        if(offset == -1) {
+            object.data.data = object.data.data.concat(data.wrappedString);
+            object.release(); // save and release
+            return true;
+        }
         object.data.data = "".concat(object.data.data.substr(0, offset), data, object.data.data.substr(offset+data.length, object.data.data.length));
     } else {
         object.data.data = data;

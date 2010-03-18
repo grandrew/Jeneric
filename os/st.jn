@@ -21,7 +21,7 @@ security.setSecurityState = function (state) {
     delete state.inheritParent;
     this.state = state; // no checks
     if(this.object.isSerialized()) this.object.serialize();
-    wakeupIPCLock.release();
+    if(wakeupIPCLock.check()) wakeupIPCLock.release(); // IPC may be unlocked already...
 };
 
 security.getSecurityState = function() {
@@ -29,8 +29,14 @@ security.getSecurityState = function() {
 };
 
 security.checkInherit = function (rq) {
-console.log("in checkinherit!"+JSON.stringify(rq));
-    if(this.state.inheritParent) return this.object.execIPC(this.state.inheritParent, "validateRequest", [rq]).result;
+//console.log("in checkinherit!"+JSON.stringify(rq));
+    if(this.state.inheritParent) {
+        try {
+            return this.object.execIPC(this.state.inheritParent, "validateRequest", [rq]).result;
+        } catch (e) {
+            return false;
+        }
+    }
     var lp = this.object.getMyURI().split("/")
     lp.pop();
     if(!lp.length) { console.log("returning false!"); return this.state.inheritParent=false; }

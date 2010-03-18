@@ -101,6 +101,16 @@ except:
 dbconn.commit()
 c.close()
 
+c = dbconn.cursor()
+#c.execute('''create table if not exists reg (name text UNIQUE, key text, identity text, created int, accessed int)''')
+try:
+    c.execute("create table session (terminal_id varchar PRIMARY KEY, session varchar, created int)")
+except:
+    pass; # error-exists
+dbconn.commit()
+c.close()
+
+
 blobtmp = sqlite3.connect(TMP_DB);
 blobtmp.text_factory = str;
 c = blobtmp.cursor()
@@ -118,6 +128,15 @@ def add_session(t, s, tm=0):
     if tm ==0: tm = time.time() 
     sessions[t] = {"s": s, "tm":tm}
     terminals[s] = t
+    c = dbconn.cursor();
+    #c.execute("SELECT * FROM session WHERE terminal_id=%s", (t,))
+    c.execute("DELETE FROM session WHERE session=%s OR terminal_id=%s", (s,t))
+    #if c.fetchone():
+    #    c.execute("UPDATE session SET session=%s,created=%s WHERE terminal_id=%s", (s,int(time.time()),t))
+    #else:
+    c.execute("INSERT INTO session (terminal_id,session,created) VALUES (%s,%s,%s)", (t,s,int(time.time())))
+    dbconn.commit()
+    c.close()
 
 def touch_session(s):
     tm = time.time()
@@ -401,6 +420,9 @@ class Hub(StompClientFactory):
             # XXX THIS procedure should be run from terminal object only, if at all...
             #     or the system will be unable to re-authenticate itself upon hub request if the kernel parameters not set
             # change current session credentials
+            if rq["caller_uri"] != "~":
+                s = "EPERM"
+                r = "execution from this path is not allowed"
             try:
                 name = rq["args"][0]
                 key = rq["args"][1]
@@ -446,16 +468,24 @@ class Hub(StompClientFactory):
 
         elif m == "logout":
             # drop session
-            try:
-                ss = msg["headers"]["session"]
-                del sessions[terminals[ss]]
-                del terminals[ss]    
-            except KeyError:
-                print "dropping unknown session. WTF?"
-                pass
-            
-            s = "OK"
-            r = ""
+            if rq["caller_uri"] != "~":
+                s = "EPERM"
+                r = "execution from this path is not allowed"
+            else:                
+                try:
+                    ss = msg["headers"]["session"]
+                    c = dbconn.cursor()
+                    c.execute("DELETE FROM session WHERE session=%s", (ss,))
+                    dbconn.commit()
+                    c.close()
+                    del sessions[terminals[ss]]
+                    del terminals[ss]    
+                except KeyError:
+                    print "dropping unknown session. WTF?"
+                    pass
+                
+                s = "OK"
+                r = ""
         elif m == "ping":
             s = "OK"
             r = "pong"
@@ -500,6 +530,8 @@ class Hub(StompClientFactory):
     def self_receive(self, termname, rq):
         sessid = get_session_by_terminal(termname)
         rq["session"] = sessid
+        rq["__int_termflag"] = None; # COSTYL development
+        # rq["terminal_id"] = termname; # just do not change if flag is present
         msg = {"headers": {"destination": ""}, "session":sessid, "body": rq}
         self.recv_message(msg)
     
@@ -531,7 +563,13 @@ class Hub(StompClientFactory):
                     print "Other general error:"
                     traceback.print_exc()
                 c.close()
-            
+            else:
+                c = dbconn.cursor()
+                c.execute('select terminal_id from session where session=%s', (rq["session"],))
+                d = c.fetchone()
+                if d:
+                    termname = d[0]
+                c.close()
             
             msg["headers"]["session"] = rq["session"]
             session = msg["headers"]["session"]
@@ -582,10 +620,18 @@ class Hub(StompClientFactory):
             try:
                 terminal = get_terminal_by_session(msg["headers"]["session"])
             except KeyError:
-                if DEBUG > 2: print "Issuing nosession!"
-                #self.dummy_send(msg["headers"]["session"], json.encode({"error": "NOSESSION"})) # DOC document here . & ->
-                self.dummy_send(msg["headers"]["session"], simplejson.dumps({"error": "NOSESSION"})) # DOC document here . & ->
-                return; # and DO NOT send ACK - so the client could re-establish a conection and resend the request!
+                # now try to find in persistent database
+                c = dbconn.cursor()
+                c.execute("SELECT terminal_id FROM session WHERE session=%s", (msg["headers"]["session"],))
+                d = c.fetchone()
+                if d:
+                    add_session(d[0], msg["headers"]["session"])
+                    terminal = d[0]
+                else:
+                    if DEBUG > 2: print "Issuing nosession!"
+                    #self.dummy_send(msg["headers"]["session"], json.encode({"error": "NOSESSION"})) # DOC document here . & ->
+                    self.dummy_send(msg["headers"]["session"], simplejson.dumps({"error": "NOSESSION"})) # DOC document here . & ->
+                    return; # and DO NOT send ACK - so the client could re-establish a conection and resend the request!
 
 
             
@@ -656,7 +702,10 @@ class Hub(StompClientFactory):
                     rq = d["r"]["uri"]
                     terminal = rq["terminal_id"] # because we've set the right one already
 
-                rq["terminal_id"] = terminal # just change it
+                if not ("__int_termflag" in rq and rq["__int_termflag"] is None): rq["terminal_id"] = terminal # just change it
+                if not "terminal_id" in rq:
+                    if DEBUG: print "ERROR: no terminal_id in request, forcing!"
+                    rq["terminal_id"] = terminal
                 oldid = rq["id"] # XXX remove redundancy
                 rq["hub_oid"] = rq["id"]
                 rq["id"] = genhash(10)+str(newId()); # spoofing-protection
@@ -903,9 +952,19 @@ class BlobPipe(Resource):
             for v in request.args:
                 if self.checkarg(request.args[v][0]): rarg[v] = request.args[v][0] # XXX DOC use only the FIRST entry parameter value
             
+            global terminals
+            csession = request.getCookie("session")
+            if csession in terminals:
+                cterminal = terminals[csession]
+            else:
+                cterminal = "00000000"
+            
+            rarg["terminal_id"] = cterminal
+            
             rq = {
                     "id": genhash(10)+str(newId()), 
-                    "terminal_id": "/"+GETPIPE_TERMNAME,
+                    #"terminal_id": "/"+GETPIPE_TERMNAME,
+                    "terminal_id": cterminal,
                     #// optional but mandatory for local calls
                     "caller_type": "",
                     "caller_uri": "/"+GETPIPE_TERMNAME,
@@ -916,6 +975,9 @@ class BlobPipe(Resource):
                     "args": [0,READBYTES]
             };
             rq["hub_oid"] = rq["id"] # for compat
+            
+            for ob in rarg:
+                if not ob in rq: rq[ob] = rarg[ob]
             
             abortFlag = {"ABORT": False}
 
@@ -1010,7 +1072,7 @@ class BlobPipe(Resource):
             # slightly inefficient memory usage
             rq2 = {
                     "id": genhash(10)+str(newId()), 
-                    "terminal_id": "/"+GETPIPE_TERMNAME,
+                    #"terminal_id": "/"+GETPIPE_TERMNAME, # set in rarg
                     #// optional but mandatory for local calls
                     "caller_type": "",
                     "caller_uri": "/"+GETPIPE_TERMNAME,
@@ -1193,7 +1255,7 @@ class BlobPipe(Resource):
         
         rq = {
                 "id": genhash(10)+str(newId()), 
-                "terminal_id": "/"+GETPIPE_TERMNAME, # will be changed by terminal anyways
+                # "terminal_id": "/"+GETPIPE_TERMNAME, # set in rarg
                 #// optional but mandatory for local calls
                 "caller_type": "",
                 "caller_uri": "/"+GETPIPE_TERMNAME,

@@ -17,26 +17,43 @@
 # + register /home object, 
 #    + set listing-only allowed (?!)
 # + test /home
-# - test /home/<termid>/ACL
+# +T test /home/<termid>/ACL
 # ---
-# - user resource monitoring?: report no space available
-#       SELECT SUM(size) AS total FROM files WHERE uri=%s;
+# + user resource monitoring?: report no space available
+#       SELECT SUM(size) AS total FROM files WHERE uri like %s; %s=="/home/terminalname/%"
 #       size calculation seems to be not working correctly in write()
 #       grow by 1 bit per second ;-)
-# - listing size LIMIT (childList limit?)
-# - create terminal registration script with no restrictions (like 8-char limit and no dots)
+# + listing size LIMIT (childList limit?)
+#   + /home/XX: return terminalname always first(?) - to always get the autocompletion working, just in case...
+# + add terminal_id to http_request protocol: when getting via HTTP request, watch for session
+# +T store session-terminal_id forever
+# + create terminal registration script with no restrictions (like 8-char limit and no dots)
+
+# - use filestore instead of ramstore - always!
+
+# - delete terminal tool: delete from reg, from home, ACL securities
+
 # - filestore object description protocol (see everything I wanted/written somewhere)
 #   - implement protocol
 #   - security type there too
 #   - listChildren: SQL ? like by date, limit, match, etc.?
-# - add terminal_id to http_request protocol: when getting via HTTP request, watch for session
-#   (cookie-based? or maybe GET-based?)
-#    check whether we already do authenticate with STOMP session?
-# - offtop: add default security policy to default terminal object to allow listing for all terminals
-#    - for other objects, add listing disabled (private or home object?)
-# - see problem with icsecc in GUI mode
-# - register /bbs or /discussion
+
+# !!! /home/<terminal_id> object may contain any amount of data!!!
+# !!! store forever only anonymous sessions? or have session-only cookies
+# !!! clean the database of outdated cookies regularly!
+
+# + see problem with icsecc in GUI mode
+# - get bytes in base64 to set img SRCs
+
+
 # - go command: install std environment, ... see jaq
+#   - link /lib to ~/lib or wontwork!
+#  - offtop: add default security policy to default terminal object to allow listing for all terminals
+#   - for other objects, add listing disabled (private or home object?)
+#   - also add messaging capability to ic thru security policy
+#      MAYBE: do all this in a terminal install script?
+
+# - i18n: +auto-translation from google
 
 # + createObject(fullURI, ownerTerminalList, methodList) 
 #   - check if exists, silently fail
@@ -96,6 +113,14 @@ MAX_READ_SIZE = 400000 # max read slice size in bytes!
 # JENERIC_TMP = "/tmp/jeneric/"
 
 METHODS_FULL_ACCESS = ["securitySet", "securityGet", "read", "write", "describe", "listChildren", "createChild", "deleteChild"] # everything
+
+MAXLIST = 100 # maximum file listing length
+
+RTIME = 1268347288 # reference time
+RBITS = 1024*1024*2*8 # reference bits amount
+
+def cur_maxbytes():
+    return (RBITS + int(time.time()-RTIME))/8
 
 # TODO: this shoyuld be moved to utility funtctions! (copy from hub.py)
 def genhash(length=8, chars=string.letters + string.digits):
@@ -355,7 +380,7 @@ def data_write(oid, c, size, arg):
     return "";
     
 def data_listChildren(oid, c, arg):
-    c.execute("SELECT child_uri from childlist where oid=%s", (oid,))
+    c.execute("SELECT child_uri from childlist where oid=%s LIMIT %s", (oid,MAXLIST))
     childlist = []
     d=c.fetchone()
     while d:
@@ -391,14 +416,27 @@ def cleanrq(rq):
 def process_rq(rq):
     
     uri = rq["uri"]
+    if uri[-1] == "/": uri = uri[:-1]
+    rq["uri"] = uri # for validate...
+    luri = uri.split("/") # TODO: PATH here!!! # XXX: TODO: safe path manipulation?
     c = pgconn.cursor()
-    c.execute("SELECT oid,size FROM files WHERE uri=%s", (uri,));
-    d = c.fetchone();
-    if d is None:
-        rq["status"] = "EEXCP"
-        rq["result"] = "object not found by URI" # TODO: normalize error messages!
-        c.close()
-        return cleanrq(rq)
+    if len(luri) == 5 and luri[1] == "home" and luri[4] == "ACL":
+        # ACL object existence depends on whether home object exist?
+        c.execute("SELECT oid,size FROM files WHERE uri=%s", ("/home/"+luri[2],));
+        d = c.fetchone();
+        if d is None:
+            rq["status"] = "EEXCP"
+            rq["result"] = "object not found by URI" # TODO: normalize error messages!
+            c.close()
+            return cleanrq(rq)
+    else:
+        c.execute("SELECT oid,size FROM files WHERE uri=%s", (uri,));
+        d = c.fetchone();
+        if d is None:
+            rq["status"] = "EEXCP"
+            rq["result"] = "object not found by URI" # TODO: normalize error messages!
+            c.close()
+            return cleanrq(rq)
     
     r = validate(rq, c)
     if r != True:
@@ -412,10 +450,10 @@ def process_rq(rq):
     
     # only two objects available: filestore-like and ACL 
     
-    # XXX: TODO: safe path manipulation?
+    
     # WARNING!!! ACL object should really exist for the security and other things to work!
     #            also, the security rules must be set for ACL to work correctly!
-    if len(uri.split("/")) == 4 and uri.split("/")[1] == "home" and uri.split("/")[3] == "ACL":
+    if len(luri) == 5 and luri[1] == "home" and luri[4] == "ACL":
         # acl way
         if rq["method"] == "addACL":
             pass # in fact, does nothing XXX investigate this!!
@@ -437,6 +475,7 @@ def process_rq(rq):
         elif rq["method"] == "ACLlist":
             c.execute("SELECT terminal_id FROM acls WHERE aclc_uri=%s AND aclname=%s", (uri,rq["args"][0]))
             l = []
+            d = c.fetchone()
             while d:
                 l.append(d[0])
                 d = c.fetchone()
@@ -463,9 +502,22 @@ def process_rq(rq):
                 return cleanrq(rq)
             rq["result"] = data_read(d[0], rq["args"]);
         elif rq["method"] == "write":
+            if len(luri) > 2 and luri[1] == "home":
+                c.execute("SELECT SUM(size) AS total FROM files WHERE uri like %s", ("/home/%s/%%" % luri[2],))
+                d = c.fetchone()
+                if d and int(d[0]) > cur_maxbytes():
+                    rq["status"] = "EEXCP"
+                    rq["result"] = "no free space available"
+                    c.close()
+                    return cleanrq(rq)
+
             rq["result"] = data_write(d[0], c, int(d[1]), rq["args"]);
         elif rq["method"] == "listChildren":
-            rq["result"] = data_listChildren(d[0], c, rq["args"]);
+            cdata = data_listChildren(d[0], c, rq["args"]);
+            if uri == "/home":
+                if not rq["terminal_id"] in cdata:
+                    cdata.append(rq["terminal_id"])
+            rq["result"] = cdata;
         elif rq["method"] == "createChild":
             # currently, it treally does not matter what object type w're trying to create, just create filestore one...
             #if rq["args"][2] != "~/sys/filestore":
@@ -482,6 +534,14 @@ def process_rq(rq):
                 rq["result"] = "duplicate child name"
                 c.close()
                 return cleanrq(rq)
+            if len(luri) > 2 and luri[1] == "home":
+                c.execute("SELECT SUM(size) AS total FROM files WHERE uri like %s", ("/home/%s/%%" % luri[2],))
+                d = c.fetchone()
+                if d and int(d[0]) > cur_maxbytes():
+                    rq["status"] = "EEXCP"
+                    rq["result"] = "no free space available"
+                    c.close()
+                    return cleanrq(rq)
             rq["result"] = data_createChild(d[0], uri, name, c);
         elif rq["method"] == "deleteChild":
             name = rq["args"][0]
@@ -536,9 +596,29 @@ def createObject(fullURI, ownerTerminalList, methodList):
     sec["ipcIn"]["listChildren"]=["*"] # allow listing for all
     sec["ipcIn"]["read"]=["*"] # allow read for all
     data_securitySet(oid, fullURI, sec, c)
+    
+    
+    if lURI[1] == "home":
+        # set ACL access too:
+        sec = {"ipcIn": {}}
+        for m in ["addACL", "deleteACL", "listACL", "ACLappend", "ACLremove", "ACLlist", "setTrustList", "getTrustList"]:
+            sec["ipcIn"][m] = []
+            for t in [child]:
+                sec["ipcIn"][m].append(t)
+        
+        data_securitySet(0, fullURI+"/security/ACL", sec, c)
     pgconn.commit()
     c.close();
 
+
+def terminal_register(name, key, info):
+    conn = psycopg2.connect("dbname=jeneric_reg user=jeneric_data")
+    c = conn.cursor()
+    c.execute("insert into reg (name, key, identity, created, accessed) values (%s,%s,%s,%s,%s)", (name,key,info, int(time.time()),int(time.time())))
+    conn.commit()
+    c.close()
+    createObject("/home/"+name, [name], METHODS_FULL_ACCESS)
+    conn.close()
 # SUBSCRIBER_IDENTITIES = { "/bin": "xFcGt^", "/home": "pltcm[jev", "/test":"'njntcn,eltn"}
 
 # DEBUG  = 0

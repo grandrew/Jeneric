@@ -507,10 +507,26 @@ ___DOMHTMLSetters = {
         //this.childNodes = dom.documentElement.childNodes; // what with ownerDocument??
         this.___link.innerHTML = "";
         // TODO: deal with memory-management mess here (ownerDocument, delete old DI, parents, etc. refs)
+        // XXX TODO HERE: BUG: NEED to set firstChild/lastChild
+        // mixed textNode/element insertion does not work either
+
+        /*
         for(var i=0; i<dom.documentElement.childNodes.getLength(); i++) {
             dom.documentElement.childNodes.item(i).ownerDocument = this.ownerDocument; // like w3c? 
             this.appendChild(dom.documentElement.childNodes.item(i));
         }
+        */
+        var el;
+        this.ownerDocument.all = this.ownerDocument.all.concat(dom.all);
+        while(dom.documentElement.childNodes.getLength()) {
+            dom.documentElement.childNodes.item(0).ownerDocument = this.ownerDocument; // like w3c? 
+            el = this.appendChild(dom.documentElement.childNodes.item(0)); // detach and reattach...
+            // now append to new document 'all' since we're now elements of a new DOMdocument!
+            //this.ownerDocument.all[this.ownerDocument.all.length] = el;
+        }
+        
+        
+        
     },
     
     textContent: function (name, value) {
@@ -523,7 +539,7 @@ ___DOMHTMLSetters = {
     id: function (name, value) {
         if(this.___link) this.setAttribute(name, value);
         else this.id = value;
-        return id;
+        return this.id;
     },
     
     scrollLeft : __htmldom_set_direct,

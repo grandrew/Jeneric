@@ -3,16 +3,6 @@
 // TODO: error checking everywhere!!
 if(!object.data.data) object.data.data = ""; // init data if not
 
-// XXX THESE ARE IGNORED BY TQLW principle XXX
-function getState() {
-    return object.data;
-}
-
-function setState(data) {
-    object.data.data = data.data;
-}
-// XXX END XXX
-
 STDNAME = "BLOB";
 
 if(object.FixedStorage) {
@@ -43,6 +33,12 @@ if(object.FixedStorage) {
         if(typeof offset != "undefined") {
             var blb = new object.BlobBuilder();
             var bc = fx.getAsBlob(STDNAME);
+            if(offset == -1) { //append
+                blb.append(bc); 
+                blb.append(data); // no matter blob or wrapped
+                fx.storeBlob(blb.getAsBlob(), STDNAME); 
+                return true;
+            } 
             blb.append(bc.slice(0, offset)); // no matter null or blb
             blb.append(data); // no matter blob or wrapped
             if(!("length" in data)) data.length = data.getLength();
@@ -78,7 +74,11 @@ if(object.FixedStorage) {
         if(typeof offset != "undefined") {
             if(data.wrappedString) {
                 data = data.wrappedString;
-                object.data.data = "".concat(object.data.data.substr(0, offset*2), data, object.data.data.substr(offset*2+data.length));
+                if(offset == -1) {
+                    object.data.data = object.data.data.concat(data.wrappedString);
+                    return true;
+                }
+                object.data.data = "".concat(object.data.data.substr(0, offset*2), data.wrappedString, object.data.data.substr(offset*2+data.wrappedString.length));
             } else {
                 var blb = new object.BlobBuilder();
                 var bc = new object.BlobBuilder().getAsBlob();
