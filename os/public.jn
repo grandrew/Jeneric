@@ -1,5 +1,5 @@
 // public.jn
-
+// LICENSE: GPL v.3 or later (C) 2010 Andrew Gryaznov realgrandrew@gmail.com, a.gryaznov@svoyaset.ru
 security._public_adminterminal = null;
 
 security.setSecurityState = function (state) {

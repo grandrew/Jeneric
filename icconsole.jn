@@ -1,5 +1,6 @@
 // ic lib jn
 // can be safely renamed to iclib.jn and stored as /lib/iclib
+// LICENSE: GPL v.3 or later (C) 2010 Andrew Gryaznov realgrandrew@gmail.com, a.gryaznov@svoyaset.ru
 
 object.ipc["__ic_main"] = function(rq, argv) {
     // execute main thread in blocking mode; destroy instance after that DOC

@@ -1,6 +1,6 @@
 // tmpstore.jn
 // stores data in memory and never serializes
-
+// LICENSE: GPL v.3 or later (C) 2010 Andrew Gryaznov realgrandrew@gmail.com, a.gryaznov@svoyaset.ru
 // TODO: error checking everywhere!!
 
 sdata = "";
@@ -17,6 +17,11 @@ function read(rq, offset, len) {
 
 function write(rq, data, offset) {
     // TODO: error checking?
+    // TODO: APPEND call!!!
+    if(offset == -1) {
+            object.data.data = object.data.data.concat(data.wrappedString);
+            return true;
+    }
     if(!offset) offset = 0;
     sdata = "".concat(sdata.substr(0, offset), data, sdata.substr(offset+data.length, sdata.length));
     return true;
@@ -27,8 +32,9 @@ function ipc_addAsChild(rq, name, uri) {
     object.linkChild(name, uri);
 }
 
-function ipc_createChild(rq, name, type, sec) {
-    object.createChild(name, type, sec); // create without any DOM binding!! (of course)
+function ipc_createChild(rq, name, type, sec, dbind) {
+    object.createChild(name, type, sec, dbind); // DOC: only tmpstore is allowed to create DOM bindings now (see TQLW)
+                                                // cross-terminal bindings still unsupported and behaviour untested
 }
 
 function ipc_deleteChild(rq, name) {

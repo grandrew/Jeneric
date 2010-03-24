@@ -3084,7 +3084,7 @@ DOMElement.prototype.bind_real_dom = function DOMElement_bind_real_dom() {
   if(!document.createElement) return; // document must be globally defined anyways but should be null :-\ XXX DOC for implementations!
   var tagName = this.tagName;
   var ttn = trim(tagName,true, true).toLowerCase();
-  if(ttn === "script") {
+  if(ttn === "script" || ttn==="object" || ttn === "embed") {
     tagName = "span";
     this.___isScript = true;
   }

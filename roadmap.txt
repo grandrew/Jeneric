@@ -151,7 +151,7 @@ ASSORTED TODO ITEMS
 
 - need a method to attach to child errors/system notifications: like if the child of ic dies before exec (also the IPC dedlocks!)
 
-
+- kernel driver: native code load/inject?
 - new kernel feature: check for getChild() ipc(?)object. method to get child ref redirect instead of kernel URI resolution procedure - alternative getChild for more object path resolution control
 - think of 'mixed namespace': merge object trees under same destination (multiple links? -> search for children, methods in descending order)
 - check if the values of function parameters not supplied are defined but set to 'undefined' so that || or && notation could be used safely
@@ -357,28 +357,61 @@ BUG: document.appendChild(document.createElement("DIV")) should result in "Node 
     + added try/catch block on validateRequest
 
 BUG: terminal_auth from unauthenticated terminal does not seem to work correct
-- need APPEND ability for write() requests: offset -1 means "append from last byte"
-    - ramstore
-    - filestore
-    - storage.py
-- read offset from LAST byte: read offset from negative values
-- DOCument write requests!
-- logout call for terminal
-- TODO: terminalbased-security aware IC# should create a subfolder for each untrusted program based on its name?
-    x or set denial/allowance path? wildcard-enabled?
-- flash setup kernel DOM method...
-    - AllowScriptAccess http://kb2.adobe.com/cps/164/tn_16494.html
-    - http://blog.monstuff.com/archives/000280.html - cross-domain flash access
-- also nota 'audio' and 'video' tags!
-    
++ need APPEND ability for write() requests: offset -1 means "append from last byte"
+    + ramstore
+    + filestore
+    + storage.py
+ - DOCument 'append to' functionality
+
++T logout call for terminal (need testing!)
+
+x flash setup kernel DOM method...
+    x AllowScriptAccess http://kb2.adobe.com/cps/164/tn_16494.html
+    x http://blog.monstuff.com/archives/000280.html - cross-domain flash access
+
++ stabilize init procedure (to look for init in ~/var or something?)
+- DOC /conf/init/* - sources to run (totinit functionality)
++ jsexec optimization: do not switch context for EACH step, rather do this for each BURST group    
++ ic: search in ~/bin then in /bin
++ simple edit app
++ BUG: server stopped fetching gears BLOB resources!!
+- test lobject at storage! - again (binary data?)
+- storage (edit??) BUG: write() does not replace file when intended to.!!!!!
+- cross-auth bug: auth on another, first gets freezed in IPC to it
+- ping: STOP button and 'quite' mode!
+- tchat app (tim?)
+- test multiple auth with same credentials
+- ic: autostart programs config
+- cr tool: create object of some type [with built-in abbrevs: r,f,d, etc..]
+- mkdir ?
+- man and /share/man! (+some documents there?)
+- logout
++T base64 blob export for images!
+- emulate 'audio' tag using flash-player http://flash-mp3-player.net/players/js/download/
+- player app
+- emulate 'video' tags!
+- object.set_scheduler_mode("SINGLE")    
+- thread_destroy call! (alongside with start_new_thread - see python!)
+- #run=/path/to/run?h=1 -> run a special program through secured interface - so you can drop links
+- #clone=/path/to/obj -> view this object via cloning it (:-\?)
+- security update: use "*" to denote 'all other methods' in ipcIn struct
+- see how CPAN and the community works!
+- hub flood protection!!
 
 - implement advanced HTML control element: highlighting code editor (as TMP workaround?, double iframes!, expose codeMirror API)
-- flash control element insertion kernel method!
+x flash control element insertion kernel method!        
 
-- jsexec optimization: do not switch context for EACH step, rather do this for each BURST group    
-- stabilize init procedure (to look for init in ~/var or something?)
+- TODO: terminalbased-security aware IC# should create a subfolder for each untrusted program based on its name?
+    - distrib installer
+    - config for ic
+    x or set denial/allowance path? wildcard-enabled?
+
+
+
+- /share (/share/doc?): software description folder
 - object description protocol (at least for storage objects + naming) type, length, content-type
-    - link should always report type 'link' (kernel feature?)    
+    - link should always report type 'link' (kernel feature?)   
+    - methodList ?
 - cute "OK" check for POSTs (to indicate the POST was OK)
     - more: output "Got file (tick) \n You may close your window now.\n writing to destination... 10%.. 20%.. ... complete!"
 - highlighting editor
@@ -391,17 +424,17 @@ BUG: terminal_auth from unauthenticated terminal does not seem to work correct
 - better console library (iclib)
 - mp3 player
 - offline service manifest file! https://developer.mozilla.org/en/Offline_resources_in_Firefox#Specifying_a_cache_manifest
-- DEAUTH ability! ??? -- should be performed by terminal object
+
     
     
 # - register /bbs or /discussion OR /talk !! (lang - RU, EN, etc...)
+# - register /types default object    
     
-    
-    
+- test
     
 - chunked localStorage blobstore driver (to have ability to store reasonable amounts of data)
 - disable init= kernel parameter at production
-- store numeric IDs to announce as, and, if free, use that. (or behave as sessions ID - random???)   
++ store numeric IDs to announce as, and, if free, use that. (or behave as sessions ID - random???)   
 - enhance/reduce logging for jsobject/eosinit: log only if KCONFIG("debug") is set; and set the level
     - or maybe introduce firebug/console-only setup??? like set DEBUG=<LEVEL> in firebug to enable logging?
     - check jsexec for (full) conformance with DEBUG variable
@@ -423,11 +456,7 @@ BUG: terminal_auth from unauthenticated terminal does not seem to work correct
     - security.typeCodeMD5
     - security.securityCodeMD5  (??)
 - the policy should be able to set restrictions on what code may be loaded
-- security model
-    - notifyList in security!
-    - remove fetchUrl & load () when bind_om init (security)
-      - this will be done by security code!!! (???)
-    - allow "kernel driver" native code injection
+
 - encrypt passwords
     - use md5 hashing for auth, register and storing passwords http://pajhome.org.uk/crypt/md5/advancedauth.html#alternative
 + security to return optional "reason" value: true or text that will be set to "deny reason" for EPERM, etc.
@@ -540,7 +569,7 @@ x totally-rename wrappedString to ___wrppedString for more security
 - test html FORM, OBJECT & applet/flash security (write flash mp3 player?)
     - test CSS writing a cute mp3 player
     - test OBJECT/IFRAME security in IE & others!
-
+- read offset from LAST byte: read offset from negative values
 kernel programming advisory: be careful with methods that stop the stack - report any possible error via try/catch and stack release w/throw
 
 From pwp2:

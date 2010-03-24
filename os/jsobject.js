@@ -1,18 +1,39 @@
 // Be completely free to do what you want, create what you want, share what you want, customize, modify, invent...
 // Whatever.
 // Unlock your mind. jeneric. together we are free.
+// LICENSE: GPL v.3 or later (C) 2010 Andrew Gryaznov realgrandrew@gmail.com, a.gryaznov@svoyaset.ru
+
+/*
+This file is part of Jeneric operating system project (jeneric.net).
+
+    Jeneric is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    Jeneric is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with Jeneric.  If not, see <http://www.gnu.org/licenses/>.
+    
+    Author(s): Andrew Gryaznov realgrandrew@gmail.com, a.gryaznov@svoyaset.ru
+    
+*/
 
 /*
 
-TODO createChild should return status codes if the direct error occured (for example, 'duplicate name')
++ createChild should return status codes if the direct error occured (for example, 'duplicate name')
 TODO WARNING cyclic forward may cause hang!
 TODO throw exceptions if not enough arguments for createChild supplied: secURI etc.
     max_depth in terminal and in a hub (LIPC parser and WIPC parser - add response flags)
     also, hint for a hub: collect some stats? ;-)
-TODO remove push TRUE everywhere!! it is useless and really BAD! (as it thrashes the stack)
-XXX __defineProperty__ is in the childList too!!! get rid of it EVERYWHERE now!!!!
++ remove push TRUE everywhere!! it is useless and really BAD! (as it thrashes the stack)
++ __defineProperty__ is in the childList too!!! get rid of it EVERYWHERE now!!!!
 TODO standardise error reporting everywhere!!!
-TODO wake up only childlist, if required!
++T wake up only childlist, if required!
 TODO response did not reach recipient(caller) in HUB and HERE! work out the issue - e.g. the caller disappeared suddenly
 
 - HOLD() to hold down all the activity until "CONTINUE" presed (will stop the scheduler)
@@ -20,213 +41,19 @@ TODO response did not reach recipient(caller) in HUB and HERE! work out the issu
   for a period of time)
   this will be accomplished by total serialization - it will be possible to just hibernate the machine
 
-+ duplicate object names issue !! in createChild and others!
-    + createChild( ... )
-        - TODO adding a non-serialized child should drop the serID or smth?? // like the CLEAN flag? or is this ever a problem?
-    + deleteChild(chldname)
-        + recursive delete!
-    + linkChild(name, URI) - only for link/forward requests 
-    + enumerateChildren -- this may use the same request as 
-    + getMyURI
-   check if anything left non-recursive and accessing internal child list defined in global
-+ serialization
-    + vm.serialize()
-        + implement vm.getChildList()
-        + rethink of how an object may be serialized without its children? just serialize how it is...
-    + vm.swapout()
-        + do not sserialize() if not all objs in childList have the serID... -> notify the caller via callback
-          LATER: cache childlist not to wake up parent upon every request
-                POSSIBLE BUG: we will need to repush __eos_serial at eos_wakeObject as in execIPC
-    + object wakeup (see vm.getChild)
-        + trg = eos_wakeObject(this, lURI[0], serID); 
-        + also swap out some (inactive?) objects with no awake children no stacks, serializable and requested serialization
-            - see the wakeObject method; modified abi
-        + if objlimit is reached
-    
-    + releaseMemory([true/false]) - inform the system that the object may (or not??) be released from memory
-        + the system, however, should check and if only no stacks are run/sleep 
-         TODO and DOM is unused
-    + destroyInstance() - recursively delete object and all children; remove from parent
-        + in fact, run eos_deleteChild from parent's instance
-         TODO: cleanout DOM
-         and TODO - cleanout DOM in other operations invoking delete
-    + execIPC: modify last access time; objects that request serialize should delete themselves and re-push __eos_serial
-    + objects serialization api for terminal object
-        + full access to serialization methods
-        - work with ref wrappers or direct refs?
-          TODO: how do we denote that the object has been or has not been serialized / swapped out??
-                this is essential since the object MAY be forcely swapped out by wakeObject -- or change this behaviour??
-    + think of how to feed some security flags to an object by default?? or init it by initSecurity IPC call? 
-            like who's init the security - he is the 'owner' or whoever is in there.
-            or make a request to a dumb method via validateRequest? that should set up the security properties
-             feed with parent-defined request...
-            + NO!! just create the security with parent set to full access (security-dependent setting); then the parent may
-            set anything, including 'owner' flags that may be trusted from within inside the terminal.
-    - some basic software!
-    LATER - requestSerialize(blocking = false), return true or false whether the serialization is possible (or was completed)
-          (optionally) wait until the serialization actually occurs and gets finished
-          ... put this object in the first place for serialization ???
-    ************** the following is library rt
     - readSerialized(startByte=0, length=-1) return the last serialized state of the object (or null if no one given) - or a part of it
     - restoreAsChild(name, StringOrFixedStorageRef) - restore a child from a given string or fixed storage file reference
     - getMyAbsoluteURI() or getTerminalURI() or getAbsoluteURI(URI)[return abs URI of a given relative URI]
     - reattach/move() calls!
 
-(test the shit to run)
-
-    
-- fixed data (aka file, SQLite blob) access methods -- if available!
-    - define in bind_om method
-    - createBlob()
-    - deleteBlob(ref)
-    - enumerateBlobs()
-    - readBlob(offset, length)
-    - wrteBlob(offset, dataStr)
-        these will likely need to fragment the data into pieces like 100kb or so
-    - serialize/deserialize attached Blob's
-
-        
-- URI HUB
-    - orbited connection
-    - minimal HUB logic required (including data read-split & upload write-split for browsers that dunot have Gears)
-        like "swapping object..." then "uploading object... %% %%"? and serialize the uploader!
-        
-- createObject security problem -- the object may alter TypeURI & SecURI that may compromise local security -- reimplement it in a system call
-     
-     
-// TODO: many times the result parser is reimplemented :-( think of some generalization??
 TODO cache object typeURIs and secURIs, aggressively, to dramatically reduce server hit!
      (fetch some version or checksum info before??)
-// - some wrappers at bind_XX are not required since 'this' is unused??
-XXX createChild/createObject is extremely expensive procedure... and insecure!
 */
 
 /*
-
-+ createChild/createObject problem
-  + bind_dom problem - when an object wants to bind to inside of itself??
-- regChild ? folder object type? like include("/jnaric/bin/foldertype"); -- will set up current object with folder type
-  ?? gears caching of include?
-  - flush cache method ( cflush(what = "all"); what = uri/include )
-+ getMethodList problem -- mean as describeObject problem (security model method!)
-- serialization problem TODO
-    - any object may request immediate serialization
-        - it is up to the kernel to decide on whether to perform that (based on access statistics, etc.)
-    - if the object is serialized, the parent link will be replaced by a string!! with a special char @[OID]  
-      OID is the id of the serialized object; the kernel should take care of dealing with that (getChild method)
-      all the refs cleaned, the object deleted
-    - each eos_wakeObject should be supplemented by a check for serialization flags list if it is time to do hibernation
-    - each createObject should also...
-    - everything to check for Gears availability. If the object is serialized but Gears not available (or the object 
-      is unavailable in any other reason) - set an explanatory exception (object temporarily unavailable)
-      this should be the case where current direct terminal link is not found at HUB: TODO new status & messages
-    - hibernate to server?
-- serialize/wakeup DOM enabled objects later todo...    
-    
-
-
-- local files shared to the internet repository (drop the files into Gears)
 - dynamic library loading ??? COOL! 8) 8)
         
-
-
-
-
-SERIALIZATION IMPL:
-  kernel system methods:
-    - vm.serialize() - saves object representation to a fixed storage
-    - vm.swapout() - replaces all memory refereces of the object by the fixed storage reference
-  kernel calls:
-    - requestSerialize(blocking = false), return true or false whether the serialization is possible (or was completed)
-      (optionally) wait until the serialization actually occurs and gets finished
-    - readSerialized(startByte=0, length=-1) return the last serialized state of the object (or null if no one given) - or a part of it
-    - restoreAsChild(name, StringOrFixedStorageRef) - restore a child from a given string or fixed storage file reference
-... and, there are very many cases when the serialization may fail
-but all that shit is nesessary!
-XXX there may be several local storage implementations: gears (preferred), silverlight/db4o, flash (ugly)
-
-
-CLONE:
-  - cloning is supported only by serialized objects; the last serialized state is fetched in this case
-
-
-
-SYSTEM WAKEUP:
-
-  E: create termnal object
-  E: load security model
-  T: run all the needed init routines
-  E: attach a saved childList, if applicable
-  T: read a fileObject and set the childlist to a serialized objlist from local machine 
-      TODO kernel call attachLocalObjects() or something for the terminal process
-      there may be serializable object branches and non-serializable
-        any object that may request serialization on a non-serialized branch will not be serialized
-        or will be terminated upon system DB garbage collection
-  E: any objects may be swapped out and appear serialized
-      XXX instruction for local URI cache: take care of serialization 8926 174 74 34 pavel
-  E: serialize objects marked for serialization in a priority order
-<< APPROVED
-
-----------
-
-  E: create or wake up the terminal object
-    - XXX each childList change should serialize at least the child list - if possible
-  T: receive the message we've been deserialized; act as needed
-  E: serialize objects regularly (when the scheduler idles for a while) XXX a new NICEness state "idle" or "full idle"
-      - like the system is idle and it predicts no actions - run the full idle task (does not guarantee to ever run)
-          - this is not NICE but a call similar to setTimeout - setDelayed or setIdle kernel call
-      - additionally, if the action hasn't been in X seconds, run it
-  ??? have the opportunity to choose where to serialize to. This means that this set of procedure is invalid :-)
-  - the object may issue "serialize me and all my children"
-  - then there is the choice either to serialize to server or locally 
-    - this choice should be made by user
-    - it should be controllable for the terminal object
-
-  ENTER NAME AND PASSWORD
-  CHOOSE WHAT PROFILE TO LOG ON TO:
-  1. HOME: profile name stored on local computer for that username XXX the user MAY alter username but security policy will not
-     allow to directly compromise that
-  2. OFFICE
-  3. ENTERTAINMENT
-  [the ability to switch profiles or to access profiles? there is]
-
-so, DB fields: username, profile, ...?
-
 */
-
-
-
-
-
-
-/*
- x=getObjectURI( URI )
- x may represent either a local object, or a local sub(s)-object, or any other remote object
-
-EXAMPLE:
-  if x is a 'library' object:
-  // first, load the library and create the code instance:
-  try {
-      //x = getObjectURI("../GUIlib");
-      x = getObjectType("svoyaset/home/grandrew/guilib");
-  } catch (e) {
-      x = createChild("GUIlib", "svoyaset/home/grandrew/guilib", "svoyaset/security/deskapp");
-  }
-  
-  // or, if we're using some proprietary object(???) -- it is impossible to use proprietary objects right now since
-  // we cannot link to cross-DOM...
-  // ... unless someone writes code to convert REPR->DOM and makes the app work with REPRs
-  //     the convertion code should be loaded into code tree like eval_obj(getObjectURI("my/software/path").readObj())
-  //     then use: r=newRepr(); etc...
-  
-  r = x.createInstance(myDomElement, myJSONspec);
-  x.bindEvent(r, getMyURI(), "myEvent"); // (object?)instance, str_URI, str_method
-
-// getChild method??
-*/
-
-
-
 
 // TODO: some max for requests?
 
@@ -355,7 +182,43 @@ BlobObject.prototype.slice = function (offset, len) {
     }
 };
 
+BlobObject.prototype.getAsBase64 = function () {
+    var p = "=";
+    var tab = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+    var ba = this.getBytes(); // woohooo! for large BLOBs!!
+    //  summary
+    //  Encode a string as a base64-encoded string
+    var s=[];
+    var l=ba.length;
+    var rm=l%3;
+    var x=l-rm;
+    for (var i=0; i<x;){
+    var t=ba[i++]<<16|ba[i++]<<8|ba[i++];
+    s.push(tab.charAt((t>>>18)&0x3f));
+    s.push(tab.charAt((t>>>12)&0x3f));
+    s.push(tab.charAt((t>>>6)&0x3f));
+    s.push(tab.charAt(t&0x3f));
+    }
+    //  deal with trailers, based on patch from Peter Wood.
+    switch(rm){
+    case 2:
+    t=ba[i++]<<16|ba[i++]<<8;
+    s.push(tab.charAt((t>>>18)&0x3f));
+    s.push(tab.charAt((t>>>12)&0x3f));
+    s.push(tab.charAt((t>>>6)&0x3f));
+    s.push(p);
+    break;
+    case 1:
+    t=ba[i++]<<16;
+    s.push(tab.charAt((t>>>18)&0x3f));
+    s.push(tab.charAt((t>>>12)&0x3f));
+    s.push(p);
+    s.push(p);
+    break;
+    }
+    return s.join("");  //    string
 
+}
 
 function eos_execURI(vm, sUri, sMethod, lArgs, timeout) {
     // this is a blocking call, so block the VM thread first
@@ -897,7 +760,7 @@ function kIPC(vm, uri, method, args, onok, onerr, timeout) {
     var rq = {
         id: __jn_stacks.newId(), 
         uri: uri,
-        terminal_id: "~", // always 'myself'
+        terminal_id: "~", // always 'myself' for local requests - remote set at hubConnection
 /*
         object_type: vm.TypeURI, // TODO DOC decide on these names! mb. caller_type, caller_uri, etc.?
         object_security: vm.SecurityURI,
@@ -1793,6 +1656,11 @@ eos_om = {
         if(name in __tihs.childList) {
             __tihs.cur_stack.EXCEPTION = THROW;
             __tihs.cur_stack.my.x2.result = "duplicate child name";
+            return;
+        }
+        if(name.toString().indexOf("/") != -1) {
+            __tihs.cur_stack.EXCEPTION = THROW;
+            __tihs.cur_stack.my.x2.result = "child name may not contain slash";
             return;
         }
         if( (typeof(typeURI) != "string") && !(typeURI instanceof String)) {

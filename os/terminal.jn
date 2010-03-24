@@ -1,3 +1,4 @@
+// LICENSE: GPL v.3 or later (C) 2010 Andrew Gryaznov realgrandrew@gmail.com, a.gryaznov@svoyaset.ru
 
 function _ipc_createObject(rq, name, typeURI, secURI, DOMElement) {
     // TODO TODO: security here - watch for rq - only sys rq is allowed!
@@ -51,6 +52,13 @@ function ipc_authterminal(rq, name, key) {
 }
 object.ipc["auth"] = ipc_authterminal;
 
+function ipc_logout_terminal(rq) {
+    execURI("/", "logout", [ ], 20000);
+    // all went ok..
+    //object.kconfig("terminal_id", );
+    object.kconfig("terminal_key", null);
+}
+object.ipc["logout"] = ipc_logout_terminal;
 
 
 initIPCLock.release();// = false;
@@ -60,9 +68,8 @@ xd = document.createElement("DIV");
 xd.style.width="100%";
 xd.style.fontSize="100%";
 document.body.appendChild(xd);
-xd.appendChild(document.createTextNode("starting..."));
+xd.appendChild(document.createTextNode("starting...  License: GPL v.3 - see details in the documentation"));
 
-ErrorConsole.log("running crech");
 
 /*
 
@@ -77,21 +84,23 @@ terminal:
 
 // XXX SECURITY MODEL!!
 ok = 0;
-try {
+/*try {
     ok = object.createChild("init", object.kconfig("init"), "~/sys/anarchic", xd);
 } catch (e) {
     try {
         ok = object.createChild("init", object.kconfig("init2"), "~/sys/anarchic", xd);
     } catch (e) {
         // TODO: error reporting here!!! in case SMTH not available, etc! //  TODO: TEST it without sleep!
+*/
         try {
             ok = object.createChild("init", "~/sys/init", "~/sys/anarchic", xd); // XXX or /var/init??
         } catch (e) {
             ok = object.createChild("init", "~/sys/ic", "~/sys/anarchic", xd); // this may not fail
         }
+/*
     }
 }
-
+*/
 if(ok) {
     // XXX maybe bind terminal to init?
     object.kbind("init", ["bind_serial"], ["autorestore", "saveinterval", "autoswapout"], ["autorestore", "autoswapout"]);

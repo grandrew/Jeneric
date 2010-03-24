@@ -126,6 +126,8 @@ c.close()
 #     rather the terminal may supply its SESSIONKEY each time it reconnects (and possibly receives a new terminalID)
 def add_session(t, s, tm=0):
     if tm ==0: tm = time.time() 
+    if t in sessions:
+        del terminals[sessions[t]["s"]]
     sessions[t] = {"s": s, "tm":tm}
     terminals[s] = t
     c = dbconn.cursor();
@@ -188,14 +190,14 @@ def newTermId():
     return termsource
 
 
-def rq_append(rq, oldid):
-    rq_pending[str(rq["id"])] = {"r": rq, "old_id":oldid}
+def rq_append(rq, oldid, sess):
+    rq_pending[str(rq["id"])] = {"r": rq, "old_id":oldid, "s":sess}
 
 
 def rq_pull(rq):
     k = str(rq["id"]);
     if not k in rq_pending: return None;
-    r = {"terminal_id": rq_pending[k]["r"]["terminal_id"], "old_id": rq_pending[k]["old_id"], "r": rq_pending[k]["r"]}
+    r = {"terminal_id": rq_pending[k]["r"]["terminal_id"], "old_id": rq_pending[k]["old_id"], "r": rq_pending[k]["r"], "s": rq_pending[k]["s"]}
     del rq_pending[k]
     return r
                 
@@ -212,7 +214,7 @@ class Hub(StompClientFactory):
     username = "hub"
     password = HUB_PRIVATE_KEY
     
-    
+    last_hc_to = ""
     rqe = {}
     acks = {}
     
@@ -363,9 +365,9 @@ class Hub(StompClientFactory):
                 if len(key) > 256: 
                   s = "EEXCP"
                   r = "key cannot be longer than 256 chars"
-                if "." in name:
+                if "." in name or "/" in name:
                   s = "EEXCP"
-                  r = "terminal name cannot contain a dot"
+                  r = "terminal name cannot contain a dot or slash"
                 if "#" in name: # and others?
                   s = "EEXCP"
                   r = "terminal name cannot contain a #"
@@ -526,6 +528,7 @@ class Hub(StompClientFactory):
         sess = genhash(20)
         add_session(terminal_id, sess, time.time()+1e6); # and to never timeout
         self.static_servers[sess] = dest_callback;
+        if DEBUG>2: print "BLOB session is", sess
     
     def self_receive(self, termname, rq):
         sessid = get_session_by_terminal(termname)
@@ -591,7 +594,10 @@ class Hub(StompClientFactory):
             };
             
             rq["hub_oid"] = rq["id"] # for compat
-            self.send(session, rq)
+            #if self.last_hc_to == session: return; # flood protection?
+            self.last_hc_to = session;
+            
+            self.send(session, rq) 
         elif "ack" in msg["headers"]:
             # provide a simple ack mechanism
             self.ack_rcv(msg["headers"]["ack"])
@@ -632,7 +638,13 @@ class Hub(StompClientFactory):
                     #self.dummy_send(msg["headers"]["session"], json.encode({"error": "NOSESSION"})) # DOC document here . & ->
                     self.dummy_send(msg["headers"]["session"], simplejson.dumps({"error": "NOSESSION"})) # DOC document here . & ->
                     return; # and DO NOT send ACK - so the client could re-establish a conection and resend the request!
-
+            if "terminal_id" in rq and rq["terminal_id"] != terminal:
+                #  the terminal thinks it is not he one it really is..
+                if DEBUG > 2: print "Issuing nosession!"
+                #self.dummy_send(msg["headers"]["session"], json.encode({"error": "NOSESSION"})) # DOC document here . & ->
+                self.dummy_send(msg["headers"]["session"], simplejson.dumps({"error": "NOSESSION"})) # DOC document here . & ->
+                # require to re-announce, but allow to continue anyways!!
+                
 
             
             
@@ -653,7 +665,8 @@ class Hub(StompClientFactory):
                 if d is None:
                     # XXX General protection fault..
                     return
-                caller = d["terminal_id"]
+                caller = d["terminal_id"] # unused ?
+                caller_session = d["s"]
                 oid = d["old_id"]
                 # the response is a definite action so just forward it to caller
                 rq["hub_oid"] = rq["id"]
@@ -662,7 +675,8 @@ class Hub(StompClientFactory):
                     if DEBUG: print "E! setting terminal_id forced"
                     rq["terminal_id"] = caller
                 # XXX: check it has a result and status right??
-                self.send(get_session_by_terminal( caller ), rq ) 
+                # #self.send(get_session_by_terminal( caller ), rq ) 
+                self.send(caller_session, rq ) 
                 # XXX: no such object here -> notify callee??
                 
             else:
@@ -709,7 +723,7 @@ class Hub(StompClientFactory):
                 oldid = rq["id"] # XXX remove redundancy
                 rq["hub_oid"] = rq["id"]
                 rq["id"] = genhash(10)+str(newId()); # spoofing-protection
-                rq_append(rq, oldid)
+                rq_append(rq, oldid, msg["headers"]["session"])
                 
                 # XXX report malformed URI!
                 try:
@@ -787,7 +801,7 @@ PIPE_TIMEOUT = 150 # seconds to transfer a READBYTES chunk
 
 READBYTES = 100000 # 20000 # bytes
 TREAT_AS_BLOB_SIZE = 1000000 # 1 mb to treat as BLOB
-GETPIPE_TERMNAME = "http_request" # name of DataPipe static terminal
+GETPIPE_TERMNAME = "00000000" # name of DataPipe static terminal
 
 # DEFS DONT TOUCH
 ENCODE = 0
@@ -957,7 +971,7 @@ class BlobPipe(Resource):
             if csession in terminals:
                 cterminal = terminals[csession]
             else:
-                cterminal = "00000000"
+                cterminal = GETPIPE_TERMNAME
             
             rarg["terminal_id"] = cterminal
             
@@ -984,7 +998,7 @@ class BlobPipe(Resource):
             self.pipes[rq["id"]] = {"rq": rq, "request": request, "pos": READBYTES, "ts": time.time(), "uri": request.path, "dir": 0, "arg": rarg, "abort": abortFlag};
             request.notifyFinish().addErrback(self._responseFailed, abortFlag)
             
-            
+            if DEBUG>1: print "render_GET: requesting first block"
 
             self.requestHub.self_receive(GETPIPE_TERMNAME, rq) # # NO!! do not send to session
             # # we need to expose a mechanism to resolver normal requests (for example, have a special session ID for external RQs)
@@ -1012,7 +1026,7 @@ class BlobPipe(Resource):
         # - handle pipe for read() and write() by different paths
         # - close incoming POST connection upon first rq receipt (with offset 0)
         
-        #print "RQ is", repr(rq)
+        if DEBUG>1: print "blob_received:", repr(rq)
 
         # rq = simplejson.loads(rq["body"]) 
         

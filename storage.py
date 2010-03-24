@@ -153,7 +153,7 @@ def init_db():
 def init_objects():
     ownerTerminalList = ["test", "grandrew", "admin"] # hard-coded admin terminals
     methodList = METHODS_FULL_ACCESS
-    objectlist = ["bin", "test", "lib", "home"]
+    objectlist = ["bin", "test", "lib", "home", "types"]
     for ob in objectlist:
         createObject("/"+ob, ownerTerminalList, methodList)
     pgconn.commit()
@@ -360,14 +360,18 @@ def data_write(oid, c, size, arg):
             bp.waitblob[blobid] = {"terminal_id": "data_write", "oid": oid, "c":c,"size":size}
             return -2 # DOC: means we are left in waiting phase
     else:
-        data = str(arg[0])
+        try:
+            data = arg[0].encode("utf-8") # str(arg[0].decode("utf-8"))
+        except:
+            data = arg[0]
     lo = pgconn.lobject(oid, "w")
     if len(arg) == 1:
         lo.write(data)
         c.execute("UPDATE files SET size=%s,mdate=%s WHERE oid=%s", (len(data), int(time.time()), oid))
     else:
         seek = int(arg[1])
-        lo.seek(seek)
+        if seek >=0 : lo.seek(seek)
+        else: lo.seek(0, 2) # to get length - is the return value of this!
         print "Seeking to", seek
         lo.write(data)
         if seek+len(data) > size:
@@ -504,8 +508,8 @@ def process_rq(rq):
         elif rq["method"] == "write":
             if len(luri) > 2 and luri[1] == "home":
                 c.execute("SELECT SUM(size) AS total FROM files WHERE uri like %s", ("/home/%s/%%" % luri[2],))
-                d = c.fetchone()
-                if d and int(d[0]) > cur_maxbytes():
+                dd = c.fetchone()
+                if dd and dd[0] and int(dd[0]) > cur_maxbytes():
                     rq["status"] = "EEXCP"
                     rq["result"] = "no free space available"
                     c.close()
@@ -528,6 +532,12 @@ def process_rq(rq):
             # first, check that object exists and child with that name does not exist
             
             name = rq["args"][0]
+            if "/" in name:
+                rq["status"] = "EEXCP"
+                rq["result"] = "child name may not contain slash"
+                c.close()
+                return cleanrq(rq)
+            
             c.execute("SELECT uri FROM childlist WHERE uri=%s AND child_uri=%s", (uri, uri+"/"+name))
             if c.fetchone():
                 rq["status"] = "EEXCP"
@@ -536,8 +546,8 @@ def process_rq(rq):
                 return cleanrq(rq)
             if len(luri) > 2 and luri[1] == "home":
                 c.execute("SELECT SUM(size) AS total FROM files WHERE uri like %s", ("/home/%s/%%" % luri[2],))
-                d = c.fetchone()
-                if d and int(d[0]) > cur_maxbytes():
+                dd = c.fetchone()
+                if dd and dd[0] and int(dd[0]) > cur_maxbytes():
                     rq["status"] = "EEXCP"
                     rq["result"] = "no free space available"
                     c.close()

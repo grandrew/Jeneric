@@ -1,4 +1,4 @@
-/*  This file is part of jnaric.
+/*  This file is part of Jeneric operating system project (jeneric.net).
     Copyright (C) 2009 Andrew Gryaznov <realgrandrew@gmail.com>
     Parts of the source (C) 2004 Brendan Eich <brendan@mozilla.org>
     See other authors in file AUTHOS
@@ -24,298 +24,24 @@
        
 *************************************************************************/
 
-/*
-
-  TODO: 
-    + Main Thread!
-    + evaluate - unshift to MT
-    + ExecutionContext.current - make right
-    + EVAL - push(!!) to MT
-      + deal with try/catch and ExecutionContext switch
-      + check that for evaluate and evaluate_thread!
-    . what is Activation? http://www.jibbering.com/faq/faq_notes/closures.html
-    + (test run available tests)
-    + internal log console/methods (
-        + log (errors) to firebug console if it exists
-            + auto-register ErrorConsole.log to console.log if firebug console detected
-            + otherwise ErrorConsole.log will point to function that logs to ErrorConsole.messages array, logrotating!!!
-            + ErrorConsole.size = 100 (lines by default)
-        
-        
-    + avoid exception t_hrowing to outer space)
-    + Stack trace seems to be incomplete!!
-        - now stack trace is gabberish with tokenizer source
-   * * *
-    + testing suite
-      + python script to create filelist (~800 files in mozilla js 1.5 test suite)
-      + (++sequential) vm.load() method (ajax-fetch & evaluate(not thread version!))          based on DataRequestor
-      + onfinish event: when main thread stack is exhausted
-    + vm.load error reporting
-    - test
-      (... 797 tests)
-      - take a closer look at Scope/181834
-      - many native calls to jn compiler objects problems
-      - Exceptions: say lineNumber and fileName at ErrorConsole
-      - Exceptions: create a better trace (see MOZ Exceptions/errstack-001.js)
-      - Exceptions: new native objects produce incorrect stack trace (see bug MOZ Exceptions/errstack-001.js)
-      - dunno what to do with MOZ Exceptions/315147
-      - array.concat
-      - // "extensions/regress-348986.js" , // parser hangs 
-      
-    - other error reporting (like parser, DataRequestor were not loaded! (?!?!?!)
-    
-    - improve speed
-    - improve parser
-    - a new testing suite (url - OK/FAIL/ERROR (percentage))
-        - NEXT: advanced testing suite with object registry? (to track progress: what tests were OK and what FAIL) ;-)
-   * * *
-    T+ onfinish is firead on finish and on error... this is WRONG! error != normal finish and canno be treated this way.
-        T+ maybe on finish & error flag? (for testsuite purposes) -- done, needs testing
-    T+ external scope bindings/unbind (  vm.bind_scope(x) // binds to (selected) namespace, otherwise - dont!  )
-        + just minimalistic solution - see protected mode for advanced        
-        T+ bind to namespace ?? (.bind_scope)
-    + sleep() global method
-    + setTimeout() global method
-    + internal load() method (should behave as external load, but should do PUSH instead of UNSHIFT in evaluate)
-    
-
-    + nice and throttle (internal values) - tweak current task properties
-      - user allowed values: -10..+19, total: -19..+19 (wtf?? noone is allowed to add nwegative increment excepto for root!)
-      + start a new thread (add task) with nice based on current thread/main thread
-        + nice: use up to 100% cpu time; fairly distribute among tasks
-          + set the st.rt * nice_lvl
-        + throttle: use up to 100% * throttle cpu time
-          + reduce real rt for that task; always add the virtual rt value to st.rt
-
-    
-    + max total threads - general event stack. if evts > MAX_THREADS - wait; if evts_buff > MAX_BUF - drop new (drop old flag?);
-        + just DROP if there are too many! (for now; also report an error to the console)
-    + setTimeout() / clearTimeout() and setInterval() / clearInterval() - full spec
-        ? internal setTimeout returns non-zero timer IDs
-        TODO: add a scope argument of timer ID for the executing method?? would be very pleasable
-
-    
-    + start_new_thread (create new stack) (internal VM method) == internal setTimeout... effectively
-        + TOTAL MAX NUMBER OF THREADS = 100!
-        + see the totmaxnumber of threads issue with setTimeout!!
-        + a faster algorithm of switching/nicing threads, a more predictable and preempting
-        + more nice control
-    + the start_new_thread pack: semaphores, etc -- just chech if there are any drawbacks of not implementing them in core.
-
-///////////////////// no real need for this >>>
-    - start_new_thread_dummy (rewrite)
-        - create a new vm
-        - bind vm to global namespace
-        - run anonymous function (do not state it into vm) like (function (params))() (why not?? it is a new VM!)
-        - can accept parameters ??? -> may define parameters at global scope vm.global
-            in this case it will be "intermediate" scope since global bind.
-///////////////////// <<< end_no real need for this 
-
-    + comment out all __unnessesary__ verbosity
-
-    ...
-    + blocking and non-blocking (web) I/O
-        - fetchUrl(url, args, callback, CALL_MODE)
-          url: a URL
-          args: arguments structure
-          callback: null/undefined - for blocking request, other - for non-blocking [default will cause blocking rq]
-          CALL_MODE: GET or POST, [default POST]
-
-    
-    
-    
-    
-    + a test suite for our new methods
-        + load
-        + setTimeout / clearTimeout
-        + setInterval / clearInterval
-        + start_new_thread
-        + ajax i/o
-        - method to return overall(cross-vm) CPU usage - internal and external (to test the below)
-        - nice (and everything that comes: inherited niceness, etc.)
-             - including scheduler rsolution test, stress-test, etc.: like a.push(1) a.push(2) and count 1 and 2...
-        - throttle
-
-    -------------------------------------------------------------------------------------
-    - The DOM security model should be developed here
-    - 1. the denied DOM model
-    -    (use only emulated access methods) - VERY slow but VERY secure and is a set-and-go solution
-          BUT, alloing only some of the methods is generally a better idea since there are is no evidence
-          if this or that method will be eventually added
-
-    -  - SWF object restriction: http://blogs.adobe.com/stateofsecurity/2007/07/how_to_restrict_swf_content_fr_1.html
-    -  - allowScriptAccess & allowNetworking
-    
-    - ability to bind onclick & other events (maybe a one-directional bind ?? 
-        like can access through global but not vice-versa!: define connectors for methods in global)
-    
-    
-    ...
-    - protected mode (examples & methods)
-        - bind events!
-            - it is okay for events, but not for things like Array.sort ( my_coded_function ) - it is like I am to reimplement sort??
-            - rebuild event object according to http://www.javascriptkit.com/jsref/event.shtml
-
-        - jh (a very stupid javascript console) console methods
-
-        - bind to DIV (.bind_dom(htmlelement))
-            - rebuild 
-                - document http://www.w3schools.com/htmldom/dom_obj_document.asp
-                - navigator http://www.w3schools.com/htmldom/dom_obj_navigator.asp
-                - window http://www.w3schools.com/htmldom/dom_obj_window.asp
-                - location                
-                - screen (return the width and height of the current)
-
-
-        - script DOM injection ???? 
-          - via innerHTML
-          - via document.write
-        - document.write (?? can rewrite itself!) (just dont support that method)
-
-        - CSS ?? (do not allow the direct CSS insertion currently -- only through STYLE tag)
-          todo for later on...
-
-        - total VM memory consumption?
-        - setInterval bomb! (setting interval of lower than X is not allowed for a non-priileged user)
-
-    ...
-    (another test suite update)
-      - bind_dom
-        - will add document,window,navigator,location,screen
-      + bind_scope - DANGEROUS!!
-
-      - (kernel access flags)
-
-
-
-    - fast and secure JSON encoding/decoding methods
-        - json test
-    
-    ...
-    FULL OBJECT/SECURITY MODEL
-    - IPC (object-bound)
-        - PUSH protocol connection establishment methods (trusted server)
-            - create request object
-            - pass the request object to security checker
-            - if the result is OKAY, pass on to VM
-                - either a threading interface [ _IPC_METHODS.setSomething = doSomething; ]
-                - or a buffer-and-block read request [ data = bindReadIPC("setSomething"); ]
-        
-        
-        'L4-like security policy'
-        - non-protected inter-child IPC
-        - 'chief' supervised cross-child IPC (via URI path concept?)
-          XXX this one can be achieved by using a minimal security policy (don't check for access if the messages 
-          are coming from the object whose parent is our parent too. (that implies that parent check is open and fast too))
-        'UNIX-like security policy'
-        - (...)
-        'STORAGE securit model' -- only objects of certain type (no code) are allowed to be created
-        'Plan9-like security' http://plan9.bell-labs.com/sys/doc/auth.html
-    - object serialization (hibernation)
-    - server micro forwarder
-
-    TODO: return [native code] for native methods toString...
-          this is the way we will distinguish whether this is a user-defined method or not
-          and decide whether to hibernate
-          XXX we could detect it any other way ;-)
-    
-    - somehow count total vm object size
-    - uptime?
-    
-    ...
-    + BURST exec
-    - other small CPU optimizations
-      - profile and speed-up (see f=getValue each iteration at CALL:, for example)
-      - narcissus parser bug (at least patch the parser for cross-browser compatibility)
-      - remove e.g. .oldx notaion for CALL
-      - stack.my...dotting is generally slow; passing "this" would be much faster
-    - """ STRING """ notation support
-    
-    TAKE CARE OF 'DEBUG' VARIALBE - IT IS UNRELIABLY RELIED ON EVERYWHERE
-    
-    - browser compatibility Chrome/Safari/IE/(Opera)
-    - browser re-emulation: version, etc.: IE must report as IE, Moz as moz, etc.
-    - external library/script test (like Ext JS)
-    
-    - vm.destroy() method
-    
-    ... alpha 0.1 !
-    
-    
-    
-    
-    - vm.abort()
-    - vm.pause()
-    - vm.interrupt(val) // to pass values to VM from outside
-    - script debugging - watch () mechanism: internal and external
-    
-    - methods to get VM current free THREADS, STACK, etc. - internal and external bindings
-    
-    - advanced (hibernating) server
-
-*/
- 
-/*
-  CURRENT PROBLEMS:
-    - function names as keywords are not allowed due to parser specs (BUG MOZ Lex/343675)
-    - native methods requiring native compiled functions as parameters (like Array.sort(fn))
-  
-  
-  - Built-in and new, modified object contents via FOR_IN
-  
-  (clean the code, alpha release)
-*/
-
-/*
-  MID-TERM DEVELOPMENT
-  - setTimeout
-  - start_new_thread, other thread control methods
-    - 'external' (for outer JS) AND 'internal' (for JS inside VM)
-  - fork()
-  - syncronous and asyncronous HTTPRequest (ajax)
-  - VM version and other properties
-  - the """ TEXT """ form
-  - all the methods and properties of in-browser JS
-  - .log2 errorconsole prototype method - make more intuitive use of log2 (check at rt if the log2 is defined)
-  - a more reliable error protocol:
-      - for AJAX events: load, fetchUrl: timeout, server_error
-  - core httpRequest emulation
-  - kernel object-compile methods
-  - kernel hibernate methods (stop all timers, save all stacks and the object)
-*/
-
 
 /*
   FUTURE DEVELOPMENT:
   - onUnload object hibernate code: http://www.livelearncode.com/archives/11
   - vm 'driver' interface: to do things like process viewing, to kill process etc.:
       - implement local secure object store; attach methods to local system objects
-  - burst exec
-  - GC
+  + burst exec
+  + GC (not needed!)
   - SUBJIT compile to native JS (GC required)
   - IE optimization: see http://code.google.com/intl/ru/apis/v8/benchmarks.html (and IE statement limit problem for long-running scripts)
-  - TraceMonkey optimization: see http://hacks.mozilla.org/2009/07/tracemonkey-overview/ (tend to create simple loops)
-  - get rid of __defineProperty__ it does not work either;
   - dynamic scope? https://issues.apache.org/jira/browse/SLING-165 https://developer.mozilla.org/En/Rhino_documentation/Scopes_and_Contexts
   - webWorkers-alike API https://developer.mozilla.org/En/Using_web_workers - and wrapper for anyBrowser
-  - HTML to JS DOM code converter? http://www.smelzo.it/html2js/
 */
 
-/*
-  SECURITY MODEL
-  - user.appname
-  - verify app code (CRC?)
-  - remote calls executed as another user?? (another.appname)
-  - central server has limited security schemes
-  - local servers have computed security models
-  
-  
-  - how can one program invoke another program??
-*/
 
 /*
     SUBJIT PROPOSAL
-    - do not do context switching at every step: integrate with bursting...
+    + do not do context switching at every step: integrate with bursting...
     - new interpreter Node.type = JIT: instructs to run natively
     - run native method: JIT compiler will compile code 
         - to functions and use __methodname_locals to store local vars and __methodname_globals
@@ -514,6 +240,17 @@ __jn_stacks = {
 //            console.log("bursting: "+st.pid + " r/s: "+this.stacks_running.length + "/" + this.stacks_sleeping.length);
 //            console.log(this.stacks_running);
 //            console.log(this.stacks_sleeping);
+                // switch context
+
+                // TODO: switch context for BURST group only
+            st.vm.ExecutionContext.current = st.stack.exc;
+            Object.prototype = st.stack.object_prototype;
+            st.vm.cur_stack = st.stack; // for eval () method and other context switching
+            if(st.stack.global_scope) {
+                // switch global scope
+                st.vm.global = st.stack.global_scope;
+            }
+            
             
             while ( (curtm - rt) <= bc ) {
                 // check for stop here and break then;
@@ -565,6 +302,13 @@ __jn_stacks = {
                 }
                 
                 curtm = (new Date()).getTime();
+            }
+            
+            // switch context back...
+            st.stack.exc = st.vm.ExecutionContext.current; 
+            st.stack.object_prototype = Object.prototype;
+            if(st.stack.global_scope) {
+                st.vm.global = st.vm.global_bak;
             }
             
             // in fact, the 'time diff' would have been not required since we're using BURST_CURRENT burst chunks
@@ -2164,6 +1908,7 @@ Jnaric.prototype.step_next = function (g_stack) {
         this.ErrorConsole.log(tabl+" Diving in: "+say_type(ex.n.type) + " Executor:"+(ex.Nodes ? say_type(ex.Nodes.type) : "--") + (g_stack.EXCEPTION ? " Exception: " + g_stack.EXCEPTION : "") + ((g_stack.EXCEPTION_OBJ && g_stack.EXCEPTION) ? " obj: " + g_stack.EXCEPTION_OBJ : ""));
     }
     
+    /*
     // switch context
     // TODO: switch context for BURST group only
     this.ExecutionContext.current = g_stack.exc;
@@ -2174,6 +1919,7 @@ Jnaric.prototype.step_next = function (g_stack) {
         // switch global scope
         this.global = g_stack.global_scope;
     }
+    */
     
     // !! log to the console if 'JNARIC' is in the exception object's description/message
     // otherwise - throw
@@ -2237,13 +1983,14 @@ Jnaric.prototype.step_next = function (g_stack) {
         }
     }
     
+    /*
     // switch context back...
     g_stack.exc = this.ExecutionContext.current; 
     g_stack.object_prototype = Object.prototype;
     if(g_stack.global_scope) {
         this.global = this.global_bak;
     }
-
+    */
     
     if(g_stack.stack.length > this.STACKSIZE) {
         // IE does not have InternalError
@@ -2423,7 +2170,7 @@ Jnaric.prototype.step_next = function (g_stack) {
                 try {
                     g_stack.onfinish(ex.x.result); // main thread stack exhausted, run 'onfinish'
                 } catch (e) {
-                    this.ErrorConsole.log("stack .onfinish event failed to execute with exception: "+e+" Message: "+e.message+" file: "+e.fileName);
+                    this.ErrorConsole.log("stack .onfinish event failed to execute with exception: "+e+" Message: "+e.message+" file: "+e.fileName+" line: "+e.lineNumber);
                     // opera debug
                     
                     //for(var oo in e) console.log(oo + " : " + e[oo]);

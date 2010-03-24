@@ -1,5 +1,6 @@
 // Terminal-Based security module
-if(!security.state) security.state = {  ipcIn: "inherit" };
+// LICENSE: GPL v.3 or later (C) 2010 Andrew Gryaznov realgrandrew@gmail.com, a.gryaznov@svoyaset.ru
+if(!security.state || !security.state.ipcIn) security.state = {  ipcIn: "inherit" };
 
 // first, reattach fetchUrl & load to security
 security.fetchUrl = fetchUrl;
@@ -72,7 +73,7 @@ security.validateRequest = function (rq) {
 security.ipc.validateRequest = function(obj, rq) {
     if(this.state.ipcIn === "inherit") return {result: this.checkInherit.call(this, rq), inheritParent: this.state.inheritParent};
     // if(this.state.ipcIn.charAt && (this.state.ipcIn.charAt(0) == "/" || this.state.ipcIn.charAt(0) == "~"))
-    if(this.state.ipcIn === "*") return {result: true, inheritParent: this.object.getMyURI()};
+    if(this.state.ipcIn == "*") return {result: true, inheritParent: this.object.getMyURI()};
     if(this.state.ipcIn.hasOwnProperty(rq.method)) {
         if(this.state.ipcIn[rq.method] === "inherit") return {result: this.checkInherit.call(this, rq), inheritParent: this.state.inheritParent};
         // now check if terminal_id given is in either our list or ACL

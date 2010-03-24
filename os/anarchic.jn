@@ -1,5 +1,5 @@
 // anarchic.jn
-
+// LICENSE: GPL v.3 or later (C) 2010 Andrew Gryaznov realgrandrew@gmail.com, a.gryaznov@svoyaset.ru
 security.setSecurityState = function (state) {
     wakeupIPCLock.release(); // this should be the only place to release wakeupIPCLock!! TQLW here too (the code is first loaded then security)
 };

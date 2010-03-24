@@ -151,17 +151,7 @@ Tokenizer.prototype = {
     },
 
     mustMatch: function (tt) {
-        // now, dump the values for the sneaky place:
-        /*
-        if(this.lineno == 264 && this.filename == "~/sys/ic") {
-            console.log("TOKEN LENGTH:"+this.tokens.length);
-            var rrrrr = "";
-            for(var it=0; it< this.tokens.length;it++) {
-                rrrrr += "type: "+this.tokens[it].type+"; value"+this.tokens[it].value+"\n";
-            }
-            console.log(rrrrr);
-        }
-        */
+
         
         if (!this.match(tt)) {
             var _err = this.newSyntaxError("Missing " + tokens[tt].toLowerCase() + " at line "+this.lineno, this.filename, this.lineno);

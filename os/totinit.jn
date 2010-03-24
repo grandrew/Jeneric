@@ -1,3 +1,4 @@
+// LICENSE: GPL v.3 or later (C) 2010 Andrew Gryaznov realgrandrew@gmail.com, a.gryaznov@svoyaset.ru
 // total init for jeneric project
 // initIPCLock = true; // XXX not needed since security DOES NOT set initIPCLock to false by itself!
 
@@ -18,12 +19,12 @@ function do_serialize_all() {
                         ErrorConsole.log("s_agent: saving "+suri);
                         object.serializeURI(suri, true);
                         // if success
-                        ErrorConsole.log("s_agent: success, deleting "+suri);
+                        //ErrorConsole.log("s_agent: success, deleting "+suri);
                         object.delSerializeObj(suri);
                     } catch (e) {
                         ErrorConsole.log("requested serialization of '"+suri+"' failed with exception: "+e);
                     }
-                    ErrorConsole.log("s_agent: now doing for "+i);
+                    //ErrorConsole.log("s_agent: now doing for "+i);
                     suri = object.getSerializeObj(++i);
             }
         }
@@ -45,31 +46,25 @@ function s_agent() {
 }
 
 // now run init tasks from /sys/init ramdir
-objs = execURI(object.getMyTypeURI(), "listChildren", []);
-ErrorConsole.log("Running totinit");
+// DOC this
+objs = [];
+try {
+    objs = execURI("/conf/init", "listChildren", []);
+} catch (e) {
+    ErrorConsole.log("totinit: running /conf/init/* "+e);
+}
+
 var i=0;
 for(i=0; i<objs.length; i++) {
-    // give DOM or not to give DOM??
-    /*
-    xd = document.createElement("DIV");
-    xd.style.width="100%";
-    xd.style.fontSize="100%";
-    document.body.appendChild(xd);
-    */
-    object.createChild(objs[i], object.getMyTypeURI()+"/"+objs[i], "~/sys/anarchic", document.body);
+    object.createChild(objs[i], "/conf/init/"+objs[i], "~/sys/anarchic", document.body); // TODO: localSecurity instead of anarchic
 }
 
 // the workaround for working init + ic as default init
 if(i == 0) {
-    // TODO: IC# should not come in standard distribution; load it dynamically!
+    // TODO: IC# should not come in kernel distribution; load it dynamically!
     //        either from server or from locally stored object in /var...
-    ErrorConsole.log("Running reserved IC#");
-    /*
-    xd = document.createElement("DIV");
-    xd.style.width="100%";
-    xd.style.fontSize="100%";
-    document.body.appendChild(xd);    
-    */
+    ErrorConsole.log("totinit: nothing to run! launching reserved IC#");
+
     object.createChild("console", "~/sys/ic", "~/sys/anarchic", document.body); 
 }
 // and finally create init folder and this init at /sys/init location (folder-store!!)

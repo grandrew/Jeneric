@@ -1,3 +1,4 @@
+// LICENSE: GPL v.3 or later (C) 2010 Andrew Gryaznov realgrandrew@gmail.com, a.gryaznov@svoyaset.ru
 // ACL control object for terminal-based security
 
 if(!object.data.acls) {

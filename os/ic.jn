@@ -1,3 +1,4 @@
+// LICENSE: GPL v.3 or later (C) 2010 Andrew Gryaznov realgrandrew@gmail.com, a.gryaznov@svoyaset.ru
 // ic.jn
 WRITE_ON = true;
 OutTo = document.body;
@@ -185,7 +186,7 @@ function execChild(childPath, progPath, argv) {
     try {
         object.execURI(childPath, "__ic_main", [argv]); // start in a thread??
     } catch (e) {
-        printDOM("ic#: exception at main() in "+progPath+" (progId: "+childPath + ")"); brDOM(); // TODO HERE
+        printDOM("ic#: exception at main() in "+progPath+" (progId: "+childPath + ") - delete stale object manually!"); brDOM(); // TODO HERE
         printDOM(":: "+e); brDOM();
     }
     
@@ -220,7 +221,8 @@ function set_param_box (el) {
 function close_click(e) {
     if(this.parentNode.prog) {
         try {
-            object.deleteChild(this.parentNode.prog);
+            if(conform_st) execURI("~/run", "deleteChild", [this.parentNode.prog]);
+            else object.deleteChild(this.parentNode.prog);
         } catch (e) {
             ErrorConsole.log("IC: failed to remove child: "+e);
         }
@@ -258,7 +260,25 @@ if(!object.FixedStorage)
     printDOM("Google Gears not installed. Reduced functionality mode. Please check http://gears.google.com/");
     brDOM();
 }
-
+// IC# will try to act like an installer when finds there is no '~/run' object
+conform_st = false; // conform to ST (security terminal)
+if(object.getMySecurityURI() == "~/security/terminal") {
+    try {
+        l = execURI("~/run", "listChildren", [], 5000);
+        conform_st = true;
+    } catch(e){
+        if(e.toString().indexOf("found") != -1) {
+            // try to install
+            try {
+                execURI("~", "createChild", ["run", "~/sys/tmpstore", "~/sys/anarchic"], 20000);
+                execURI("~", "createChild", ["insecure", "~/sys/tmpstore", "~/sys/anarchic"], 20000);
+                conform_st = true;
+            } catch (e) {
+                printDOM("Could not initialize default security-terminal launch environment, falling back to old-fashioned way");
+            }
+        }
+    }
+}
 
 pc = 0;
 initIPCLock.release(); // = false; // ready for IPC...
@@ -283,7 +303,7 @@ while(true) {
         brDOM();
         printDOM("  ~ current terminal; . current object; / hub root; .. parent of current object; default /");
         brDOM();      
-        printDOM("commands:");
+        printDOM("built-in commands: for others see /bin");
         brDOM();
         printDOM("  ls <URI> - try to list children of the object at <URI>. Example: ls ~/sys");
         brDOM();
@@ -300,6 +320,8 @@ while(true) {
         printDOM("  terminal_register <name> <key> <identity info> - register a terminal at HUB");
         brDOM();
         printDOM("  terminal_auth <name> <key>  - authenticate a terminal at HUB");
+        brDOM();
+        printDOM("  terminal_logout <name> <key>  - authenticate a terminal at HUB");
         brDOM();
         printDOM("  version - print detailed system version information");
         brDOM();
@@ -341,7 +363,7 @@ while(true) {
             printDOM("cat: fetch failed with: "+e); brDOM();
         }     
         break;   
-
+      case "rm":
       case "delete":
         p1 = s.split(" ")[1];
         if(!p1) {
@@ -355,7 +377,7 @@ while(true) {
                 oparent = lURI.join("/");
                 //printDOM("Creating "+oname+" at "+oparent); brDOM();
                 execURI(oparent, "deleteChild", [oname], 10000);
-                printDOM("object deleted"); brDOM();
+                //printDOM("object deleted"); brDOM();
         } catch (e) {
             printDOM("delete: failed with: "+e); brDOM();
         }     
@@ -395,7 +417,7 @@ while(true) {
 
         
         break;
-      
+      case "cp":
       case "copy":
         p1 = s.split(" ")[1];
         p2 = s.split(" ")[2];
@@ -429,7 +451,7 @@ while(true) {
 
         
         break;
-
+      case "ln":
       case "link":
         p1 = s.split(" ")[1];
         p2 = s.split(" ")[2];
@@ -490,6 +512,15 @@ while(true) {
         }
         printDOM("auth OK"); brDOM();
         break;
+
+      case "terminal_logout":
+        try {
+            execURI("~", "logout", [ ], 20000);
+        } catch (e) {
+            printDOM("logout: failed with: "+e); brDOM();
+            break; // does not break out...
+        }
+        printDOM("logout OK"); brDOM();
       
       
       case "":
@@ -501,26 +532,67 @@ while(true) {
         //p1.shift(); // pass a full array to main
 
         try {
-            pc++;
             
+            if(conform_st) {
+                pname_orig = c.split("/")[c.split("/").length-1];
+                pname = pname_orig;
+                pfx = "~/run/";
+                var padd = 1;
+                var allprogs = execURI("~/run", "listChildren", []);
+                for(var j=0;j<allprogs.length;j++) {
+                    if(allprogs[j] == pname) {
+                        pname = pname_orig+padd;
+                        padd++;
+                        j=0;
+                    }
+                }
+            } else {
+                pc++;
+                pname = p+pc;
+                pfx = "./";
+            }
             var xd = document.createElement("DIV");
             xd.style.width="100%";
             xd.style.fontSize="100%";
             OutTo.appendChild(xd);    
-            OutTo.prog = "p"+pc;
-            object.createChild("p"+pc, c, "~/sys/anarchic", xd); // TODO: use real default security!!
+            OutTo.prog = pname;
             
-            var pid = start_new_thread(execChild, ["./p"+pc, c, argv]); // use pid??
+            if(c.charAt(0) == "/" || c.charAt(0) == "~") {
+                if(conform_st) execURI("~/run", "createChild", [pname, c, "~/sys/anarchic", xd]);
+                else object.createChild(pname, c, "~/sys/anarchic", xd); 
+            }
+            else {
+                lc = "~/bin/"+c;
+                try {
+                    if(conform_st) execURI("~/run", "createChild", [pname, lc, "~/sys/anarchic", xd]);
+                    else object.createChild(pname, lc, "~/sys/anarchic", xd); 
+                    c = lc;
+                } catch(e) {
+                    lc = "/bin/"+c;
+                    try {
+                        if(conform_st) execURI("~/run", "createChild", [pname, lc, "~/sys/anarchic", xd]);
+                        else object.createChild(pname, lc, "~/sys/anarchic", xd); 
+                        c = lc;
+                    } catch (e) {
+                        throw "not found by URI";
+                    }
+                }
+            }
+            
+            // now set security to allow-everything-in
+            if(conform_st) {
+                execURI(pfx+pname, "securitySet", [{"ipcIn": "*"}], 2000); // never allow to fail...
+            }
+            
+            var pid = start_new_thread(execChild, [pfx+pname, c, argv]); // use pid??
 
         } catch (e) {
-            // BUG prevents us to use break; here
-            
             if(e && e.toString().indexOf("URI") > -1) { // + defeat undefiend exception bug
                 printDOM("ic#: command not found by path: "+c); brDOM();
-                break; // does not break out...                
+                break;               
             } else {
                 printDOM("ic#: another error: "+e); brDOM();
-                break; // does not break out...                
+                break; 
             }
             
         }

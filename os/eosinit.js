@@ -1,3 +1,24 @@
+// LICENSE: GPL v.3 or later (C) 2010 Andrew Gryaznov realgrandrew@gmail.com, a.gryaznov@svoyaset.ru
+
+/*
+This file is part of Jeneric operating system project (jeneric.net).
+
+    Jeneric is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    Jeneric is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with Jeneric.  If not, see <http://www.gnu.org/licenses/>.
+    
+    Author(s): Andrew Gryaznov realgrandrew@gmail.com, a.gryaznov@svoyaset.ru
+*/
+
 /*
 
 TODO: cache .jn files, do not load them every time! (MANIFEST?)
@@ -107,6 +128,7 @@ function jeneric_init(elemt) {
         {name: "acltype", parentURI: "~/security", contenturl: "os/st_acl.jn", security: "os/readonly.jn" },
         
         {name: "ramstore", parentURI: "~/sys", contenturl: "os/ramstore.jn", security: "os/readonly.jn" },
+        {name: "tmpstore", parentURI: "~/sys", contenturl: "os/tmpstore.jn", security: "os/readonly.jn" },
         //{name: "public", parentURI: "~/sys", url: "os/public.jn" },
         
         {name: "ic", parentURI: "~/sys", contenturl: "os/ic.jn", security: "os/readonly.jn" },
@@ -216,7 +238,7 @@ function jeneric_init(elemt) {
     setInterval((function() {
         if((new Date()).getTime() - hubConnection.last_sent_time > PING_INTERVAL ) {
             try {
-                hubConnection.send({id: __jn_stacks.newId(), uri: "/", method: "ping", args: []});
+                hubConnection.send({id: __jn_stacks.newId(), terminal_id:KCONFIG["terminal_id"], uri: "/", method: "ping", args: []});
             } catch (e) {
                 // never stop... HTID!
             }
@@ -446,6 +468,7 @@ hubConnection = {
     },
     
     send: function (rq) {
+        rq.terminal_id = KCONFIG.terminal_id; // set before send...
         this.rqe[rq.id] = {r: rq, t: (new Date()).getTime()};
         this.send_real();
     },
@@ -521,7 +544,7 @@ hubConnection = {
     },
     
     ack_rcv: function (rqid) {
-        if(window.console) console.log("ack!");
+        if(DEBUG && window.console) console.log("ack!");
         delete this.rqe[rqid];
     },
     
@@ -529,7 +552,7 @@ hubConnection = {
         var t = true;
         if(rqid in this.acks) t = false;
         this.acks[rqid] = (new Date()).getTime(); // XXX make sure the local rqID and response (HUB ones) namespaces never get intersected
-        if(window.console) console.log("sending ack");
+        if(DEBUG && window.console) console.log("sending ack");
         this.stomp.send(JSON.stringify({ack: rqid}), HUB_PATH, {ack: rqid});
         return t;
     },

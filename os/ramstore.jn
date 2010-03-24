@@ -1,5 +1,5 @@
 // ramstore.jn
-
+// LICENSE: GPL v.3 or later (C) 2010 Andrew Gryaznov realgrandrew@gmail.com, a.gryaznov@svoyaset.ru
 // TODO: error checking everywhere!!
 // no! dont init it here!
 // object.data.data = "";
