@@ -539,13 +539,20 @@ ___DOMHTMLSetters = {
         }
         */
         var el;
+        for(var ii = 0; ii<dom.all.length;ii++) {
+            dom.all[ii].ownerDocument = this.ownerDocument;
+        }
+        //dom.documentElement.childNodes.item(0).ownerDocument = this.ownerDocument; // like w3c? 
         this.ownerDocument.all = this.ownerDocument.all.concat(dom.all);
+        
         while(dom.documentElement.childNodes.getLength()) {
             dom.documentElement.childNodes.item(0).ownerDocument = this.ownerDocument; // like w3c? 
             el = this.appendChild(dom.documentElement.childNodes.item(0)); // detach and reattach...
             // now append to new document 'all' since we're now elements of a new DOMdocument!
             //this.ownerDocument.all[this.ownerDocument.all.length] = el;
         }
+        
+        
         
         
         

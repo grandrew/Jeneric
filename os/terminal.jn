@@ -68,7 +68,7 @@ xd = document.createElement("DIV");
 xd.style.width="100%";
 xd.style.fontSize="100%";
 document.body.appendChild(xd);
-xd.appendChild(document.createTextNode("starting...  License: GPL v.3 - see details in the documentation"));
+xd.appendChild(document.createTextNode("starting..."));
 
 
 /*

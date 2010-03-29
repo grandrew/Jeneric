@@ -1996,7 +1996,6 @@ DOMNode.prototype.replaceChild = function DOMNode_replaceChild(newChild, oldChil
   if (this.ownerDocument.implementation.errorChecking && (index < 0)) {
     throw(new DOMException(DOMException.NOT_FOUND_ERR));
   }
-
   // if the newChild is already in the tree,
   var newChildParent = newChild.parentNode;
   if (newChildParent) {
@@ -2040,6 +2039,7 @@ DOMNode.prototype.replaceChild = function DOMNode_replaceChild(newChild, oldChil
   else {
     // do node pointer surgery for newChild
     newChild.parentNode = this;
+    oldChild.parentNode = null;
 
     if (oldChild.previousSibling) {
       oldChild.previousSibling.nextSibling = newChild;
@@ -2076,7 +2076,6 @@ DOMNode.prototype.removeChild = function DOMNode_removeChild(oldChild) {
   if (this.ownerDocument.implementation.errorChecking && (this._readonly || oldChild._readonly)) {
     throw(new DOMException(DOMException.NO_MODIFICATION_ALLOWED_ERR));
   }
-
   // get index of oldChild
   var itemIndex = this.childNodes._findItemIndex(oldChild._id);
 
@@ -2084,10 +2083,8 @@ DOMNode.prototype.removeChild = function DOMNode_removeChild(oldChild) {
   if (this.ownerDocument.implementation.errorChecking && (itemIndex < 0)) {
     throw(new DOMException(DOMException.NOT_FOUND_ERR));
   }
-
   // remove oldChild from childNodes
   this.childNodes._removeChild(itemIndex);
-
     // GDW
     if(oldChild.___link && this.___link ) this.___link.removeChild(oldChild.___link);
     this.ownerDocument.___DOMcache_outdated = true;
@@ -2953,6 +2950,12 @@ DOMDocument.prototype.getElementById = function DOMDocument_getElementById(eleme
     var node = this.all[i];
 
     // if id matches & node is alive (ie, connected (in)directly to the documentElement)
+    /*
+    if((node.id == elementId)) {
+        console.log("AAAA!!! doc found!!");
+        if(!(node._isAncestor(node.ownerDocument.documentElement))) console.log("BBBBBBBBBBBBB");
+    }
+    */
     if ((node.id == elementId) && (node._isAncestor(node.ownerDocument.documentElement))) {
       retNode = node;
       break;

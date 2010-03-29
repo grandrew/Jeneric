@@ -40,6 +40,7 @@ PING_INTERVAL = 90000;
 
 // GENERAL INIT part
 KCONFIG = {
+  host: "http://"+location.host,
   terminal_id: "~", // init as unknown, will be set later at terminal object instance
   autorestore: false,
   autoswapout: false,
@@ -228,7 +229,7 @@ function jeneric_init(elemt) {
         for(var i=0; i<lp.length; i++) {
             if(lp[i].search("=") > -1) {
                 nv = lp[i].split("=");
-                KCONFIG[nv[0]] = nv[1];
+                if(!KCONFIG[nv[0]])KCONFIG[nv[0]] = nv[1];
             }
         }
     }
@@ -513,6 +514,10 @@ hubConnection = {
                 
                 try {
                     //this.stomp.send(JSON.stringify(this.rqe[i]["r"], replacer), HUB_PATH);
+                    if(DEBUG && window.console) {
+                        console.log("Sending "+this.rqe[i]["r"]);
+                        //AAA_json = this.rqe[i]["r"];
+                    }
                     var jsn = JSON.stringify(this.rqe[i]["r"], replacer);
                     //if(window.console) console.log("Sending "+jsn);
                     this.stomp.send(jsn, HUB_PATH);
@@ -528,6 +533,7 @@ hubConnection = {
                     this.rqe[i]["r"]["result"] = "Could not parse JSON to send: "+e; // DOC document this too
                     this.receive(this.rqe[i]["r"]);
                     delete this.rqe[i]; // XXX TODO how will it interact with property-iteration?
+                    if(window.console) console.log("Error! Could not parse JSON to send: "+e);
                     
                     
                 }
@@ -648,7 +654,7 @@ function sendWrappedBlob(bid, blob, req) {
     
         if(window.console) console.log("wrappedBlob send failure for request "+req.id+" with status "+status);
     };
-    console.log("wrappedBlob sending string: '"+blob.wrappedString+"'");
+    // console.log("wrappedBlob sending string: '"+blob.wrappedString+"'");
     dr.addArg(_POST, "data", blob.wrappedString);
     dr.addArg(_POST, "blob_session", hubConnection.___SESSIONKEY);
     dr.addArg(_POST, "blobid", bid);

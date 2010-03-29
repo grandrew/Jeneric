@@ -22,8 +22,8 @@ function write(rq, data, offset) {
             object.data.data = object.data.data.concat(data.wrappedString);
             return true;
     }
-    if(!offset) offset = 0;
-    sdata = "".concat(sdata.substr(0, offset), data, sdata.substr(offset+data.length, sdata.length));
+    if(!offset) sdata = data;
+    else sdata = "".concat(sdata.substr(0, offset), data, sdata.substr(offset+data.length, sdata.length));
     return true;
 }
 

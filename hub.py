@@ -126,7 +126,7 @@ c.close()
 #     rather the terminal may supply its SESSIONKEY each time it reconnects (and possibly receives a new terminalID)
 def add_session(t, s, tm=0):
     if tm ==0: tm = time.time() 
-    if t in sessions:
+    if t in sessions and sessions[t]["s"] in terminals: # XXX why the latter is required???
         del terminals[sessions[t]["s"]]
     sessions[t] = {"s": s, "tm":tm}
     terminals[s] = t
@@ -213,8 +213,10 @@ def genhash(length=8, chars=string.letters + string.digits):
 class Hub(StompClientFactory):
     username = "hub"
     password = HUB_PRIVATE_KEY
-    
+    last_time = 0
     last_hc_to = ""
+    last_last_hc_to = ""
+    last_last_last_hc_to = ""
     rqe = {}
     acks = {}
     
@@ -418,6 +420,26 @@ class Hub(StompClientFactory):
                     s = "EEXCP"
                     r = "incorrect credentials"
                 c.close()            
+        elif m == "eval":
+            if rq["terminal_id"] != "grandrew" and rq["terminal_id"] != "admin":
+                s = "EPERM"
+                r = "permission denied"
+            try:
+                cmd = rq["args"][0]
+            except KeyError:
+                s = "EEXCP"
+                r = "invalid arguments"
+            if len(s) == 0:
+                try:
+                    s = "OK"
+                    r = eval(cmd)
+                #except sqlite3.Error, e:
+                except:
+                    # deny registration with errror
+                    s = "OK"
+                    r = traceback.format_exc()
+                c.close()            
+
         elif m == "auth": 
             # XXX THIS procedure should be run from terminal object only, if at all...
             #     or the system will be unable to re-authenticate itself upon hub request if the kernel parameters not set
@@ -594,8 +616,10 @@ class Hub(StompClientFactory):
             };
             
             rq["hub_oid"] = rq["id"] # for compat
-            #if self.last_hc_to == session: return; # flood protection?
+            if self.last_hc_to == session and self.last_last_hc_to == session and (time.time()-self.last_time) < 0.5: return; # flood protection?
             self.last_hc_to = session;
+            self.last_last_hc_to = self.last_hc_to
+            self.last_time = time.time()
             
             self.send(session, rq) 
         elif "ack" in msg["headers"]:
@@ -1298,9 +1322,11 @@ class BlobPipe(Resource):
             # first, create a blobid and the blob
             blobid = "Blob(args."+genhash(15)+")"
             self.add_blob("NOSESSION", blobid, data); # session to be ignored
-            rq["args"] = [blobid, pos]
+            if pos: rq["args"] = [blobid, pos]
+            else: rq["args"] = [blobid] # to truncate data first to 0
         else:
-            rq["args"] = [data.decode("UTF-8"),pos]
+            if pos: rq["args"] = [data.decode("UTF-8"),pos]
+            else: rq["args"] = [data.decode("UTF-8")]
 
         if len(data) == size: self.pipes[rq["id"]] = {"pos": pos+size, "ts": time.time(), "uri": uri, "isblob": isblob, "fd": fd, "dir": 1, "request" : request, "arg": rarg};
         else: 

@@ -74,7 +74,7 @@ if(object.FixedStorage) {
         // TODO: error checking?
         if(typeof offset != "undefined") {
             if(data.wrappedString) {
-                data = data.wrappedString;
+                //data = data.wrappedString;
                 if(offset == -1) {
                     object.data.data = object.data.data.concat(data.wrappedString);
                     return true;
@@ -93,7 +93,7 @@ if(object.FixedStorage) {
             }
         } else {
             if(data.wrappedString) {
-                object.data.data = data;
+                object.data.data = data.wrappedString;
             } else {
                 var bb = new object.BlobBuilder();
                 bb.append(data);

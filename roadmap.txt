@@ -361,6 +361,7 @@ BUG: terminal_auth from unauthenticated terminal does not seem to work correct
     + ramstore
     + filestore
     + storage.py
+    - tmpstore
  - DOCument 'append to' functionality
 
 +T logout call for terminal (need testing!)
@@ -375,8 +376,17 @@ x flash setup kernel DOM method...
 + ic: search in ~/bin then in /bin
 + simple edit app
 + BUG: server stopped fetching gears BLOB resources!!
-- test lobject at storage! - again (binary data?)
-- storage (edit??) BUG: write() does not replace file when intended to.!!!!!
++ test lobject at storage! - again (binary data?)
+- BUG: returning nothing does not work in chrome in WIPC (results in stack size exceeded)
++ storage (edit??) BUG: write() does not replace file when intended to.!!!!! - impl truncate
+    + filestore // was, bugfix applied
+    + ramstore // was
+    + tmpstore
+    - storage
+        - install postgres >8.3
+        - uncomment string
+    + file http_ upload: do a first write without seek!!
+- !!! session bypass -> currently does not work!!! ??? try http://jeneric.dyndns.org/grandrew/wz_jsgraphics2.js
 - cross-auth bug: auth on another, first gets freezed in IPC to it
 - ping: STOP button and 'quite' mode!
 - tchat app (tim?)

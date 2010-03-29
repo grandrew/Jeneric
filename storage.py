@@ -369,7 +369,8 @@ def data_write(oid, c, size, arg):
         lo.write(data)
         c.execute("UPDATE files SET size=%s,mdate=%s WHERE oid=%s", (len(data), int(time.time()), oid))
     else:
-        seek = int(arg[1])
+        if len(arg) > 1: seek = int(arg[1])
+        else: seek = 0
         if seek >=0 : lo.seek(seek)
         else: lo.seek(0, 2) # to get length - is the return value of this!
         print "Seeking to", seek
@@ -380,7 +381,9 @@ def data_write(oid, c, size, arg):
         else:
             size = size # ...
     print "File size is:", size
+    # now, if the 'seek' is ommitted, truncate the size!! DOC this
     lo.close()
+    #if len(arg) == 1: c.execute("select lo_truncate(lo_open(%s,131072),%s)", (oid, len(data))); # no seek?
     return "";
     
 def data_listChildren(oid, c, arg):

@@ -494,7 +494,7 @@ function eos_rcvEvent(rq) {
         } else {
             var cbo = function (rs) {
                 // rs is already a good object..
-                
+//console.log("Sending back...");
                 hubConnection.send(rs);                
             };
 
@@ -509,18 +509,6 @@ function eos_rcvEvent(rq) {
     
     
 }
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 // ------------------------------------------------------------------
@@ -545,7 +533,7 @@ Jnaric.prototype.execIPC = function (rq, cbOK, cbERR) {
                 // if(typeof(result) == "undefined") result = -999999999;
                 // TODO: introduce UNDEFINED transfer?
                 // DOC: no result -> undefined (this is how json seialization does it)
-                
+
                 
                 if(self.security.signResponse) {
 
@@ -559,6 +547,7 @@ Jnaric.prototype.execIPC = function (rq, cbOK, cbERR) {
 
                     self.execf_thread(self.security.signResponse, [rq], cbo, cbe, undefined, self.security); 
                 } else {
+//console.log("!!!!!!!!!!!!!!!!...cbOK");
                     cbOK({id: rq.id, status: "OK", result: result});
                 }
 
@@ -570,7 +559,7 @@ Jnaric.prototype.execIPC = function (rq, cbOK, cbERR) {
                 cbERR({id: rq.id, status: "EEXCP", result: "method failed with exception: "+ex});
             };
 
-
+//console.log("!!!!!!!!!!!!!!!!!11executing...");
             if(!ipcm) self.execf_thread(self.security.ipc[rq.method], [rq].concat(rq.args), cbo2, cbe2, undefined, self.security); 
             else self.execf_thread(self.global.object.ipc[rq.method], [rq].concat(rq.args), cbo2, cbe2); 
         
@@ -2116,7 +2105,7 @@ Jnaric.prototype.bind_om = function () {
     //delete this.global.load;
  
  
-    this.kconfig_r = ['init', 'terminal_id']; // access nothing DOC this! <- the only method to get terminal_id
+    this.kconfig_r = ['init', 'terminal_id', 'host']; // access nothing DOC this! <- the only method to get terminal_id
     this.kconfig_w = [];
     
     this.security = {ipc:{}}; // empty security
@@ -2195,17 +2184,20 @@ Jnaric.prototype.bind_om = function () {
     //this.global.enumerateChildren = this.global.object.enumerateChildren;
 
     
-    this.global.object.getMyURI = function() {
+    this.global.object.getMyURI = function(a) {
+        if(a) return "/"+KCONFIG["terminal_id"] + __tihs.uri.slice(1);    
         return __tihs.uri;        
     };
     this.global.object.getMyAbsoluteURI = function() {
         //return KCONFIG["terminal_id"] + __tihs.uri.split("~",1)[1]; // to remove ~ or fail :-\       
         return "/"+KCONFIG["terminal_id"] + __tihs.uri.slice(1);     
     };    
-    this.global.object.getMyTypeURI = function() {
+    this.global.object.getMyTypeURI = function(a) {
+        if(a && __tihs.TypeURI.charAt(0) == "~") return "/"+KCONFIG["terminal_id"]+__tihs.TypeURI.slice(1); 
         return __tihs.TypeURI;        
     };
-    this.global.object.getMySecurityURI = function() {
+    this.global.object.getMySecurityURI = function(a) {
+        if(a && __tihs.SecurityURI.charAt(0) == "~") return "/"+KCONFIG["terminal_id"]+__tihs.SecurityURI.slice(1); 
         return __tihs.SecurityURI;        
     };
 
