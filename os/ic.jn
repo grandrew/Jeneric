@@ -581,13 +581,13 @@ while(true) {
             
             // now set security to allow-everything-in
             if(conform_st) {
-                execURI(pfx+pname, "securitySet", [{"ipcIn": "*"}], 2000); // never allow to fail...
+                start_new_thread(function() {execURI(pfx+pname, "securitySet", [{"ipcIn": "*"}], 50000)}); // never allow to fail...
             }
             
             var pid = start_new_thread(execChild, [pfx+pname, c, argv]); // use pid??
 
         } catch (e) {
-            if(e && e.toString().indexOf("URI") > -1) { // + defeat undefiend exception bug
+            if(e && e.toString().indexOf("found") > -1) { // + defeat undefiend exception bug
                 printDOM("ic#: command not found by path: "+c); brDOM();
                 break;               
             } else {

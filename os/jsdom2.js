@@ -328,7 +328,7 @@ DOMImplementation.prototype.___parseLoop = function DOMImplementation____parseLo
       pName = trim(pName, true, true);              // strip spaces from Element name
 
       if (!this.namespaceAware) {
-        iNode = doc.createElement(p.getName());     // create the Element
+        iNode = doc.createElement(p.getName());     // create the Element @INVALID_CHARACTER_ERR
 
         // add attributes to Element
         for(var i = 0; i < p.getAttributeCount(); i++) {
@@ -336,7 +336,7 @@ DOMImplementation.prototype.___parseLoop = function DOMImplementation____parseLo
           iAttr = iNode.getAttributeNode(strName);  // if Attribute exists, use it
 
           if(!iAttr) {
-            iAttr = doc.createAttribute(strName);   // otherwise create it
+            iAttr = doc.createAttribute(strName);   // otherwise create it @INVALID_CHARACTER_ERR
           }
 
           iAttr.setValue(p.getAttributeValue(i));   // set Attribute value
@@ -688,6 +688,13 @@ DOMImplementation.prototype._isIdDeclaration = function DOMImplementation__isIdD
  */
 DOMImplementation.prototype._isValidName = function DOMImplementation__isValidName(name) {
   // test if name contains only valid characters
+if(DEBUG && window.console && !(name.match(re_validName) < 0)) {
+    var cc = "";
+    for(var c=0;c<name.length;c++) {
+      cc = cc + c + ":"+ name.charCodeAt(c)+ "; ";
+    }
+    console.log("DOM: invalid name: "+name+" : "+cc);    
+}
   return name.match(re_validName);
 }
 re_validName = /^[a-zA-Z_:][a-zA-Z0-9\.\-_:]*$/;
@@ -706,6 +713,8 @@ re_validName = /^[a-zA-Z_:][a-zA-Z0-9\.\-_:]*$/;
  */
 DOMImplementation.prototype._isValidString = function DOMImplementation__isValidString(name) {
   // test that string does not contains invalid characters
+if(DEBUG && window.console && !(name.search(re_invalidStringChars) < 0)) console.log("DOM: invalid string: "+name); 
+  
   return (name.search(re_invalidStringChars) < 0);
 }
 re_invalidStringChars = /\x01|\x02|\x03|\x04|\x05|\x06|\x07|\x08|\x0B|\x0C|\x0E|\x0F|\x10|\x11|\x12|\x13|\x14|\x15|\x16|\x17|\x18|\x19|\x1A|\x1B|\x1C|\x1D|\x1E|\x1F|\x7F/
@@ -2669,7 +2678,8 @@ DOMDocument.prototype.createElement = function DOMDocument_createElement(tagName
 DOMDocument.prototype.createDocumentFragment = function DOMDocument_createDocumentFragment() {
   // create DOMDocumentFragment specifying 'this' as ownerDocument
   var node = new DOMDocumentFragment(this);
-
+  if(!document.createElement) return node; // GDW
+  node.___link = document.createDocumentFragment();
   return node;
 };
 
@@ -4563,14 +4573,18 @@ function applyStyleRules(element, rules) { // IE8 fix
         rule = trim(lrules[i], true, true);
         if(rule.length > 3) {
             p=trim(rule.split(":")[0], true, true);
-            v=trim(rule.split(":")[1], true, true);
+            v=trim(rule.split(":").splice(1,rule.split(":").length).join(":"), true, true);
             p1=p.split("-")[0];
             p2 = p.split("-")[1];
             if(p1 && p2) {
                 p = p1+p2.charAt(0).toUpperCase()+p2.slice(1);
             }
             if(p == "float") p = "styleFloat";
-            element.style[p] = v;
+            try {
+                element.style[p] = v;
+            } catch (e) {
+                if(window.console) console.log("CSS Error was:"+p+"="+v);
+            }
         }
     }
 }

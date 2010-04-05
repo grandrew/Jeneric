@@ -371,7 +371,7 @@ x flash setup kernel DOM method...
     x http://blog.monstuff.com/archives/000280.html - cross-domain flash access
 
 + stabilize init procedure (to look for init in ~/var or something?)
-- DOC /conf/init/* - sources to run (totinit functionality)
+- DOC ~/conf/init/* - sources to run (totinit functionality)
 + jsexec optimization: do not switch context for EACH step, rather do this for each BURST group    
 + ic: search in ~/bin then in /bin
 + simple edit app
@@ -382,16 +382,33 @@ x flash setup kernel DOM method...
     + filestore // was, bugfix applied
     + ramstore // was
     + tmpstore
-    - storage
-        - install postgres >8.3
-        - uncomment string
+    + storage
+        + install postgres >8.3
+        + uncomment string
     + file http_ upload: do a first write without seek!!
-- !!! session bypass -> currently does not work!!! ??? try http://jeneric.dyndns.org/grandrew/wz_jsgraphics2.js
++ (problem was with blob_post actually not setting terminal_id in hub.py) !!! session bypass -> currently does not work!!! ??? try http://jeneric.dyndns.org/grandrew/wz_jsgraphics2.js
++ security drops when object exception?? or always?? try setting security on eee teminal chrome and then try to read kartinka.jpg through at /grandrew/kartinka.jpg and see the security changed back
++ remove inheritParent from getSecurityState!
 - cross-auth bug: auth on another, first gets freezed in IPC to it
+- utf-8 charset for http_get
 - ping: STOP button and 'quite' mode!
-- tchat app (tim?)
++ BUG: CSS parser error (":" in http:// url() vars messes the split)
+- BUG: IE8 does not show useful error message if 'undefined' is DOT'ted
++ talk app 
++ tart app
+  + do not hang MU if mouse is out of draw area!
+  - strange dots in the upper-left: when target != target
+  - why these dots ever have scattered locations?
+. tim app
+    - better fonts, saving
+- make wz_jsgraphics work!!
+- jeneric sometimes hangs on IC icsecc launch -- just after start - and forever (IC AND protocol problem)
+    maybe because of flood-protection?
 - test multiple auth with same credentials
+- cool security control proggy (insteadof icsecc)
+- dist-install program
 - ic: autostart programs config
+- thoroughlu test security!!! (programs not from /bin cannot start???)
 - cr tool: create object of some type [with built-in abbrevs: r,f,d, etc..]
 - mkdir ?
 - man and /share/man! (+some documents there?)
@@ -404,7 +421,14 @@ x flash setup kernel DOM method...
 - thread_destroy call! (alongside with start_new_thread - see python!)
 - #run=/path/to/run?h=1 -> run a special program through secured interface - so you can drop links
 - #clone=/path/to/obj -> view this object via cloning it (:-\?)
-- security update: use "*" to denote 'all other methods' in ipcIn struct
+- security update: 
+    - use "*" to denote 'all other methods' in ipcIn struct
+    - add all other - "inherit" notation
+    - check that "*" works as :["*"] well as :"*"
+    - implement and check that at storage.py!
+    - neg_acls seem to not ever work (1. no neg_acls checks defined after loop, 2. neg_acls are appended incl prepending !
+        sign which ACL controller cannto handle
+
 - see how CPAN and the community works!
 - hub flood protection!!
 

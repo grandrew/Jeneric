@@ -559,7 +559,7 @@ Jnaric.prototype.execIPC = function (rq, cbOK, cbERR) {
                 cbERR({id: rq.id, status: "EEXCP", result: "method failed with exception: "+ex});
             };
 
-//console.log("!!!!!!!!!!!!!!!!!11executing...");
+//console.log("!!!!!!!!!!!!!!!!!11executing...:" + ipcm);
             if(!ipcm) self.execf_thread(self.security.ipc[rq.method], [rq].concat(rq.args), cbo2, cbe2, undefined, self.security); 
             else self.execf_thread(self.global.object.ipc[rq.method], [rq].concat(rq.args), cbo2, cbe2); 
         
@@ -976,7 +976,7 @@ function eos_wakeObject(parent, name, serID) {
             if(dump.SecurityProp) { // if any security preferences registered...?
                 obj.onfinish = function () {
                     // XXX this should set the wakeupIPCLock to false
-                    obj.execf_thread(obj.security.setSecurityState, [JSON.parse(dump.SecurityProp)], dummy, dummy_assert); 
+                    obj.execf_thread(obj.security.setSecurityState, [JSON.parse(dump.SecurityProp)], dummy, dummy_assert, undefined, obj.security); 
                 };
             } else {
             

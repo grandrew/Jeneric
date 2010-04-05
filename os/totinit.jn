@@ -49,14 +49,14 @@ function s_agent() {
 // DOC this
 objs = [];
 try {
-    objs = execURI("/conf/init", "listChildren", []);
+    objs = execURI("~/conf/init", "listChildren", []);
 } catch (e) {
-    ErrorConsole.log("totinit: running /conf/init/* "+e);
+    ErrorConsole.log("totinit: running ~/conf/init/* "+e);
 }
 
 var i=0;
 for(i=0; i<objs.length; i++) {
-    object.createChild(objs[i], "/conf/init/"+objs[i], "~/sys/anarchic", document.body); // TODO: localSecurity instead of anarchic
+    object.createChild(objs[i], "~/conf/init/"+objs[i], "~/sys/anarchic", document.body); // TODO: localSecurity instead of anarchic
 }
 
 // the workaround for working init + ic as default init

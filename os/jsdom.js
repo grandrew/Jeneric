@@ -525,7 +525,10 @@ ___DOMHTMLSetters = {
         // XXX namespace-inaware!! TODO: more conformace
         // not quite conforming to http://www.w3.org/TR/2008/WD-html5-20080610/dom.html#innerhtml1
         //console.log("Setting innerHTML to: "+value);
-        var dom = di.loadXML("<"+this.tagName+">"+value+"</"+this.tagName+">"); 
+        
+        // if: createContextualFragment fix
+        if(this.tagName && di._isValidName(this.tagName.toString())) var dom = di.loadXML("<"+this.tagName+">"+value+"</"+this.tagName+">"); 
+        else var dom = di.loadXML("<div>"+value+"</div>"); 
         //this.childNodes = dom.documentElement.childNodes; // what with ownerDocument??
         this.___link.innerHTML = "";
         // TODO: deal with memory-management mess here (ownerDocument, delete old DI, parents, etc. refs)
@@ -1220,7 +1223,7 @@ DOMElement.prototype.addEventListener = function ( type, listener, useCapture, s
     var vm = this.ownerDocument.___vm;
     
     if(!(listener.node && listener.scope)) throw (new vm.global.TypeError("JNARIC: addEventListener second argument must be a function"));
-
+    if(this.___listeners && this.___listeners[type] && this.___listeners[type][listener]) return; // do not append the same listener twice
     var cstack = undefined;
     var self = this;
     var evt = function (e) {
@@ -1435,9 +1438,9 @@ function __Event(vm, event) { // ABI WARNING!! event objects are attached to a d
 
     this.altKey = event.altKey;
     this.ctrlKey = event.ctrlKey;
-    this.clientX = event.clientX;
+    this.clientX = event.clientX; // browser X offset
     this.clientY = event.clientY;
-    this.screenX = event.screenX;
+    this.screenX = event.screenX; // total screen offset
     this.screenY = event.screenY;
     this.shiftKey = event.shiftKey;
     this.type = event.type;
@@ -1463,6 +1466,41 @@ function __Event(vm, event) { // ABI WARNING!! event objects are attached to a d
     this.currentTarget = event.currentTarget ? this.___vm.global.document.___get_from_link(event.currentTarget) : this.___vm.global.document.___get_from_link(event.toElement); // IE: toElement
     if(this.target == this.relatedTarget) this.relatedTarget = this.currentTarget;
 }
+
+__Event.prototype.___getters = {
+    targetX: function (name) { // get (click) position relative to target element current abs position
+        if(!this.clientX) return null;
+        var curleft = 0;
+        var obj = this.target.___link;
+        if (obj.offsetParent) {
+            do {
+                curleft += obj.offsetLeft;
+                //curtop += obj.offsetTop;
+            } while (obj = obj.offsetParent);
+        }
+        
+        return this.clientX+window.scrollX-curleft;
+    },
+    targetY: function (name) {
+        if(!this.clientY) return null;
+        var curtop = 0;
+        var obj = this.target.___link;
+        if (obj.offsetParent) {
+            do {
+                curtop += obj.offsetTop;
+            } while (obj = obj.offsetParent);
+        }
+        
+        return this.clientY+window.scrollY-curtop;        
+    }
+};
+
+__Event.prototype.___setters = {
+    targetX: 1,
+    targetY: 1
+};
+
+
 
 __Event.prototype.toString = function () {
     return "[object Event]"; // TODO DOC XXX nonstandard
@@ -1958,9 +1996,19 @@ if(window.getSelection) {
         // end curse W3C 
         
         var wdf = this.___document.createDocumentFragment();
-        wdf.___setters.innerHTML("innerHTML", ihtml); // XXX test it!
+        wdf.___setters.innerHTML.call(wdf, "innerHTML", ihtml); // XXX test it!
         return wdf;
     };
+    
+    
+    // MOZ-specific thing. Required by many frameworks
+    __Range.prototype.createContextualFragment = function Range_createContextualFragment (text) {
+      var wdf = this.___document.createDocumentFragment();
+      
+      wdf.___setters.innerHTML.call(wdf, "innerHTML", text); // XXX test it!
+      return wdf;
+    };
+    
     
     __Range.prototype.deleteContents = function () {
         

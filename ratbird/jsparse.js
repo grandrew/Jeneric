@@ -214,7 +214,9 @@ Tokenizer.prototype = {
             }
 
             //if (!(match = /^\/(?:\*(?:.|\n)*?\*\/|\/.*)/(input)))
-            if (input.charCodeAt(0) != 47 || !(match = input.match(/^\/(?:\*(?:.|\n)*?\*\/|\/.*)/)))
+            //if (input.charCodeAt(0) != 47 || !(match = input.match(/^\/(?:\*(?:.|\n)*?\*\/|\/.*)/)))
+            if (input.charCodeAt(0) != 47 || !(match = input.match(/^\/(?:\*(?:.|\n|\r)*?\*\/|\/.*)/)))
+            //                                                     /\/(?:\*(?:.|\n|\r)*?\*\/|\/.*)/g; 
                 break;
             var comment = match[0];
             this.cursor += comment.length;

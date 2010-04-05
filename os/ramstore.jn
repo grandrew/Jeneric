@@ -68,6 +68,7 @@ object.ipc["deleteChild"] = ipc_deleteChild;
 object.ipc["listChildren"] = ipc_listChildren;
 
 //if(!wakeupIPCLock) object.release(); // mark that we can release safely // we dont want to save uninitialized file; only after write()!
+
 if(!wakeupIPCLock.check()) object.release(); // mark that we can release safely // we dont want to save uninitialized file; only after write()!
 
 // TODO: this should be set in security method ??? WHY??

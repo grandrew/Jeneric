@@ -1132,7 +1132,7 @@ function Jnaric() {
 
         call: function (t) {
             // Curse ECMA a third time!
-            var a = Array.prototype.splice.call(arguments, 1);
+            var a = Array.prototype.splice.call(arguments, 1, arguments.length);
             return this.apply(t, a);
         }
     };
@@ -1924,7 +1924,7 @@ Jnaric.prototype.step_next = function (g_stack) {
     // !! log to the console if 'JNARIC' is in the exception object's description/message
     // otherwise - throw
     // ITHROW
-    //v = this.step_execute(ex.n, ex.x, g_stack);
+    //v = this.step_execute(ex.n, ex.x, g_stack); 
     try {
         //var aaa  =111;
         v = this.step_execute(ex.n, ex.x, g_stack);
@@ -3775,7 +3775,7 @@ Jnaric.prototype.step_execute = function (n, x, stack) {
             else {
                 v = undefined;
                 this.ExecutionContext.current = stack.my.oldxx;
-                if(DEBUG) this.ErrorConsole.log("WARNING! Setting CALL to DONE in an unexpected SCRIPT END");
+                if(DEBUG> 3) this.ErrorConsole.log("WARNING! Setting CALL to DONE in an unexpected SCRIPT END");
             }
             stack.my.done = true;
         
@@ -4189,7 +4189,9 @@ if (!('___call___' in Fp)) {
                 x.result = e;
             } else {
                 stack.EXCEPTION = THROW;
-                x.result = "InternalError: native call to "+this+" failed with exception: "+e+" Line: "+e.lineNumber+" File: "+e.fileName;
+                var allprop = "";
+                if(!e.lineNumber) for(var p in e) allprop = allprop + p + ":"+e[p];
+                x.result = "InternalError: native call to "+this+" failed with exception: "+e+" Line: "+e.lineNumber+" File: "+e.fileName+" "+allprop;
             }
             return;
         }

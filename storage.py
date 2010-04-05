@@ -383,7 +383,7 @@ def data_write(oid, c, size, arg):
     print "File size is:", size
     # now, if the 'seek' is ommitted, truncate the size!! DOC this
     lo.close()
-    #if len(arg) == 1: c.execute("select lo_truncate(lo_open(%s,131072),%s)", (oid, len(data))); # no seek?
+    if len(arg) == 1: c.execute("select lo_truncate(lo_open(%s,131072),%s)", (oid, len(data))); # no seek?
     return "";
     
 def data_listChildren(oid, c, arg):

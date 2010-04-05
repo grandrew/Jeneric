@@ -658,11 +658,12 @@ class Hub(StompClientFactory):
                     add_session(d[0], msg["headers"]["session"])
                     terminal = d[0]
                 else:
+                    if "status" in rq: return # just drop malicious response
                     if DEBUG > 2: print "Issuing nosession!"
                     #self.dummy_send(msg["headers"]["session"], json.encode({"error": "NOSESSION"})) # DOC document here . & ->
                     self.dummy_send(msg["headers"]["session"], simplejson.dumps({"error": "NOSESSION"})) # DOC document here . & ->
                     return; # and DO NOT send ACK - so the client could re-establish a conection and resend the request!
-            if "terminal_id" in rq and rq["terminal_id"] != terminal:
+            if "terminal_id" in rq and rq["terminal_id"] != terminal and not ("status" in rq):
                 #  the terminal thinks it is not he one it really is..
                 if DEBUG > 2: print "Issuing nosession!"
                 #self.dummy_send(msg["headers"]["session"], json.encode({"error": "NOSESSION"})) # DOC document here . & ->
@@ -1269,8 +1270,17 @@ class BlobPipe(Resource):
             #         if succeeded, deliver as TEXT argument, otherwise - as BLOB argument
             
             rarg = {}
+            global terminals
+            csession = request.getCookie("session")
+            if csession in terminals:
+                cterminal = terminals[csession]
+            else:
+                cterminal = GETPIPE_TERMNAME
+            
+            rarg["terminal_id"] = cterminal
+            
             for v in request.args:
-                if self.checkarg(request.args[v][0]): rarg[v] = request.args[v][0] # XXX DOC use only the FIRST entry parameter value
+                if v!="file" and v!="terminal_id" and self.checkarg(request.args[v][0]): rarg[v] = request.args[v][0] # XXX DOC use only the FIRST entry parameter value
     
             self.send_blob(request.path, fd2, isblob, 0, READBYTES, request, rarg)
             return  server.NOT_DONE_YET

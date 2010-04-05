@@ -21,12 +21,12 @@ createChild = object.createChild = function (name, typeURI, secURI, DOMElement) 
 security.setSecurityState = function (state) {
     delete state.inheritParent;
     this.state = state; // no checks
-    if(this.object.isSerialized()) this.object.serialize();
     if(wakeupIPCLock.check()) wakeupIPCLock.release(); // IPC may be unlocked already...
+    else { if(this.object.isSerialized()) this.object.serialize(); }
 };
 
 security.getSecurityState = function() {
-    return this.state;
+    return {ipcIn: this.state.ipcIn};
 };
 
 security.checkInherit = function (rq) {
@@ -71,10 +71,12 @@ security.validateRequest = function (rq) {
 };
 
 security.ipc.validateRequest = function(obj, rq) {
+    if(!this.state || !this.state.ipcIn) this.state = {  ipcIn: "inherit" }; // patch for broken state?
     if(this.state.ipcIn === "inherit") return {result: this.checkInherit.call(this, rq), inheritParent: this.state.inheritParent};
     // if(this.state.ipcIn.charAt && (this.state.ipcIn.charAt(0) == "/" || this.state.ipcIn.charAt(0) == "~"))
     if(this.state.ipcIn == "*") return {result: true, inheritParent: this.object.getMyURI()};
-    if(this.state.ipcIn.hasOwnProperty(rq.method)) {
+
+    if(this.state.ipcIn.hasOwnProperty(rq.method)) { // type error in IE8!
         if(this.state.ipcIn[rq.method] === "inherit") return {result: this.checkInherit.call(this, rq), inheritParent: this.state.inheritParent};
         // now check if terminal_id given is in either our list or ACL
         if(this.state.ipcIn[rq.method] === "*") return {result: true, inheritParent: this.object.getMyURI()};
