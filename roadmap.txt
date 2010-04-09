@@ -407,13 +407,13 @@ x flash setup kernel DOM method...
     maybe because of flood-protection?
 + test multiple auth with same credentials
 - security update: 
-    - use "*" to denote 'all other methods' in ipcIn struct
-    - add all other - "inherit" notation
-    - check that "*" works as :["*"] well as :"*"
+    + use "*": to denote 'all other methods' in ipcIn struct
+    + add all other - "inherit" notation
+    + DELETED from spec - that "*" works as :["*"] well as :"*"
     - implement and check that at storage.py!
-    - neg_acls seem to not ever work (1. no neg_acls checks defined after loop, 2. neg_acls are appended incl prepending !
-        sign which ACL controller cannto handle
-
+    + neg_acls seem to not ever work (1. no neg_acls checks defined after loop, 2. neg_acls are appended incl prepending !
+      +  sign which ACL controller cannto handle
+    - implement full prop in ACL
 - thoroughlu test security!!! (programs not from /bin cannot start???)
   - st:
     - direct allow

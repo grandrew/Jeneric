@@ -183,19 +183,31 @@ def secs(uri,sjs):
 #init_db() # do not init DB each time we launch... use interactive mode insted!!
 
 def validate(rq,c):
+
+
+    # TODO:
+    # 1. first check in obj,
+    # 2. then check inherit
+    #   3.  do the same 1. and 2. in inherit-parent
+
+    
+
     
     # now check inheritance
     parent = rq["uri"]
-    
+    # TODO: change the inheriting algorithm location!!
+    # security update - we can have terminals for which the action is defined (incl. "*") and others for which action is inherit
     c.execute("SELECT parent_uri FROM inherit WHERE uri=%s AND ( method=%s OR method=%s )", (rq["uri"], rq["method"], "*"))
     d = c.fetchone();
     it = 0;
-    while d:
+    while d and it < 100:
         parent = d[0]
         c.execute("SELECT parent_uri FROM inherit WHERE uri=%s AND ( method=%s OR method=%s )", (parent, rq["method"], "*"))
         d = c.fetchone()
         it+=1
     # TODO: inherit cache!
+
+    # TODO: check if method is not in the object ipc deny/allow - set method name to "*" for the following steps:
 
     c.execute("SELECT * FROM deny WHERE uri=%s AND method=%s AND terminal_id=%s", (parent, rq["method"], rq["terminal_id"]))
     d = c.fetchone();
@@ -209,7 +221,7 @@ def validate(rq,c):
     if d:
         return True;
     
-        
+
     # else, check if there are some ACLs defined:
     
     c.execute("SELECT aclname FROM acl_deny WHERE uri=%s AND method=%s", (rq["uri"], rq["method"]))
@@ -245,20 +257,23 @@ def data_securitySet(oid, uri, sec, c):
         # get our parent uri:
         # XXX safe path manipulation escape-aware method required here!
         parent_uri = string.join(uri.split("/")[:-1], "/")
-        c.execute("INSERT INTO inherit (uri,oid,parent_uri,method) VALUES (%s,%s,%s,%s)", (uri,oid,parent_uri,"*"))
+        c.execute("INSERT INTO inherit (uri,parent_uri,method) VALUES (%s,%s,%s)", (uri,parent_uri,"*"))
     else:
         for ob in t:
-            if t[ob] == "inherit":
+            #if t[ob] == "inherit": # not supported by latest spec
                 # TODO: reasonable caching!
-                parent_uri = string.join(uri.split("/")[:-1], "/")
-                c.execute("INSERT INTO inherit (uri,method,parent_uri) VALUES (%s,%s,%s)", (uri,ob,parent_uri))
-            else: # it is a list
+            #    parent_uri = string.join(uri.split("/")[:-1], "/")
+            #    c.execute("INSERT INTO inherit (uri,method,parent_uri) VALUES (%s,%s,%s)", (uri,ob,parent_uri))
+            #else: # it is a list
                 for tname in t[ob]:
                     if tname[0] == "!":
                         if tname[1] == "#": c.execute("INSERT INTO acl_deny (aclname,uri,method) VALUES (%s,%s,%s)", (tname[1:],uri,ob))
                         else: c.execute("INSERT INTO deny (uri,oid,method,terminal_id) VALUES (%s,%s,%s,%s)", (uri,oid,ob,tname[1:]))
                     else:
-                        if tname[0] == "#": c.execute("INSERT INTO acl_allow (aclname,uri,method) VALUES (%s,%s,%s)", (tname,uri,ob))
+                        if tname == "inherit": 
+                            parent_uri = string.join(uri.split("/")[:-1], "/")
+                            c.execute("INSERT INTO inherit (uri,parent_uri,method) VALUES (%s,%s,%s)", (uri,parent_uri,"*"))
+                        elif tname[0] == "#": c.execute("INSERT INTO acl_allow (aclname,uri,method) VALUES (%s,%s,%s)", (tname,uri,ob))
                         # the following will also eat "*"
                         else: c.execute("INSERT INTO allow (uri,oid,method,terminal_id) VALUES (%s,%s,%s,%s)", (uri,oid,ob,tname))
     return None

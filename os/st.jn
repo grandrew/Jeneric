@@ -75,27 +75,29 @@ security.ipc.validateRequest = function(obj, rq) {
     if(this.state.ipcIn === "inherit") return {result: this.checkInherit.call(this, rq), inheritParent: this.state.inheritParent};
     // if(this.state.ipcIn.charAt && (this.state.ipcIn.charAt(0) == "/" || this.state.ipcIn.charAt(0) == "~"))
     if(this.state.ipcIn == "*") return {result: true, inheritParent: this.object.getMyURI()};
-
-    if(this.state.ipcIn.hasOwnProperty(rq.method)) { // type error in IE8!
-        if(this.state.ipcIn[rq.method] === "inherit") return {result: this.checkInherit.call(this, rq), inheritParent: this.state.inheritParent};
+    if(!this.state.ipcIn.hasOwnProperty(rq.method) && this.state.ipcIn.hasOwnProperty("*")) var md = "*";
+    else md = rq.method;
+    if(this.state.ipcIn.hasOwnProperty(md)) { 
+// DOC: removed        if(this.state.ipcIn[md] === "inherit") return {result: this.checkInherit.call(this, rq), inheritParent: this.state.inheritParent};
         // now check if terminal_id given is in either our list or ACL
-        if(this.state.ipcIn[rq.method] === "*") return {result: true, inheritParent: this.object.getMyURI()};
+// DOC: removed       if(this.state.ipcIn[md] === "*") return {result: true, inheritParent: this.object.getMyURI()};
         var t, acls = [], neg_acls = [];
-        for(var i=0;i<this.state.ipcIn[rq.method].length; i++) {
-            t = this.state.ipcIn[rq.method][i];
+        for(var i=0;i<this.state.ipcIn[md].length; i++) {
+            t = this.state.ipcIn[md][i];
             if(t.charAt(0) == "!") {
                 t = t.slice(1);
                 if(t == rq.terminal_id) return {result: false, inheritParent: this.object.getMyURI()};
-                if(t.charAt(0) == "#") neg_acls.push(this.state.ipcIn[rq.method][i]);
+                if(t.charAt(0) == "#") neg_acls.push(t);
             } else {
                 if(t == rq.terminal_id) return {result: true, inheritParent: this.object.getMyURI()};
-                if(t.charAt(0) == "#") acls.push(this.state.ipcIn[rq.method][i]);
+                if(t.charAt(0) == "#") acls.push(t);
             }
+            if(t=="inherit") return {result: this.checkInherit.call(this, rq), inheritParent: this.state.inheritParent};
             if(t == "*") return {result: true, inheritParent: this.object.getMyURI()};
         }
         // if we reached here, send validation request to ACL object
         if(acls.length) return {result: this.object.execIPC("~/security/ACL", "acl_validate", [rq.terminal_id, acls]), inheritParent: this.object.getMyURI()};
-        else return {result: !this.object.execIPC("~/security/ACL", "acl_validate", [rq.terminal_id, acls]), inheritParent: this.object.getMyURI()};
+        else if(neg_acls.length) return {result: !this.object.execIPC("~/security/ACL", "acl_validate", [rq.terminal_id, acls]), inheritParent: this.object.getMyURI()};
     } else return {result: false, inheritParent: this.object.getMyURI()};
     // never reached.
 };
