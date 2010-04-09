@@ -401,18 +401,60 @@ x flash setup kernel DOM method...
   - why these dots ever have scattered locations?
 . tim app
     - better fonts, saving
-- make wz_jsgraphics work!!
++ make wz_jsgraphics work!!
+- SLOW connections cause jeneric to fail in IPC
 - jeneric sometimes hangs on IC icsecc launch -- just after start - and forever (IC AND protocol problem)
     maybe because of flood-protection?
-- test multiple auth with same credentials
++ test multiple auth with same credentials
+- security update: 
+    - use "*" to denote 'all other methods' in ipcIn struct
+    - add all other - "inherit" notation
+    - check that "*" works as :["*"] well as :"*"
+    - implement and check that at storage.py!
+    - neg_acls seem to not ever work (1. no neg_acls checks defined after loop, 2. neg_acls are appended incl prepending !
+        sign which ACL controller cannto handle
+
+- thoroughlu test security!!! (programs not from /bin cannot start???)
+  - st:
+    - direct allow
+    - direct disallow
+    - all other m - allow
+    - all other m - disallow
+    - all other m - inherit
+    - inherit-noparent
+    - inherit-cache
+    - ACL: allow
+    - ACL: disallow
+    - ACL: all other (a,d,i)
+    - ACL: ACL in ACL
+    - cyclic deps
+    - ACL controller: trust terminal
+    - ACL controller: trust storage
+  - storage.py:
+    - direct allow
+    - direct disallow
+    - all other m - allow
+    - all other m - disallow
+    - all other m - inherit
+    - inherit-noparent
+    - inherit-cache
+    - ACL: allow
+    - ACL: disallow
+    - ACL: all other (a,d,i)
+    - ACL: ACL in ACL
+    - cyclic deps
+
+- object description protocol (mandatory for security?!)
+- opera 10.50 (opera SSE -> longpoll)
 - cool security control proggy (insteadof icsecc)
 - dist-install program
 - ic: autostart programs config
-- thoroughlu test security!!! (programs not from /bin cannot start???)
+
 - cr tool: create object of some type [with built-in abbrevs: r,f,d, etc..]
 - mkdir ?
 - man and /share/man! (+some documents there?)
 - logout
+- toolkit lib: all ic# tools to use its methods (cr,mv, etc...)
 +T base64 blob export for images!
 - emulate 'audio' tag using flash-player http://flash-mp3-player.net/players/js/download/
 - player app
@@ -421,13 +463,6 @@ x flash setup kernel DOM method...
 - thread_destroy call! (alongside with start_new_thread - see python!)
 - #run=/path/to/run?h=1 -> run a special program through secured interface - so you can drop links
 - #clone=/path/to/obj -> view this object via cloning it (:-\?)
-- security update: 
-    - use "*" to denote 'all other methods' in ipcIn struct
-    - add all other - "inherit" notation
-    - check that "*" works as :["*"] well as :"*"
-    - implement and check that at storage.py!
-    - neg_acls seem to not ever work (1. no neg_acls checks defined after loop, 2. neg_acls are appended incl prepending !
-        sign which ACL controller cannto handle
 
 - see how CPAN and the community works!
 - hub flood protection!!
