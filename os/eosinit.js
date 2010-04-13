@@ -32,11 +32,13 @@ E_SERVER = "localhost";
 E_PORT = 61613;
 HUB_PATH = "/hub";
 ANNOUNCE_PATH = "/announce";
-RQ_RESEND_INTERVAL = 10000; // milliseconds to wait before request send retries
-ACK_TIMEOUT = 60000; // milliseconds before give up resending
+RQ_RESEND_INTERVAL = 4000; // milliseconds to wait before request send retries
+ACK_TIMEOUT = 40000; // milliseconds before give up resending
 MAX_WINDOW_SIZE = 60000; // ms. max window size for ACKs to remember
 KEY_LENGTH = 80; // bytes stringkey length
 PING_INTERVAL = 90000;
+MAXFAIL_TO_RESET = 2; // failed transmits to reset STOMP connection
+MAXRESEND_TO_RESET = 5; // resends to reset STOMP connection
 
 // GENERAL INIT part
 KCONFIG = {
@@ -347,6 +349,9 @@ hubConnection = {
     rqe: {},
     acks: {},
     last_sent_time: 0,
+    last_ack: (new Date()).getTime(),
+    fail_count: 0,
+    resend_count: 0,
     announce: function () {
         // TODO: announce ourself with credentials so server says we're the one we need
         //       i.e. send terminal authentication data
@@ -476,6 +481,11 @@ hubConnection = {
     
     send_real: function (force) {
         var ct = (new Date()).getTime();
+        if ( (ct - this.last_ack) > PING_INTERVAL*1.5) {
+            if(DEBUG && window.console) console.log("Resetting STOMP due to last_ack hit");
+            this.last_ack = ct;
+            this.stomp.reset();
+        }
         for(var i in this.rqe) {
             //if(i == "__defineProperty__") continue; // XXX FUCK!!
             
@@ -492,12 +502,26 @@ hubConnection = {
                     this.rqe[i]["r"]["result"] = "Too much resend to HUB fails. Giving up."; // DOC document this too
                     this.receive(this.rqe[i]["r"]); 
                 }
+                this.fail_count += 1;
+                if(this.fail_count >= MAXFAIL_TO_RESET) {
+                    if(DEBUG && window.console) console.log("Resetting STOMP due to fail_count hit");
+                    this.stomp.reset();
+                    this.fail_count = 0;
+                }
 
                 delete this.rqe[i]; // XXX TODO how will it interact with property-iteration?
                 
             } else {
                 if(!force && this.rqe[i]["last_resend"] && ((ct - this.rqe[i]["last_resend"]) < RQ_RESEND_INTERVAL)) continue;
                 this.rqe[i]["last_resend"] = ct;
+                if(!this.rqe[i]["resend_count"]) this.rqe[i]["resend_count"] = 0;
+                else this.rqe[i]["resend_count"] += 1;
+                this.resend_count += this.rqe[i]["resend_count"];
+                if(this.resend_count > MAXRESEND_TO_RESET) {
+                    if(DEBUG && window.console) console.log("Resetting STOMP due to resend_count hit");
+                    this.stomp.reset();
+                    this.resend_count = 0;
+                }
                 
                 this.rqe[i]["r"].session = this.___SESSIONKEY;
                 var rqq = this.rqe[i]["r"];
@@ -520,22 +544,21 @@ hubConnection = {
                     }
                     var jsn = JSON.stringify(this.rqe[i]["r"], replacer);
                     //if(window.console) console.log("Sending "+jsn);
-                    this.stomp.send(jsn, HUB_PATH);
-                    this.last_sent_time = (new Date()).getTime();
                 } catch (e) {
-                    if(e.message === "Invalid readyState"){
-                        // try again later
-                        //hubConnection.connect(); // hope this works
-                        if(window.console) console.log("STOMP SEND Error occured: "+e);
-                        hubConnection.stomp.reset(); // hope this works
-                    }
                     this.rqe[i]["r"]["status"] = "EEXCP"; // DOC document this too
                     this.rqe[i]["r"]["result"] = "Could not parse JSON to send: "+e; // DOC document this too
                     this.receive(this.rqe[i]["r"]);
                     delete this.rqe[i]; // XXX TODO how will it interact with property-iteration?
                     if(window.console) console.log("Error! Could not parse JSON to send: "+e);
-                    
-                    
+                }
+                try {
+                    this.stomp.send(jsn, HUB_PATH);
+                    this.last_sent_time = (new Date()).getTime();
+                } catch (e) {
+                    // try again later
+                    //hubConnection.connect(); // hope this works
+                    if(window.console) console.log("STOMP SEND Error occured: "+e);
+                    hubConnection.stomp.reset(); // hope this works
                 }
             }
         }
@@ -550,6 +573,9 @@ hubConnection = {
     },
     
     ack_rcv: function (rqid) {
+        this.fail_count = 0;
+        this.resend_count = 0;
+        this.last_ack = (new Date()).getTime();
         if(DEBUG && window.console) console.log("ack!");
         delete this.rqe[rqid];
     },

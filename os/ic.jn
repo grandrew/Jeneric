@@ -252,10 +252,11 @@ box = document.createElement("DIV");
 set_param_box(box);
 document.body.appendChild(box);
 OutTo = box;
-printDOM("Welcome to ic# - an Interactive Core commandline. Type 'help' for help.");
+crun = object.kconfig("run")
+if(!crun) printDOM("Welcome to ic# - an Interactive Core commandline. Type 'help' for help.");
 brDOM();
 // TODO: write Google Gears hint - if not detected
-if(!object.FixedStorage)
+if(!object.FixedStorage && !crun)
 {  
     printDOM("Google Gears not installed. Reduced functionality mode. Please check http://gears.google.com/");
     brDOM();
@@ -283,6 +284,28 @@ if(object.getMySecurityURI() == "~/security/terminal") {
 pc = 0;
 initIPCLock.release(); // = false; // ready for IPC...
 var s,c,p1, p2;
+
+if(crun) {
+    try {
+        c = crun;
+        var xd = document.createElement("DIV");
+        xd.style.width="100%";
+        xd.style.fontSize="100%";
+        OutTo.appendChild(xd);    
+        pfx = "~/run/";
+        pname = c.split("/")[c.split("/").length-1];
+        OutTo.prog = pname;
+        if(conform_st) {
+            execURI("~/run", "createChild", [pname, c, "~/sys/anarchic", xd]);
+            start_new_thread(function() {execURI(pfx+pname, "securitySet", [{"ipcIn": {"*":["*"]}}], 50000)});
+        }
+        else object.createChild(pname, c, "~/sys/anarchic", xd); 
+        var pid = start_new_thread(execChild, [pfx+pname, c, []]); // use pid?? use argv??
+    } catch (e) {
+        printDOM("Failed to execute initial program from "+c+" : "+e); brDOM();
+    }
+}
+
 while(true) {
     box = document.createElement("DIV");
     set_param_box(box);
@@ -317,11 +340,11 @@ while(true) {
         brDOM();
         printDOM("  link <What-URI> <As-URI> - link an object URI creating a 'link' child at <As-URI>");
         brDOM();
-        printDOM("  terminal_register <name> <key> <identity info> - register a terminal at HUB");
+        printDOM("  terminal_register <name> <password> <email@address> - register a terminal at HUB");
         brDOM();
-        printDOM("  terminal_auth <name> <key>  - authenticate a terminal at HUB");
+        printDOM("  terminal_auth <name> <password>  - authenticate a terminal at HUB");
         brDOM();
-        printDOM("  terminal_logout <name> <key>  - authenticate a terminal at HUB");
+        printDOM("  terminal_logout - deauthenticate a terminal at HUB");
         brDOM();
         printDOM("  version - print detailed system version information");
         brDOM();

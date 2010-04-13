@@ -444,8 +444,20 @@ x flash setup kernel DOM method...
     - ACL: ACL in ACL
     - cyclic deps
 
++ GFX login app
+     - logout option
+     - current user display
+
++ 'run' kernel initparam keyword - to run via IC# or other security-aware program
+    + and run it!
++ for GFX progs: do not require to loop main? or wait for quit?
++ does not launch w/o gears permission!
++ invalid readyState from UKR!
++ HUB does not seem to drop ACKs and replies!!!
+- full-access allowed software paths!
+- label FOR= id mess!
 - object description protocol (mandatory for security?!)
-- opera 10.50 (opera SSE -> longpoll)
++ opera 10.50 (opera SSE -> longpoll)
 - cool security control proggy (insteadof icsecc)
 - dist-install program
 - ic: autostart programs config

@@ -1399,7 +1399,15 @@ localStore.prototype.close = function () { };
 
 function getFixedStorage() {
     if(window.google) {
-        return (new GearsStore()); // prefer gears??
+        try {
+            return (new GearsStore()); // prefer gears??
+        } catch (e) { // not permitted
+            if (window.localStorage) {
+                return (new localStore());
+            } else {
+                return undefined;
+            } 
+        }
     } else if (window.localStorage) {
         return (new localStore());
     } else {
@@ -2105,7 +2113,7 @@ Jnaric.prototype.bind_om = function () {
     //delete this.global.load;
  
  
-    this.kconfig_r = ['init', 'terminal_id', 'host']; // access nothing DOC this! <- the only method to get terminal_id
+    this.kconfig_r = ['init', 'terminal_id', 'host', 'run']; // access nothing DOC this! <- the only method to get terminal_id
     this.kconfig_w = [];
     
     this.security = {ipc:{}}; // empty security

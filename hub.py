@@ -156,6 +156,8 @@ def clean_timeout():
     #         WHILST WE ARE ITERATING
     # USE TWISTED DELAYED EXECUTION!!!
     # -- ok done. Just check taht it works.
+    if DEBUG:
+        print "STATS -- rqe:", len(h.rqe), "acks:", len(h.acks), "sessions:", len(sessions), "terms:", len(terminals)
     try:
         for t in sessions:
             if ct - sessions[t]["tm"] > TIMEOUT_SESSION:
@@ -299,7 +301,7 @@ class Hub(StompClientFactory):
         for i in copy.copy(self.acks): # XXX WTF COPY!!!
             if ct - self.acks[i] > MAX_WINDOW_SIZE:
                 del self.acks[i]
-                break
+                #break
     
     def ack_rcv(self, data):
         try:
@@ -370,7 +372,7 @@ class Hub(StompClientFactory):
                 if "." in name or "/" in name:
                   s = "EEXCP"
                   r = "terminal name cannot contain a dot or slash"
-                if "#" in name: # and others?
+                if "#" in name or name == "inherit": # and others?
                   s = "EEXCP"
                   r = "terminal name cannot contain a #"
                 try:

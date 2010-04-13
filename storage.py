@@ -190,58 +190,82 @@ def validate(rq,c):
     # 2. then check inherit
     #   3.  do the same 1. and 2. in inherit-parent
 
-    
-
-    
-    # now check inheritance
     parent = rq["uri"]
-    # TODO: change the inheriting algorithm location!!
+    it = 0
+    
+    
     # security update - we can have terminals for which the action is defined (incl. "*") and others for which action is inherit
-    c.execute("SELECT parent_uri FROM inherit WHERE uri=%s AND ( method=%s OR method=%s )", (rq["uri"], rq["method"], "*"))
-    d = c.fetchone();
     it = 0;
-    while d and it < 100:
-        parent = d[0]
-        c.execute("SELECT parent_uri FROM inherit WHERE uri=%s AND ( method=%s OR method=%s )", (parent, rq["method"], "*"))
-        d = c.fetchone()
-        it+=1
-    # TODO: inherit cache!
+    d = True
 
     # TODO: check if method is not in the object ipc deny/allow - set method name to "*" for the following steps:
+    while d and it < 100:
+    
+        c.execute("SELECT parent_uri FROM inherit WHERE uri=%s AND ( method=%s OR method=%s )", (rq["uri"], rq["method"], "*"))
+        d = c.fetchone();
+        
+        while d and it < 100:
+            parent = d[0]
+            # the following line actually acts a very limited value - no 'method:ingerit' notation supported anymore
+            c.execute("SELECT parent_uri FROM inherit WHERE uri=%s AND ( method=%s OR method=%s )", (parent, rq["method"], "*"))
+            d = c.fetchone()
+            it += 1
+    
+        c.execute("SELECT * FROM deny WHERE uri=%s AND method=%s AND terminal_id=%s", (parent, rq["method"], rq["terminal_id"]))
+        d = c.fetchone();
+        if d:
+            return False;
 
-    c.execute("SELECT * FROM deny WHERE uri=%s AND method=%s AND terminal_id=%s", (parent, rq["method"], rq["terminal_id"]))
-    d = c.fetchone();
-    if d:
-        return False;
 
+                
+        c.execute("SELECT * FROM allow WHERE uri=%s AND method=%s AND (terminal_id=%s OR terminal_id=%s)", (parent, rq["method"], rq["terminal_id"], "*"))
+        d = c.fetchone();
+        if d:
+            return True;
+        
 
+        # else, check if there are some ACLs defined:
+        
+        c.execute("SELECT aclname FROM acl_deny WHERE uri=%s AND method=%s", (rq["uri"], rq["method"]))
+        c2 = pgconn.cursor()
+        d=c.fetchone()
+        while d:
+            # TODO: multiple ACL inheritance?
+            c2.execute("SELECT * FROM acls WHERE aclname=%s AND terminal_id=%s", (d[0],rq["terminal_id"]))
+            if c2.fetchone(): return False
+            d=c.fetchone()
+        
+        
+        c.execute("SELECT aclname FROM acl_allow WHERE uri=%s AND method=%s", (rq["uri"], rq["method"]))
+        c2 = pgconn.cursor()
+        d=c.fetchone()
+        while d:
+            # TODO: multiple ACL inheritance?
+            c2.execute("SELECT * FROM acls WHERE aclname=%s AND terminal_id=%s", (d[0],rq["terminal_id"]))
+            if c2.fetchone(): return True
+            d=c.fetchone()
             
-    c.execute("SELECT * FROM allow WHERE uri=%s AND method=%s AND (terminal_id=%s OR terminal_id=%s)", (parent, rq["method"], rq["terminal_id"], "*"))
-    d = c.fetchone();
-    if d:
-        return True;
-    
+        #c.execute("SELECT parent_uri FROM inherit WHERE uri=%s AND ( method=%s OR method=%s )", (rq["uri"], rq["method"], "*"))
+        #d = c.fetchone();
+        
+        #while d and it < 100:
+        #    parent = d[0]
 
-    # else, check if there are some ACLs defined:
+        # now check if we have 'inherit' in the method-list:
+        c.execute("SELECT * FROM allow WHERE uri=%s AND method=%s AND terminal_id=%s", (parent, rq["method"], "inherit"))
+        d = c.fetchone();
+        if d:
+            parent = string.join(parent.split("/")[:-1], "/") # TODO: WARNING: disallow "/" in names!!
+
+
+        
+        
+        
+        
+        it+=1
+        # TODO: inherit cache!
     
-    c.execute("SELECT aclname FROM acl_deny WHERE uri=%s AND method=%s", (rq["uri"], rq["method"]))
-    c2 = pgconn.cursor()
-    d=c.fetchone()
-    while d:
-        # TODO: multiple ACL inheritance?
-        c2.execute("SELECT * FROM acls WHERE aclname=%s AND terminal_id=%s", (d[0],rq["terminal_id"]))
-        if c2.fetchone(): return False
-        d=c.fetchone()
     
-    
-    c.execute("SELECT aclname FROM acl_allow WHERE uri=%s AND method=%s", (rq["uri"], rq["method"]))
-    c2 = pgconn.cursor()
-    d=c.fetchone()
-    while d:
-        # TODO: multiple ACL inheritance?
-        c2.execute("SELECT * FROM acls WHERE aclname=%s AND terminal_id=%s", (d[0],rq["terminal_id"]))
-        if c2.fetchone(): return True
-        d=c.fetchone()
     return False
     
     
@@ -267,32 +291,27 @@ def data_securitySet(oid, uri, sec, c):
             #else: # it is a list
                 for tname in t[ob]:
                     if tname[0] == "!":
-                        if tname[1] == "#": c.execute("INSERT INTO acl_deny (aclname,uri,method) VALUES (%s,%s,%s)", (tname[1:],uri,ob))
+                        if tname[1] == "#": c.execute("INSERT INTO acl_deny (aclname,uri,method) VALUES (%s,%s,%s)", (tname[2:],uri,ob))
                         else: c.execute("INSERT INTO deny (uri,oid,method,terminal_id) VALUES (%s,%s,%s,%s)", (uri,oid,ob,tname[1:]))
                     else:
-                        if tname == "inherit": 
-                            parent_uri = string.join(uri.split("/")[:-1], "/")
-                            c.execute("INSERT INTO inherit (uri,parent_uri,method) VALUES (%s,%s,%s)", (uri,parent_uri,"*"))
-                        elif tname[0] == "#": c.execute("INSERT INTO acl_allow (aclname,uri,method) VALUES (%s,%s,%s)", (tname,uri,ob))
+                        # treat inherit as normal terminal-id... but never allow it to register!!
+                        #if tname == "inherit": 
+                        #    parent_uri = string.join(uri.split("/")[:-1], "/")
+                        #    c.execute("INSERT INTO inherit (uri,parent_uri,method) VALUES (%s,%s,%s)", (uri,parent_uri,"*"))
+                        if tname[0] == "#": c.execute("INSERT INTO acl_allow (aclname,uri,method) VALUES (%s,%s,%s)", (tname[1:],uri,ob))
                         # the following will also eat "*"
                         else: c.execute("INSERT INTO allow (uri,oid,method,terminal_id) VALUES (%s,%s,%s,%s)", (uri,oid,ob,tname))
     return None
 
 def data_securityGet(oid, uri, c):
     sec = { "ipcIn": {}}
+    
     c.execute("SELECT parent_uri FROM inherit WHERE uri=%s AND method=%s", (uri, "*"))
     d = c.fetchone();
     if d:
-        return { "ipcIn": "inherit" }
+        if c.fetchone(): # only if it is the only entry in list => optimize struct?
+            return { "ipcIn": "inherit" }
     
-    # now examine inheritance
-    
-    c.execute("SELECT method FROM inherit WHERE uri=%s", (uri,))
-    d = c.fetchone();
-    while d:
-        #if not d[0] in sec["ipcIn"]: sec["ipcIn"][d[0]] = []
-        sec["ipcIn"][d[0]] = "inherit"
-        d = c.fetchone();
     
     # TODO: use JOIN to get acls and terminal_ids in only 2 requests not 4
     # now check each database in turn
@@ -314,15 +333,27 @@ def data_securityGet(oid, uri, c):
     d = c.fetchone();
     while d:
         if not d[0] in sec["ipcIn"]: sec["ipcIn"][d[0]] = []
-        sec["ipcIn"][d[0]].append(d[1])
+        sec["ipcIn"][d[0]].append("!#"+d[1])
         d = c.fetchone();
     
     c.execute("SELECT method,aclname FROM acl_allow WHERE uri=%s", (uri,))
     d = c.fetchone();
     while d:
         if not d[0] in sec["ipcIn"]: sec["ipcIn"][d[0]] = []
-        sec["ipcIn"][d[0]].append("!"+d[1])
+        sec["ipcIn"][d[0]].append("#"+d[1])
         d = c.fetchone();
+
+    # now examine inheritance
+    
+    c.execute("SELECT method FROM inherit WHERE uri=%s", (uri,))
+    d = c.fetchone();
+    while d:
+        #if not d[0] in sec["ipcIn"]: sec["ipcIn"][d[0]] = []
+        if d[0] in sec["ipcIn"]: sec["ipcIn"][d[0]].append("inherit")
+        else: sec["ipcIn"][d[0]] = ["inherit"]
+        d = c.fetchone();
+
+
     return sec
     
 def data_read(oid, arg):
@@ -481,6 +512,7 @@ def process_rq(rq):
             pass # in fact, does nothing XXX investigate this!!
         elif rq["method"] == "deleteACL":
             # totally delete
+            if rq["args"][0][0] == "#": rq["args"][0] = rq["args"][0][1:]
             c.execute("DELETE FROM acls WHERE aclc_uri=%s AND aclname=%s", (uri, rq["args"][0]))
         elif rq["method"] == "listACL":
             c.execute("SELECT aclname FROM acls WHERE aclc_uri=%s", (uri,))
@@ -491,10 +523,13 @@ def process_rq(rq):
                 d = c.fetchone()
             rq["result"] = l
         elif rq["method"] == "ACLappend":
+            if rq["args"][0][0] == "#": rq["args"][0] = rq["args"][0][1:]
             c.execute("INSERT INTO acls (aclc_uri,aclname,terminal_id) VALUES (%s,%s,%s)", (uri,rq["args"][0],rq["args"][1]))
         elif rq["method"] == "ACLremove":
+            if rq["args"][0][0] == "#": rq["args"][0] = rq["args"][0][1:]
             c.execute("DELETE FROM acls WHERE aclc_uri=%s AND aclname=%s AND terminal_id=%s", (uri,rq["args"][0],rq["args"][1]))
         elif rq["method"] == "ACLlist":
+            if rq["args"][0][0] == "#": rq["args"][0] = rq["args"][0][1:]
             c.execute("SELECT terminal_id FROM acls WHERE aclc_uri=%s AND aclname=%s", (uri,rq["args"][0]))
             l = []
             d = c.fetchone()
