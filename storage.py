@@ -573,7 +573,10 @@ def process_rq(rq):
             cdata = data_listChildren(d[0], c, rq["args"]);
             if uri == "/home":
                 if not rq["terminal_id"] in cdata:
-                    cdata.append(rq["terminal_id"])
+                    try:
+                        int(rq["terminal_id"])
+                    except:
+                        cdata.append(rq["terminal_id"])
             rq["result"] = cdata;
         elif rq["method"] == "createChild":
             # currently, it treally does not matter what object type w're trying to create, just create filestore one...

@@ -5,10 +5,10 @@
 # required: 
 
 # python 2.5 USE="sqlite3"
-# twisted (install...
+# twisted 8.2 (! 10 does not work) (install...
 #   : twisted-web
 #   : zope-interfcae
-# simplejson egg;  this doesnt work/buggy -> python-cjson egg [or (install... (python-cjson?)
+# simplejson egg;  cjson doesnt work/buggy -> python-cjson egg [or (install... (python-cjson?)
 # stompservice egg
 # orbited egg
 # z3c.sharedmimeinfo egg

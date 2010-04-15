@@ -343,12 +343,6 @@ BUG: document.appendChild(document.createElement("DIV")) should result in "Node 
     - set console security: allow everything
         - via wizard installer
     + boot & test new security!!!
-
-- PROBLEM!!! we can not have two terminals authenticated at once!!!
-    - technically can not
-    - what happens if we do? different files?
-    - how to ever differentiate between them??
-    - back to oldies... :-\
     
 + DOCument new "!" interface for denial in ACL lists
 + DOCument usage of "*" for denial access rule chains
@@ -389,20 +383,20 @@ x flash setup kernel DOM method...
 + (problem was with blob_post actually not setting terminal_id in hub.py) !!! session bypass -> currently does not work!!! ??? try http://jeneric.dyndns.org/grandrew/wz_jsgraphics2.js
 + security drops when object exception?? or always?? try setting security on eee teminal chrome and then try to read kartinka.jpg through at /grandrew/kartinka.jpg and see the security changed back
 + remove inheritParent from getSecurityState!
-- cross-auth bug: auth on another, first gets freezed in IPC to it
++ cross-auth bug: auth on another, first gets freezed in IPC to it
 - utf-8 charset for http_get
 - ping: STOP button and 'quite' mode!
 + BUG: CSS parser error (":" in http:// url() vars messes the split)
 - BUG: IE8 does not show useful error message if 'undefined' is DOT'ted
 + talk app 
-+ tart app
++ tart app (mtest)
   + do not hang MU if mouse is out of draw area!
   - strange dots in the upper-left: when target != target
   - why these dots ever have scattered locations?
 . tim app
     - better fonts, saving
 + make wz_jsgraphics work!!
-- SLOW connections cause jeneric to fail in IPC
++ SLOW connections cause jeneric to fail in IPC
 - jeneric sometimes hangs on IC icsecc launch -- just after start - and forever (IC AND protocol problem)
     maybe because of flood-protection?
 + test multiple auth with same credentials
@@ -454,6 +448,9 @@ x flash setup kernel DOM method...
 + does not launch w/o gears permission!
 + invalid readyState from UKR!
 + HUB does not seem to drop ACKs and replies!!!
++ login proggy
+    - logout ability
+    - password change
 - full-access allowed software paths!
 - label FOR= id mess!
 - object description protocol (mandatory for security?!)
@@ -461,11 +458,12 @@ x flash setup kernel DOM method...
 - cool security control proggy (insteadof icsecc)
 - dist-install program
 - ic: autostart programs config
-
+- $PATH somehow?
 - cr tool: create object of some type [with built-in abbrevs: r,f,d, etc..]
 - mkdir ?
 - man and /share/man! (+some documents there?)
-- logout
+- logout call
+- better IC
 - toolkit lib: all ic# tools to use its methods (cr,mv, etc...)
 +T base64 blob export for images!
 - emulate 'audio' tag using flash-player http://flash-mp3-player.net/players/js/download/
