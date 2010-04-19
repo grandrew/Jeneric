@@ -2124,10 +2124,11 @@ Jnaric.prototype.bind_om = function () {
     
     this.global.object = {name: this.name, version: this.VERSION};
     this.global._object = this.global.object; // backup object...
-    this.global.Object = this.global.object; // backup object...
+    //this.global.Object = this.global.object; // backup object...
     this.global.object.ipc = {};
     this.global.object.data = {}; // the TQLW
     
+    this.global.object.uri2id = Jnaric.prototype.uri2id;
     // XX timeout is optional -  if the 'timeout' is hit it is not necessary that the method does not get successfully executed on the callee side
     this.global.execURI = function(sUri, sMethod, lArgs, iTimeout) {
         eos_execURI(__tihs, sUri, sMethod, lArgs, iTimeout);
