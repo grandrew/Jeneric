@@ -43,13 +43,16 @@ MAXRESEND_TO_RESET = 5; // resends to reset STOMP connection
 // GENERAL INIT part
 KCONFIG = {
   host: "http://"+location.host,
-  terminal_id: "~", // init as unknown, will be set later at terminal object instance
   autorestore: false,
-  autoswapout: false,
-  MEMOBJECTS: 1000, // max allowed amount of objects in memory (in __eos_objects)}; // kernel configuration
-  saveinterval: 10000 // interval of object serialization turnaround in ms.
+  autoswapout: false
 }
 
+KCONFIG_DEFAULTS = {
+  terminal_id: "~", // init as unknown, will be set later at terminal object instance
+  MEMOBJECTS: 1000, // max allowed amount of objects in memory (in __eos_objects)}; // kernel configuration
+  saveinterval: 10000 // interval of object serialization turnaround in ms.
+  // init or 'run' defaults??
+}
 
 //////////////////////////////////////////////////////////////////////////////
 // browser compatibility section; we're now dependent on these globals!
@@ -234,6 +237,10 @@ function jeneric_init(elemt) {
                 if(!KCONFIG[nv[0]])KCONFIG[nv[0]] = nv[1];
             }
         }
+    }
+    // nof fill in defaults
+    for(dob in KCONFIG_DEFAULTS) {
+        if(!KCONFIG[dob])KCONFIG[dob] = KCONFIG_DEFAULTS[dob];
     }
     })()
     
