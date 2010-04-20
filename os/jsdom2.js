@@ -688,7 +688,7 @@ DOMImplementation.prototype._isIdDeclaration = function DOMImplementation__isIdD
  */
 DOMImplementation.prototype._isValidName = function DOMImplementation__isValidName(name) {
   // test if name contains only valid characters
-if(DEBUG && window.console && !(name.match(re_validName) < 0)) {
+if(DEBUG>2 && window.console && !(name.match(re_validName) < 0)) {
     var cc = "";
     for(var c=0;c<name.length;c++) {
       cc = cc + c + ":"+ name.charCodeAt(c)+ "; ";

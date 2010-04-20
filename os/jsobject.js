@@ -2397,6 +2397,11 @@ Jnaric.prototype.bind_terminal = function () {
         this.kconfig_w.push(ob);
     }
     
+    for(var ob in KCONFIG_DEFAULTS) {
+        this.kconfig_r.push(ob);
+        this.kconfig_w.push(ob);
+    }
+    
     this.GRANTED = true; // grant changing NICE, etc...  - see jsexec.js; also need more nice control of children so TODO
     //                                   (name, code, sec,   rq.object_uri, typeURI, secURI, DOMElement)
     

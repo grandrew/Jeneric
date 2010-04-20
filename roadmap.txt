@@ -297,7 +297,8 @@ BUG: document.appendChild(document.createElement("DIV")) should result in "Node 
     this is a substantial bug that should be fixed at alpha-beta stage...
 
 
-    
+- BUG: filestore object does not save null byte string (not serialized)    
+- BUG: does not set terminal_id after reload!
     
 + security.changeSecurityURI(newURI) - will change security URI to a new one, unloading previous one, loading new, and setting SecurityURI to a new value.
 + ipc security: exec with 'this' set to security object:

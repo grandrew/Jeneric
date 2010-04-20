@@ -38,7 +38,7 @@ object.ipc["createChild"] = ipc_createChild;
 object.ipc["deleteChild"] = ipc_deleteChild;
 
 function ipc_hubConnectionChanged(rq, name) {
-    // set the kconfig terminal_id value. Nothing else seems to be required :-\
+    // set the kconfig terminal_id value. Nothing else seems to be required 
     object.kconfig("terminal_id", name);
 }
 object.ipc["hubConnectionChanged"] = ipc_hubConnectionChanged;
