@@ -83,7 +83,7 @@ security.validateRequest = function (rq) {
     //if(rq.method === "validateRequest" && rq.caller_uri.indexOf(this.object.getMyURI()) != -1) return true;
     // allow all local requests, making the above unnesessary
     if(rq.caller_uri == this.object.getMyURI() && rq.method == "securitySet") return false; // deny IPC requests from myself (the code cannot control or interact with the security in any way)
-    if(rq.terminal_id == "~") return true;
+    if(rq.terminal_id == "~" || rq.terminal_id == object.kconfig("terminal_id")) return true; // allow requests from our terminal!
     return this.ipc.validateRequest.call(this, null, rq).result;
 };
 
