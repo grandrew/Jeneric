@@ -440,7 +440,7 @@ class Hub(StompClientFactory):
                     # deny registration with errror
                     s = "OK"
                     r = traceback.format_exc()
-                c.close()            
+                
 
         elif m == "auth": 
             # XXX THIS procedure should be run from terminal object only, if at all...
