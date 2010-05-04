@@ -1547,6 +1547,7 @@
                     }
                     catch (ex) { }
                 }
+                url.setQsParameter('nocache', Math.random()); // google chrome bug
                 xhr.open('GET', url.render(), true);
                 xhr.onreadystatechange = function() {
 ;;;                 self.logger.debug('readystate', xhr.readyState);
