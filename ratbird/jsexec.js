@@ -4168,7 +4168,7 @@ if (!('___call___' in Fp)) {
         
         a = Array.prototype.splice.call(a, 0, a.length);
         stack.my.x2 = {};
-        
+        var myy = stack.my;
         
         
         
@@ -4181,7 +4181,8 @@ if (!('___call___' in Fp)) {
         // ITHROW
         //stack.my.x2.result = this.apply(t, a);
         try {
-            stack.my.x2.result = this.apply(t, a);
+            //stack.my.x2.result = this.apply(t, a);
+            myy.x2.result = this.apply(t, a);
             //a=1;
         } catch (e) {
             if(e instanceof SyntaxError) { // catch RegExp errors
@@ -4202,7 +4203,8 @@ if (!('___call___' in Fp)) {
         // it is REALLY NEEDED here!
         if(stack.EXCEPTION && stack.EXCEPTION==RETURN) stack.push(S_EXEC, {n: {type:TRUE}, x: {}, Nodes: {}, Context: x, NodeNum: 0, pmy: stack.my.myObj});
         // t_hrow RETURN
-        return stack.my.x2.result;
+        //return stack.my.x2.result;
+        return myy.x2.result;
     //}, true, true, true);
     };
 
