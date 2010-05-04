@@ -1944,7 +1944,7 @@ Jnaric.prototype.step_next = function (g_stack) {
             //console.log("Exception "+e+"should NOT propagate!!!");
         } else {
             // TODO: add onerror event alongside with onfinish
-            this.ErrorConsole.log("vm error: throwing exception '"+e.toString()+"' " + (e.message ? (e.message + ": ") : "") +(e.message ? e.message : "")+"' Stack trace: "+__print_strace(g_stack));
+            this.ErrorConsole.log("vm error: throwing exception '"+e.toString()+"' " + (e.message ? (e.message + ": ") : "") +(e.message ? e.message : "")+"' Stack trace: "+__print_strace(g_stack)+" Browser .lineNumber:"+e.lineNumber+" .fileName: "+e.fileName+" .stack: "+e.stack);
             if(e.toString() == "[object Object]") {
                 this.ErrorConsole.log("dumb exception obect found; inspecting object to get more information:");
                 var ress = "";

@@ -1,14 +1,20 @@
-// ic lib jn
-// can be safely renamed to iclib.jn and stored as /lib/iclib
 // LICENSE: GPL v.3 or later (C) 2010 Andrew Gryaznov realgrandrew@gmail.com, a.gryaznov@svoyaset.ru
+/* 
+    iclib: ic# console - compatibility library 
+    
+    parts:
+        iclib/run - methods to launch programs
+        iclib/closebox - draw a 'close button box' around the launched program
+        
+*/
 
 object.ipc["__ic_main"] = function(rq, argv) {
     // execute main thread in blocking mode; destroy instance after that DOC
     delete object.ipc["__ic_main"]; // hence only one single IPC allowed; race conditions may still occur but are not taken into account
-    main(argv);
+    if(!main(argv)) object.destroy();
     // TODO: detach DOM first
     //      or it will be deleted with object destroy!
-    object.destroy(); // a little messy here' but should work -> deleting ourself actually before returning the value 
+    // a little messy here' but should work -> deleting ourself actually before returning the value 
 }
 
 function printDOM( txt ) {
@@ -37,12 +43,12 @@ function brDOM() {
 }
 
 
-function inputDOM() {
+function inputDOM(txt) {
     var x = document.createElement("DIV");
     x.style.display = "inline";
     x.style.fontFamily = "courier";
     x.contentEditable = true;
-    var t = document.createTextNode("");
+    var t = document.createTextNode(txt);
     x.appendChild(t);
     document.body.appendChild(x);
     x.focus();
@@ -68,19 +74,22 @@ function editDOM(text) {
     document.body.appendChild(x);
     x.focus();
     do {
-        e = x.waitEvent("keypress"); // will temporarily bind an event to the node and wait for it (bind_dom method)
+        e = x.waitEvent("keydown"); // will temporarily bind an event to the node and wait for it (bind_dom method)
                                      // this should be used with caution: there is no event queue for the object and it may miss some events
     } while ( !( e.keyCode == 13 && e.ctrlKey == true) )
     x.contentEditable=false;
 
     var s = x.innerHTML;
-    s = s.replace(/<br>/g, "\n"); // no other tags are allowed
+    s = s.replace(/<br>|<\/p>/g, "\n"); // no other tags are allowed
     s = s.replace(/&gt;/g, ">"); // no other special chars allowed
     s = s.replace(/&lt;/g, "<");
-    s = s.replace(/&nbsp;/g, " "); // TABs are auto converted to nbsp's at least in FF
+    s = s.replace(/&nbsp;|<p>/g, " "); // TABs are auto converted to nbsp's at least in FF
     s = s.replace(/&amp;/g, "&");
 
     return s;
 }
 
+
+
 initIPCLock.release();// = false; // XXX
+
