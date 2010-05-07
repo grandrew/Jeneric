@@ -2699,6 +2699,7 @@ DOMDocument.prototype.createTextNode = function DOMDocument_createTextNode(data)
   // assign values to properties (and aliases)
   node.data      = data;
   node.nodeValue = data;
+  if(!data) data = ""; // in case of undefined
   if(document.createTextNode) {
     node.___link = document.createTextNode(data);
     // node.___link.___id = __dom_id(); // IE does not support this (buggy), and we don't address node trees by textNodes

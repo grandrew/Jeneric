@@ -4182,7 +4182,7 @@ if (!('___call___' in Fp)) {
         //stack.my.x2.result = this.apply(t, a);
         try {
             //stack.my.x2.result = this.apply(t, a);
-            myy.x2.result = this.apply(t, a);
+            myy.x2.result = this.apply(t, a); // this may change stack.my - so we do not rely on it
             //a=1;
         } catch (e) {
             if(e instanceof SyntaxError) { // catch RegExp errors
