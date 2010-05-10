@@ -4282,7 +4282,7 @@ if (!('___call___' in Fp)) {
     //Fp.__defineProperty__('___hasInstance___', function (v, vm) {
     Fp.___hasInstance___ = function (v, vm) {
         // vm is added by INSTANCEOF
-        if(callee == vm.global.Array) { // array patch
+        if(this == vm.global.Array) { // array patch
             return v instanceof Array;
         }
         return v instanceof Function || v instanceof vm.global.Function || v instanceof this;
