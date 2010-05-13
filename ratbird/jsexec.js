@@ -4296,9 +4296,9 @@ if (!('___call___' in Fp)) {
     
     /* Now we need to do some Array tweaking */
     Array.prototype.sort.___call_fop = Array.prototype.sort.___call___;
-    Array.prototype.sort.___call___ = function (t, a, x, stack) {
+    Array.prototype.sort.___call___ = function (t, a, x, stack, vm) {
         // do either call native method or something defined at VM global
-        if(vm.global.Array.prototype.sort) return vm.global.Array.prototype.sort.___call___(t,a,x,stack);
+        if(typeof vm.global.Array.prototype.sort != 'function') return vm.global.Array.prototype.sort.___call___(t,a,x,stack);
         this.___call_fop(t,a,x,stack);
     }
 }
