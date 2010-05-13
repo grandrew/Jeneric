@@ -1049,7 +1049,10 @@ function eos_createObject(vm, name, type_src, sec_src, parentURI, typeURI, secUR
     obj.name = name;
     obj.TypeURI = typeURI;
     obj.SecurityURI = secURI;
+    console.log("Moving to parent part...");
     obj.parent = __eos_objects["terminal"].getChild(parentURI.split("/")); // XXX sneaky place
+    console.log("Parent is: "+obj.parent);
+    AAA = obj;
     obj.parent.childList[name] = obj;
     //console.log("getting parent of "+parentURI+" set to "+(obj.parent ? obj.parent.name : obj.parent));
     obj.uri = obj.parent.uri+"/"+name; 
