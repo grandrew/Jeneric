@@ -1039,7 +1039,7 @@ function eos_createObject(vm, name, type_src, sec_src, parentURI, typeURI, secUR
         
     var obj = new Jnaric();
     
-    __eos_objects[obj.uri] = obj; // DUP name issue??? 
+    
     
 /*    
     obj.onfinish = function () {
@@ -1052,6 +1052,9 @@ function eos_createObject(vm, name, type_src, sec_src, parentURI, typeURI, secUR
     obj.parent = __eos_objects["terminal"].getChild(parentURI.split("/")); // XXX sneaky place
     //console.log("getting parent of "+parentURI+" set to "+(obj.parent ? obj.parent.name : obj.parent));
     obj.uri = obj.parent.uri+"/"+name; 
+    __eos_objects[obj.uri] = obj; // DUP name issue??? 
+    obj.parent.childList[name] = obj;
+    
     obj.serID = -1;
     obj.childList = {};
     //obj.global.initIPCLock = true; // flush this by validateRequest init XXX
@@ -1084,7 +1087,7 @@ function eos_createObject(vm, name, type_src, sec_src, parentURI, typeURI, secUR
 
     //obj.execIPC();
 
-    obj.parent.childList[name] = obj;
+    
     
     
 }
