@@ -1060,7 +1060,7 @@ function eos_createObject(vm, name, type_src, sec_src, parentURI, typeURI, secUR
     //console.log("getting parent of "+parentURI+" set to "+(obj.parent ? obj.parent.name : obj.parent));
     obj.uri = obj.parent.uri+"/"+name; 
     __eos_objects[obj.uri] = obj; // DUP name issue??? 
-    
+    console.log("Fucking is at "+obj.uri+" : "+__eos_objects[obj.uri].uri);
     
     obj.serID = -1;
     obj.childList = {};
