@@ -1039,7 +1039,7 @@ function eos_createObject(vm, name, type_src, sec_src, parentURI, typeURI, secUR
         
     var obj = new Jnaric();
     
-     
+    __eos_objects[obj.uri] = obj; // DUP name issue??? 
     
 /*    
     obj.onfinish = function () {
@@ -1085,7 +1085,7 @@ function eos_createObject(vm, name, type_src, sec_src, parentURI, typeURI, secUR
     //obj.execIPC();
 
     obj.parent.childList[name] = obj;
-    __eos_objects[obj.uri] = obj; // DUP name issue???
+    
     
 }
 
