@@ -585,7 +585,14 @@ ___DOMHTMLSetters = {
             dom.documentElement.childNodes.item(i).ownerDocument = this.ownerDocument; // like w3c? 
             this.appendChild(dom.documentElement.childNodes.item(i));
         }
+        
         */
+        
+        var els = dom.documentElement.getElementsByTagName("*");
+        for(var i=0;i<els.length;i++) {
+            els[i].ownerDocument = this.ownerDocument;
+        }
+        
         var el;
         for(var ii = 0; ii<dom.all.length;ii++) {
             dom.all[ii].ownerDocument = this.ownerDocument;
