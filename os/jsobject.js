@@ -1050,10 +1050,11 @@ function eos_createObject(vm, name, type_src, sec_src, parentURI, typeURI, secUR
     obj.TypeURI = typeURI;
     obj.SecurityURI = secURI;
     obj.parent = __eos_objects["terminal"].getChild(parentURI.split("/")); // XXX sneaky place
+    obj.parent.childList[name] = obj;
     //console.log("getting parent of "+parentURI+" set to "+(obj.parent ? obj.parent.name : obj.parent));
     obj.uri = obj.parent.uri+"/"+name; 
     __eos_objects[obj.uri] = obj; // DUP name issue??? 
-    obj.parent.childList[name] = obj;
+    
     
     obj.serID = -1;
     obj.childList = {};
