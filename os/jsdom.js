@@ -305,7 +305,38 @@ function __htmldom_getter_this(name) {
     return this["get"+name.charAt(0).toUpperCase() + name.substr(1)]();
 }
 
+function __htmldom_get_wrappedElement(name) {
+    if(!this.___link) return null;
+    return (this.ownerDocument.___get_from_link(this.___link[name]) || null);
+}
 
+function _col_item (idx) {
+  return this[idx];
+}
+
+function _col_namedItem (name) {
+  for(var i=0; i<this.length;i++) {
+    if(this[i].id == name) return this[i];
+  }
+  for(var i=0; i<this.length;i++) {
+    if(this[i].getAttribute("name") == name) return this[i];
+  }
+  return null;
+}
+
+function __htmldom_get_wrappedElement_list(name) {
+    if(!this.___link) return null;
+    var els = this.___link[name];
+    var el;
+    var col = [];
+    col.item = _col_item;
+    col.namedItem = _col_namedItem;
+    for(var i=0;i<els.length;i++) {
+      el = this.ownerDocument.___get_from_link(els[i]);
+      if(el) col.push(el);
+    }
+    return col;
+}
 
 /* GETTER/SETTER NODE LIST - IE equivalent
 
@@ -497,7 +528,13 @@ ___DOMHTMLGetters = {
     textLength : 1,
     type : 1,
     useMap : __htmldom_get_direct,
-    value : __htmldom_get_direct
+    value : __htmldom_get_direct,
+    
+    // table interface, see https://developer.mozilla.org/en/DOM/table for full spec
+    rows: __htmldom_get_wrappedElement_list,
+    cells: __htmldom_get_wrappedElement_list, // TR
+    tHead: __htmldom_get_wrappedElement,
+    tFoot: __htmldom_get_wrappedElement
     
 };
 
@@ -679,7 +716,13 @@ ___DOMHTMLSetters = {
     textLength : 1,
     // type : 1, // <--------------- XXX INTERFACE MESS HERE -- get/set mimetype of link resource
     useMap : __htmldom_set_direct,
-    value : __htmldom_set_direct
+    value : __htmldom_set_direct,
+    
+    // table interface, see https://developer.mozilla.org/en/DOM/table for full spec
+    rows: 1,
+    cells: 1, // TR
+    tHead: 1,
+    tFoot: 1
 };
 
 

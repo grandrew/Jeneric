@@ -2314,7 +2314,13 @@ DOMNode.prototype.isSupported = function DOMNode_isSupported(feature, version) {
  */
 DOMNode.prototype.getElementsByTagName = function DOMNode_getElementsByTagName(tagname) {
   // delegate to _getElementsByTagNameRecursive
-  return this._getElementsByTagNameRecursive(tagname, new DOMNodeList(this.ownerDocument));
+  //return this._getElementsByTagNameRecursive(tagname, new DOMNodeList(this.ownerDocument));
+  var nodeList = this._getElementsByTagNameRecursive(tagname, new DOMNodeList(this.ownerDocument));
+  var wrap = [].concat(nodeList._nodes); // does not actually return NodeList and thus not compliant but works
+  for(var o in nodeList) wrap[o] = nodeList[o]; // to fully conform...
+  wrap.item = function(i) {return this[i];};
+  return wrap;
+  
 };
 
 /**
@@ -2345,7 +2351,7 @@ DOMNode.prototype._getElementsByTagNameRecursive = function DOMNode__getElements
         //}
     }
   }
-
+  
   return nodeList;
 };
 
