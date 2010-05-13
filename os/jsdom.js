@@ -564,8 +564,8 @@ ___DOMHTMLSetters = {
         //console.log("Setting innerHTML to: "+value);
         
         // if: createContextualFragment fix
-        if(this.tagName && di._isValidName(this.tagName.toString())) var dom = di.loadXML("<"+this.tagName+">"+value+"</"+this.tagName+">"); 
-        else var dom = di.loadXML("<div>"+value+"</div>"); 
+        if(this.tagName && di._isValidName(this.tagName.toString())) var dom = di.loadXML("<"+this.tagName+">"+value+"</"+this.tagName+">", this.ownerDocument.___vm); 
+        else var dom = di.loadXML("<div>"+value+"</div>", this.ownerDocument.___vm); 
         //this.childNodes = dom.documentElement.childNodes; // what with ownerDocument??
         this.___link.innerHTML = "";
         // TODO: deal with memory-management mess here (ownerDocument, delete old DI, parents, etc. refs)
@@ -1296,7 +1296,7 @@ DOMElement.prototype.addEventListener = function ( type, listener, useCapture, s
             }
             vm.execf_stack(cstack, listener, [e], e.target); 
         } else { // new thread
-            //console.log("------------- new thread!");
+            //console.log("------------- new thread! "+listener);
             cstack = vm.execf_thread(listener, [e], fake, evt_fakeerr, -11, e.target); // -11 nice will preempt task
         }
         // we need to append to thread stack - if it exists - and do not append if stack is too full

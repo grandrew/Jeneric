@@ -186,7 +186,7 @@ DOMImplementation.prototype.hasFeature = function DOMImplementation_hasFeature(f
  *
  * @return : DOMDocument
  */
-DOMImplementation.prototype.loadXML = function DOMImplementation_loadXML(xmlStr) {
+DOMImplementation.prototype.loadXML = function DOMImplementation_loadXML(xmlStr, vm) {
   // create SAX Parser
   var parser;
 
@@ -199,7 +199,7 @@ DOMImplementation.prototype.loadXML = function DOMImplementation_loadXML(xmlStr)
 
   // create DOM Document
   var doc = new DOMDocument(this);
-
+  if(vm) doc.___vm = vm;
   // populate Document with Parsed Nodes
   this.___parseLoop(doc, parser);
 
@@ -3371,7 +3371,19 @@ DOMElement.prototype.setAttributeNode = function DOMElement_setAttributeNode(new
   var value = newAttr.value;
   
   // or maybe do these gurds at setNamedItem?
-  if(sname.substr(0,2) == "on") return; // do nothing
+  if(sname.substr(0,2) == "on") {
+    // ough..
+    // try to register eventHandler w/eval as string argument
+    //var listener = {body: parse(value)}; // (try to) parse input string
+    //listener.node = listener;
+    try {
+      listener = new this.ownerDocument.___vm.global.Function("event", value);
+      this.addEventListener( sname.slice(2), listener);
+    } catch (e) {
+      this.ownerDocument.___vm.ErrorConsole.log("Failed to create event handler for "+sname+": '"+value+"' at "+this+" due to: "+e);
+    }
+    return; // do nothing
+  }
   if(sname == "target" && value != "_blank") return; // DOC: this and all around here
   
   if(sname === "type" && value === "application/x-shockwave-flash") this.___flash = true; // todo: not sure this works in IE
