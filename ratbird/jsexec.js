@@ -4027,6 +4027,12 @@ Jnaric.prototype.execf_thread = function (func, args, onok, onerr, nice, thisObj
     //console.log(func);
     
     //console.log(onerr.toString());
+
+    //WARNING! this stuff is for jeneric only!
+    if(window.__eos_objects && (!(__eos_objects[this.uri]))) {
+        this.ErrorConsole.log("WARNING! denied creating stack for nonexistent object; heap fouled");
+        return;
+    }    
     
 if(!onerr) this.ErrorConsole.log("WARNING! running execf_thread without onerr");
 if(!onok) this.ErrorConsole.log("WARNING! running execf_thread without onok");
@@ -4069,6 +4075,12 @@ if(!onok) this.ErrorConsole.log("WARNING! running execf_thread without onok");
 }
 
 Jnaric.prototype.execf_stack = function (stack, func, args, thisObject) {
+
+    //WARNING! this stuff is for jeneric only!
+    if(window.__eos_objects && (!(__eos_objects[this.uri]))) {
+        this.ErrorConsole.log("WARNING! denied modifying stack for nonexistent object; heap fouled");
+        return;
+    }    
 
     var x2 = new this.ExecutionContext(GLOBAL_CODE);
     if(typeof(thisObject) == "undefined") x2.thisObject = this.global;
