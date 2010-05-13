@@ -2108,7 +2108,7 @@ function eos_deleteChild(vm, name) {
 Jnaric.prototype.bind_om = function () {
     // bind object model to VM global
     var __tihs = this;
-    
+    this.ErrorConsole.id=this.uri+": ";
     //delete this.global.fetchUrl; // should be done by security!
     //delete this.global.load;
  

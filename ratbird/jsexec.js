@@ -418,15 +418,18 @@ function __jn_wd () {
 // XXX DISABLED FOR DEBUGGING PURPOSES...
 // setInterval(__jn_wd, __jn_stacks.SET_TIMEOUT * 10); // 10 timeouts for check
 
-function __ErrorConsole() {
+function __ErrorConsole(id) {
+    if(id) this.id = id+": ";
+    else this.id= "";
     this.messages = [];
     this.size = 100;
     // register firebug as supplementary console logging tool
+    var self = this;
     if(typeof(console) != "undefined") {
         if(console.log) this.log2 = function (s) { 
-            console.log(s);
+            console.log(self.id+s);
         };
-        this.log("Registered firebug console as supplementary logging tool; If this is not intended behaviour - change .log2 method");
+        this.log(this.id+"Registered firebug console as supplementary logging tool; If this is not intended behaviour - change .log2 method ");
     }
 }
 
@@ -2463,7 +2466,7 @@ Jnaric.prototype.step_execute = function (n, x, stack) {
                   stack.my.TRY_WAIT = false;
                   //if("v2" in stack.my) 
                   delete stack.my.v2;
-                  break;
+                  //break; // was BUG: does not update on continue in FOR
               } else if (stack.EXCEPTION == BREAK && x.target == n) {
                   // like catch it
                   stack.EXCEPTION = false; // if left true - propagate to further stack until caught (?????)
