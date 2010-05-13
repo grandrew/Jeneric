@@ -244,7 +244,14 @@ __jn_stacks = {
 
                 // TODO: switch context for BURST group only
             st.vm.ExecutionContext.current = st.stack.exc;
+            ObjectProto = Object.prototype;
             Object.prototype = st.stack.object_prototype;
+            
+            // NO!!! only switch context when accessing Array metthods
+            // (use the proto from global Array)
+            // ArrayProto = Array.prototype;
+            // Array.prototype = 
+            
             st.vm.cur_stack = st.stack; // for eval () method and other context switching
             if(st.stack.global_scope) {
                 // switch global scope
@@ -307,6 +314,7 @@ __jn_stacks = {
             // switch context back...
             st.stack.exc = st.vm.ExecutionContext.current; 
             st.stack.object_prototype = Object.prototype;
+            Object.prototype = ObjectProto;
             if(st.stack.global_scope) {
                 st.vm.global = st.vm.global_bak;
             }
@@ -1081,6 +1089,7 @@ FUNCTIONOBJECT_PROTOTYPE = {
     }
 };
 
+
 function Jnaric() {
     this.STEP_TIMEOUT = 1; // 1 ms ;-)
     this.STACKSIZE = 10000; // very much recursion ;-)
@@ -1843,6 +1852,7 @@ __Stack = function (exc) {
     this.exc = exc;
     this.e_stack = [];
     this.object_prototype = {};
+    
 }
 
 __Stack.prototype.push = function (x, o) {
@@ -3684,9 +3694,6 @@ Jnaric.prototype.step_execute = function (n, x, stack) {
         
         
       case CALL:
-        //r = execute(n[0], x);
-        //a = execute(n[1], x);
-        // .v
         if(!("r" in stack.my)) {
             stack.push(S_EXEC, {e:"r", n: n[0], x: x, Nodes: n, Context: x, NodeNum: 0, pmy: stack.my.myObj});
             stack.push(S_EXEC, {e:"a", n: n[1], x: x, Nodes: n, Context: x, NodeNum: 0, pmy: stack.my.myObj});
@@ -3701,12 +3708,7 @@ Jnaric.prototype.step_execute = function (n, x, stack) {
                                     n[0].filename, n[0].lineno);
                 stack.EXCEPTION = THROW;
                 break;
-// !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!1
-// !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!1
-// !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!1
-// !! still don't understand... how and who will catch the exception? where is exception obj?
-// !! here stack.exception should not equal to THROW! but i still dunno whats goin on...
-               
+
             }
             t = (stack.my.r instanceof Reference) ? stack.my.r.base : null;
             if (t instanceof Activation)
@@ -3725,7 +3727,7 @@ Jnaric.prototype.step_execute = function (n, x, stack) {
                     break;
                 } else {
                     //console.log("calling ___call___");
-                    f.___call___(t, stack.my.a, x, stack); // this will add 'v0'
+                    f.___call___(t, stack.my.a, x, stack, this); // this will add 'v0'
                     stack.my.TRY_WAIT = true;
                     break;
                 }
@@ -3738,21 +3740,9 @@ Jnaric.prototype.step_execute = function (n, x, stack) {
                 
                 if(stack.EXCEPTION == RETURN) {
                     v = stack.my.x2.result;
-                    
                     stack.EXCEPTION = false;
-                    // remove fake stack push
-                    /*
-                    if(stack.stack[stack.stack.length-2].n.type==TRUE) {
-                        stack.stack.pop();
-                        console.log("deleting true");
-                    } else {
-                        console.log("stacktype: "+stack.stack[stack.stack.length-2].n.type+" true "+TRUE);
-                    }
-                    */
-                    this.ExecutionContext.current = stack.my.oldxx;
-                  
+                    this.ExecutionContext.current = stack.my.oldxx;                  
                     stack.my.done = true;
-                    
                     break;
                 } else if (stack.EXCEPTION == THROW) {
                     if(stack.my.x2 && stack.my.x2.result) x.result = stack.my.x2.result; // after all, stack.my.x2.result will contain the result!
@@ -3761,7 +3751,6 @@ Jnaric.prototype.step_execute = function (n, x, stack) {
                         //x.result = undefined;
                     }
                     this.ExecutionContext.current = stack.my.oldxx;
-                   
                     stack.my.done = true; // this is not required :-)
                     break; // the exception propagate further (like throw it again)
                 }
@@ -4303,6 +4292,15 @@ if (!('___call___' in Fp)) {
         return v instanceof Function || v instanceof vm.global.Function || v instanceof this;
     //}, true, true, true);
     };
+    
+    
+    /* Now we need to do some Array tweaking */
+    Array.prototype.sort.___call_fop = Array.prototype.sort.___call___;
+    Array.prototype.sort.___call___ = function (t, a, x, stack) {
+        // do either call native method or something defined at VM global
+        if(vm.global.Array.prototype.sort) return vm.global.Array.prototype.sort.___call___(t,a,x,stack);
+        this.___call_fop(t,a,x,stack);
+    }
 }
 
 
