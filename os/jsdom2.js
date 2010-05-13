@@ -3231,7 +3231,7 @@ DOMElement.prototype.setAttribute = function DOMElement_setAttribute(name, value
   var sname = name.toLowerCase();
   if(sname.substr(0,2) == "on") return; // do nothing
   if(sname === "src" && this.___isLink && this.___isStyleSheet) { // get & parse the css
-  console.log("will iport CSS!!");
+  if(window.console) console.log("will iport CSS!!");
     this.ownerDocument.___vm._importCSS(this.ownerDocument.___vm, src, false);
   }
   

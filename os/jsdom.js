@@ -591,6 +591,7 @@ ___DOMHTMLSetters = {
         var els = dom.documentElement.getElementsByTagName("*");
         for(var i=0;i<els.length;i++) {
             els[i].ownerDocument = this.ownerDocument;
+            els[i].attributes.ownerDocument = this.ownerDocument;
         }
         
         var el;
