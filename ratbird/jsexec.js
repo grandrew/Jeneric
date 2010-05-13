@@ -292,7 +292,8 @@ __jn_stacks = {
                 } catch (exc) { // will not stop scheduler!
                     if(window.console) {
 						console.log("TICK: Error exeuting next step:");
-						console.log(exc);
+						console.log(exc+" "+exc.stack+" f:"+exc.fileName+" l:"+exc.lineNumber);
+                        EXCEPTION = exc;
 					}
                     ex_status = false;
                 }

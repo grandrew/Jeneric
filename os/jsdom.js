@@ -302,7 +302,11 @@ function __htmldom_get_direct(name) {
 }
 
 function __htmldom_getter_this(name) {
-    return this["get"+name.charAt(0).toUpperCase() + name.substr(1)]();
+    try {
+        return this["get"+name.charAt(0).toUpperCase() + name.substr(1)]();
+    } catch (e) {
+        console.log("Failed to get_this!! execute at "+this);
+    }
 }
 
 function __htmldom_get_wrappedElement(name) {
