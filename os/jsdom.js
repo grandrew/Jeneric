@@ -305,8 +305,9 @@ function __htmldom_getter_this(name) {
     try {
         return this["get"+name.charAt(0).toUpperCase() + name.substr(1)]();
     } catch (e) {
-        console.log("Failed to get_this!! execute at "+this);
+    
     }
+    //return undefined; // fuck???
 }
 
 function __htmldom_get_wrappedElement(name) {
@@ -537,6 +538,7 @@ ___DOMHTMLGetters = {
     // table interface, see https://developer.mozilla.org/en/DOM/table for full spec
     rows: __htmldom_get_wrappedElement_list,
     cells: __htmldom_get_wrappedElement_list, // TR
+    tBodies: __htmldom_get_wrappedElement_list, 
     tHead: __htmldom_get_wrappedElement,
     tFoot: __htmldom_get_wrappedElement
     
