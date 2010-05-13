@@ -540,7 +540,9 @@ ___DOMHTMLGetters = {
     cells: __htmldom_get_wrappedElement_list, // TR
     tBodies: __htmldom_get_wrappedElement_list, 
     tHead: __htmldom_get_wrappedElement,
-    tFoot: __htmldom_get_wrappedElement
+    tFoot: __htmldom_get_wrappedElement,
+    cellIndex: __htmldom_get_direct,
+    rowIndex: __htmldom_get_direct
     
 };
 
@@ -728,7 +730,10 @@ ___DOMHTMLSetters = {
     rows: 1,
     cells: 1, // TR
     tHead: 1,
-    tFoot: 1
+    tFoot: 1,
+    tBodies: 1,
+    cellIndex: 1,
+    rowIndex: 1
 };
 
 
