@@ -65,7 +65,8 @@ __eos_serial_weak = []; // objects that can NOT be swapped out now // XXX name m
 __SERIALIZER = {};
 
 
-
+function fakeerr(e) {if(window.console) console.log("Generic error: "+e);}
+function fake() {}
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////
 // BLOB Wrapper methods
@@ -2296,6 +2297,15 @@ Jnaric.prototype.bind_om = function () {
     for(var ob in this.global.object) {
         this.security.object[ob] = this.global.object[ob];
     }    
+    
+    if(objJSExt.sendCmd) this.global.object.JNEXT = {
+        UdpSocket: function UdpSocket () {
+            return (new JNEXT_UdpSocket(__tihs));
+        }, 
+        AsyncLineSocket: function AsyncLineSocket () {
+            return (new JNEXT_AsyncLineSocket(__tihs));
+        }
+    };
     
     this.bind_storage(); // always try to bind storage
     

@@ -1,0 +1,67 @@
+// LICENSE: GPL v.3 or later (C) 2010 Andrew Gryaznov realgrandrew@gmail.com, a.gryaznov@svoyaset.ru
+
+if(!window._conform_st) _conform_st = false;
+
+/*
+    set_closebox ( div )
+    Set "closable box" for the div supplied
+    will require the div object to have 'prog' property with the name of the running program to close
+    (it is added by default by ic_run_program)
+*/
+
+function set_closebox (el) {
+    el.style.border="1px dotted white";
+    el.style.width = "100%";
+    el.onmouseover = _ic_param_box_on;
+    el.onmouseout = _ic_param_box_off;
+    var d = document.createElement("DIV");
+    //d.innerHTML = "<button>X</button>";
+    
+    el.appendChild(d);
+    //need more fixes for FF, Opera, others.. for 'float' tag
+    d.style.cssFloat = "right";// TODO: need to fix IE!
+    d.style.styleFloat = "right";// this is IE way! DOC: currenty we dont fix css
+    d.style.visibility = "hidden";
+    
+    d.innerHTML = "x";
+    d.style.cursor = "pointer";
+    d.style.fontFamily = "arial";
+    d.style.fontSize = "10px";
+    d.style.paddingRight = "5px";
+    
+    d.onclick = _ic_close_click;
+    
+    el.closeButton = d;
+    d.onmouseover = _ic_param_box_on;
+    d.onmouseout = _ic_param_box_off;
+}
+
+function _ic_close_click(e) {
+    if(this.parentNode.prog) {
+        try {
+            if(_conform_st) execURI("~/run", "deleteChild", [this.parentNode.prog]);
+            else object.deleteChild(this.parentNode.prog);
+        } catch (e) {
+            ErrorConsole.log("IC: failed to remove child: "+e);
+        }
+    }
+    //if(this.parentNode.onmouseout)
+        this.parentNode.parentNode.removeChild(this.parentNode);
+}
+
+function _ic_param_box_on(e) {
+    if(this.closeButton) { 
+        this.style.borderColor = "#c0c0c0";
+        this.closeButton.style.visibility="visible";
+    } 
+}
+
+function _ic_param_box_off(e) {
+    if(this.closeButton) { 
+        //if((e.relatedTarget != null) && (e.target != null)) ErrorConsole.log(e.target.compareDocumentPosition(e.relatedTarget));
+        if((e.relatedTarget != null) && (e.target != null) && !(e.target.compareDocumentPosition(e.relatedTarget) & 0x10)) {
+            this.style.borderColor = "white";
+            this.closeButton.style.visibility="hidden";
+        }
+    } 
+}

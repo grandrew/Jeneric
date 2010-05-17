@@ -52,7 +52,7 @@ from twisted.internet import reactor
 from twisted.internet.task import LoopingCall
 from random import random,seed,choice
 from orbited import json
-import string,time,thread,copy,sqlite3, traceback
+import string,time,thread,copy,sqlite3, traceback,copy
 import simplejson
 from storage import * # import storage submodule (JEFS1)
 
@@ -505,7 +505,9 @@ class Hub(StompClientFactory):
                     dbconn.commit()
                     c.close()
                     del sessions[terminals[ss]]
-                    del terminals[ss]    
+                    del terminals[ss]
+                    # force to reannounce
+                    self.dummy_send(ss, simplejson.dumps({"error": "NOSESSION"})) 
                 except KeyError:
                     print "dropping unknown session. WTF?"
                     pass
@@ -550,7 +552,7 @@ class Hub(StompClientFactory):
         pass
         # invent session automatically
         sess = genhash(20)
-        add_session(terminal_id, sess, time.time()+1e6); # and to never timeout
+        add_session(terminal_id, sess, time.time()+1e9); # and to never timeout
         self.static_servers[sess] = dest_callback;
         if DEBUG>2: print "BLOB session is", sess
     
@@ -1027,7 +1029,7 @@ class BlobPipe(Resource):
             
             if DEBUG>1: print "render_GET: requesting first block"
 
-            self.requestHub.self_receive(GETPIPE_TERMNAME, rq) # # NO!! do not send to session
+            self.requestHub.self_receive(GETPIPE_TERMNAME, copy.copy(rq)) # # NO!! do not send to session
             # # we need to expose a mechanism to resolver normal requests (for example, have a special session ID for external RQs)
             
 
@@ -1151,7 +1153,7 @@ class BlobPipe(Resource):
                         # request next block
                         self.pipes[rq2["id"]] = {"rq": rq2, "request": self.pipes[rqid]["request"], "pos": self.pipes[rqid]["pos"]+READBYTES, "ts":time.time(), "uri": self.pipes[rqid]["uri"], "dir": 0, "arg": rarg, "abort": self.pipes[rqid]["abort"]}
                         print "requesting NEXT block!", blobid
-                        self.requestHub.self_receive(GETPIPE_TERMNAME, rq2) # NO!! do not send to session
+                        self.requestHub.self_receive(GETPIPE_TERMNAME, copy.copy(rq2)) # NO!! do not send to session
                         del self.pipes[rqid]
                         
                 else:
@@ -1169,7 +1171,7 @@ class BlobPipe(Resource):
                     # COPYPASTE WARNING HERE!
 
                     self.pipes[rq2["id"]] = {"rq": rq2, "request": self.pipes[rqid]["request"], "pos": self.pipes[rqid]["pos"]+READBYTES, "ts": time.time(), "uri": self.pipes[rqid]["uri"], "dir": 0, "arg": rarg, "abort": self.pipes[rqid]["abort"]}
-                    self.requestHub.self_receive(GETPIPE_TERMNAME, rq2) ## NO!! do not send to session
+                    self.requestHub.self_receive(GETPIPE_TERMNAME, copy.copy(rq2)) ## NO!! do not send to session
                     
                     del self.pipes[rqid]
                     #print "rq2 is", rq2["id"], (rq2["id"] in self.pipes)
@@ -1344,7 +1346,7 @@ class BlobPipe(Resource):
         else: 
             if request: request.finish()
         print "SEND_BLOB: issuing next WRITE operation!:", rq
-        self.requestHub.self_receive(GETPIPE_TERMNAME, rq)
+        self.requestHub.self_receive(GETPIPE_TERMNAME, copy.copy(rq))
 
 import storage
 
