@@ -86,7 +86,7 @@ JNEXT_UdpSocket = function(vm)
                 //self.onError();
                 if (typeof(self.onError) == 'function') self.onError();
                 else {
-                    self.___vm.execf_thread(self.onError, [], fake, fakeerr);
+                    self.___vm.execf_thread(self.onError, [], fake);
                 }
                 break;
             }
@@ -100,7 +100,7 @@ JNEXT_UdpSocket = function(vm)
                 //self.onPacket( strFromIP, nFromPort, strData );
                 if (typeof(self.onPacket) == 'function') self.onPacket();
                 else {
-                    self.___vm.execf_thread(self.onPacket, [strFromIP, nFromPort, strData], fake, fakeerr);
+                    self.___vm.execf_thread(self.onPacket, [strFromIP, nFromPort, strData], fake);
                 }
                 break;
             }
@@ -181,7 +181,7 @@ JNEXT_AsyncLineSocket = function(vm)
             {
                 if (typeof(self.onConnectError) == 'function') self.onConnectError();
                 else {
-                    self.___vm.execf_thread(self.onConnectError, [], fake, fakeerr);
+                    self.___vm.execf_thread(self.onConnectError, [], fake);
                 }
                 break;
             }
@@ -191,7 +191,7 @@ JNEXT_AsyncLineSocket = function(vm)
                 //self.onConnected();
                 if (typeof(self.onConnected) == 'function') self.onConnected();
                 else {
-                    self.___vm.execf_thread(self.onConnected, [], fake, fakeerr);
+                    self.___vm.execf_thread(self.onConnected, [], fake);
                 }
                 break;
             }
@@ -203,7 +203,7 @@ JNEXT_AsyncLineSocket = function(vm)
                 //self.onClose( strReason );
                 if (typeof(self.onClose) == 'function') self.onClose(strReason);
                 else {
-                    self.___vm.execf_thread(self.onClose, [strReason], fake, fakeerr);
+                    self.___vm.execf_thread(self.onClose, [strReason], fake);
                 }
                 break;
             }
@@ -214,7 +214,7 @@ JNEXT_AsyncLineSocket = function(vm)
                 //self.onLine( strLine );
                 if (typeof(self.onLine) == 'function') self.onLine(strLine);
                 else {
-                    self.___vm.execf_thread(self.onLine, [strLine], fake, fakeerr);
+                    self.___vm.execf_thread(self.onLine, [strLine], fake);
                 }
                 break;
             }

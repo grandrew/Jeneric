@@ -542,8 +542,11 @@ ___DOMHTMLGetters = {
     tHead: __htmldom_get_wrappedElement,
     tFoot: __htmldom_get_wrappedElement,
     cellIndex: __htmldom_get_direct,
-    rowIndex: __htmldom_get_direct
+    rowIndex: __htmldom_get_direct,
     
+    // listbox interface
+    selectedIndex: __htmldom_get_direct,
+    options: __htmldom_get_wrappedElement_list// TODO: options list w/add/remove    
 };
 
 // Setters should always return a value
@@ -741,7 +744,12 @@ ___DOMHTMLSetters = {
     tFoot: 1,
     tBodies: 1,
     cellIndex: 1,
-    rowIndex: 1
+    rowIndex: 1,
+    // TODO: insertRow..
+    
+    // listbox interface
+    selectedIndex: __htmldom_set_direct,
+    options: 1
 };
 
 

@@ -4024,8 +4024,8 @@ Jnaric.prototype.execf_thread = function (func, args, onok, onerr, nice, thisObj
         return;
     }    
     
-if(!onerr) this.ErrorConsole.log("WARNING! running execf_thread without onerr");
-if(!onok) this.ErrorConsole.log("WARNING! running execf_thread without onok");
+//if(!onerr) this.ErrorConsole.log("WARNING! running execf_thread without onerr");
+//if(!onok) this.ErrorConsole.log("WARNING! running execf_thread without onok");
 
     if(typeof nice == "undefined") var nice = this.nice;
 
