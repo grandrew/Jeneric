@@ -571,6 +571,7 @@ ___DOMHTMLSetters = {
         // not attaching it anywhere onevent
         var di = new DOMImplementation();
         // XXX namespace-inaware!! TODO: more conformace
+        //     TODO: consider using importNode !!??
         // not quite conforming to http://www.w3.org/TR/2008/WD-html5-20080610/dom.html#innerhtml1
         //console.log("Setting innerHTML to: "+value);
         

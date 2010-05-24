@@ -2471,6 +2471,18 @@ DOMNode.prototype.importNode = function DOMNode_importNode(importedNode, deep) {
             importNode._namespaces._nodes[i].setValue(importedNode._namespaces.item(i).value);
         }
         }
+        
+        // import real styles
+        console.log("going to clone...");
+        if(importedNode.___link && importNode.___link) {
+            console.log("cloning styles...");
+            for(var i=0; i<importedNode.___link.style.length;i++) {
+              importNode.___link.style[importedNode.___link.style[i]] = importedNode.___link.style[importedNode.___link.style[i]];
+            }
+        }
+        
+        // TODO: deal with event handlers bug for IE
+        
     }
     else if (importedNode.nodeType == DOMNode.ATTRIBUTE_NODE) {
         if (!this.ownerDocument.implementation.namespaceAware) {
