@@ -2473,9 +2473,9 @@ DOMNode.prototype.importNode = function DOMNode_importNode(importedNode, deep) {
         }
         
         // import real styles
-        console.log("going to clone...");
+        
         if(importedNode.___link && importNode.___link) {
-            console.log("cloning styles...");
+            
             for(var i=0; i<importedNode.___link.style.length;i++) {
               importNode.___link.style[importedNode.___link.style[i]] = importedNode.___link.style[importedNode.___link.style[i]];
             }
