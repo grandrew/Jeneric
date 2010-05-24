@@ -2475,10 +2475,30 @@ DOMNode.prototype.importNode = function DOMNode_importNode(importedNode, deep) {
         // import real styles
         
         if(importedNode.___link && importNode.___link) {
-            
-            for(var i=0; i<importedNode.___link.style.length;i++) {
-              importNode.___link.style[importedNode.___link.style[i]] = importedNode.___link.style[importedNode.___link.style[i]];
+            var bad = false;
+            if(importedNode.___link.style.length) {
+                for(var i=0; i<importedNode.___link.style.length;i++) {
+                  if(!importNode.___link.style[importedNode.___link.style[i]]) {
+                    bad = true; // FF 3.6 & opera 10.50 bug
+                    break;
+                  }
+                  importNode.___link.style[importedNode.___link.style[i]] = importedNode.___link.style[importedNode.___link.style[i]];
+                }
             }
+            
+            if(bad || !importedNode.___link.style.length) {
+                for(var o in importedNode.___link.style) {
+                    if(!importedNode.___link.style[o]) continue;
+                    try {
+                        importNode.___link.style[o] = importedNode.___link.style[o];
+                    } catch (eee) {
+                        //console.log("WEEEE: " +eee)
+                        // setting property that has only a getter...
+                    }
+                }
+            }
+            
+            
         }
         
         // TODO: deal with event handlers bug for IE
