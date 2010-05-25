@@ -2298,10 +2298,13 @@ Jnaric.prototype.bind_om = function () {
         this.security.object[ob] = this.global.object[ob];
     }    
     
-    if(objJSExt.sendCmd) this.global.object.JNEXT = { // DOC this!!
+    this.global.object.JNEXT = { // DOC this!!
         init: function jnext_init () {
             if(!window.JNEXT) {
                 JNEXT = new JNEXT_();
+                return !!objJSExt.sendCmd; // WARNING! non-standard??!!
+            } else {
+                return !!objJSExt.sendCmd;
             }
         },
         UdpSocket: function UdpSocket () {
