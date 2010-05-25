@@ -177,4 +177,4 @@ function JNEXT_()
     self.attachToDOM();
 }
 
-var JNEXT = new JNEXT_();
+
