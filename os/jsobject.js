@@ -1529,6 +1529,26 @@ Jnaric.prototype.serialize = function (onfinish, onerror) {
 
 eos_om = {
 
+    jnext_init: function (vm) {
+        vm.cur_stack.my.v0 = undefined;
+        var __cs = vm.cur_stack;
+        var x2 = __cs.my.x2;
+        vm.cur_stack.EXCEPTION = false;
+        var _mystop = __jn_stacks.newId();
+        vm.cur_stack.STOP = _mystop;
+        JNEXT = new JNEXT_();
+
+        var exec_f = function () {
+            x2.result = !!objJSExt.sendCmd; // WARNING! non-standard??!!
+            __cs.EXCEPTION = RETURN;
+            __cs.STOP = false;
+            __jn_stacks.start(__cs.pid);
+        };
+        
+        setTimeout(exec_f, 100);
+    },
+
+
     openFiles: function (vm, options, callback) {
         vm.cur_stack.my.v0 = undefined;
         var __cs = vm.cur_stack;
@@ -2301,10 +2321,10 @@ Jnaric.prototype.bind_om = function () {
     this.global.object.JNEXT = { // DOC this!!
         init: function jnext_init () {
             if(!window.JNEXT) {
-                JNEXT = new JNEXT_();
-                return !!objJSExt.sendCmd; // WARNING! non-standard??!!
+                eos_om.jnext_init(__tihs);
+                //return !!objJSExt.sendCmd; // WARNING! non-standard??!!
             } else {
-                return !!objJSExt.sendCmd;
+                return !!objJSExt.sendCmd; // WARNING! non-standard??!!
             }
         },
         UdpSocket: function UdpSocket () {

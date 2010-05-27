@@ -45,7 +45,7 @@ function s_agent() {
     }
 }
 
-// now run init tasks from /sys/init ramdir
+// now run init tasks from ~/conf/init ramdir
 // DOC this
 objs = [];
 try {
@@ -65,7 +65,8 @@ if(i == 0) {
     //        either from server or from locally stored object in /var...
     ErrorConsole.log("totinit: nothing to run! launching reserved IC#");
 
-    object.createChild("console", "~/sys/ic", "~/sys/anarchic", document.body); 
+    object.createChild("console", "~/sys/ic", "~/sys/anarchic", document.body);
+    start_new_thread(function() {execURI("./console", "securitySet", [{"ipcIn": {"write":["*"]}}], 50000)});
 }
 // and finally create init folder and this init at /sys/init location (folder-store!!)
 
