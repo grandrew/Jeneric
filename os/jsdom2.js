@@ -2172,8 +2172,11 @@ DOMNode.prototype.appendChild = function DOMNode_appendChild(newChild) {
 
   // GDW
    
-  // TODO: IE fix table!!
-  //if(this.tagName == "TABLE")
+  // TODO: IE fix hover
+  if(_isIE) {
+    if(window.csshovertimeout) clearTimeout(window.csshovertimeout);
+    window.csshovertimeout = setTimeout(window.CSSHover, 300);
+  }
     
   if(newChild.___isBody && newChild.___link && newChild.ownerDocument.___bodyLink) newChild.ownerDocument.___bodyLink.appendChild(newChild.___link);
   else if(newChild.___link && this.___link) this.___link.appendChild(newChild.___link);

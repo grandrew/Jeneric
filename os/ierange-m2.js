@@ -520,6 +520,13 @@ if(navigator.userAgent && navigator.userAgent.indexOf("MSIE") > -1) {
     for (ob in __ERRORS) {
         define_error(ob, __ERRORS[ob]);
     }
+    
+    // now fix hover..
+    var head= document.getElementsByTagName('head')[0];
+    var script= document.createElement('script');
+    script.type= 'text/javascript';
+    script.src= 'os/csshover3.js';
+    head.appendChild(script);
 
 }
 
