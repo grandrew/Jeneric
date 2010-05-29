@@ -346,7 +346,7 @@ DOMImplementation.prototype.___parseLoop = function DOMImplementation____parseLo
         
         // IE8 fix
         if(iNode.___rewriteNode) {
-            if(window.console) console.log("Fixing IE: "+iNode.tagName);
+            if(window.console) console.log("Fixing IE: "+iNode.tagName); 
             var iefix = document.createElement("SPAN");
             var inodeHTML = "<"+iNode.tagName+" ";
             for(var ip =0; ip < iNode.attributes._nodes.length; ip++) {
@@ -3470,6 +3470,7 @@ DOMElement.prototype.setAttributeNode = function DOMElement_setAttributeNode(new
         this.___link.setAttributeNode(newAttr.___link);
     } catch (e) {
         this.___rewriteNode = true; // IE fix
+        if(window.console) console.log("Error setting attribute: "+newAttr.name+" = "+newAttr.value+" on "+this.tagName+" with error: "+e);
     }
   } // TODO: return an error (InternalProgrammingError) if any of two coexist without real link
 
