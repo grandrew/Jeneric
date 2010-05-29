@@ -357,6 +357,11 @@ DOMImplementation.prototype.___parseLoop = function DOMImplementation____parseLo
             iNode.___link = iefix.firstChild;
             iNode.___rewriteNode = false;
         }
+        /*
+        if(iNode.___rewriteTable) {
+            iNode.getParentNode().___link.appendChild()
+        }
+        */
       }
       else {  // Namespace Aware
 
@@ -2165,12 +2170,14 @@ DOMNode.prototype.appendChild = function DOMNode_appendChild(newChild) {
   // add newChild to childNodes
   this.childNodes._appendChild(newChild);
 
-    // GDW
+  // GDW
+   
+  // TODO: IE fix table!!
+  //if(this.tagName == "TABLE")
     
-    if(newChild.___isBody && newChild.___link && newChild.ownerDocument.___bodyLink) newChild.ownerDocument.___bodyLink.appendChild(newChild.___link);
-    else if(newChild.___link && this.___link) this.___link.appendChild(newChild.___link);
-	
-	this.ownerDocument.___DOMcache_outdated = true;
+  if(newChild.___isBody && newChild.___link && newChild.ownerDocument.___bodyLink) newChild.ownerDocument.___bodyLink.appendChild(newChild.___link);
+  else if(newChild.___link && this.___link) this.___link.appendChild(newChild.___link);
+  this.ownerDocument.___DOMcache_outdated = true;
 
   if (newChild.nodeType == DOMNode.DOCUMENT_FRAGMENT_NODE) {
     // do node pointer surgery for DocumentFragment
@@ -3200,7 +3207,21 @@ DOMElement.prototype.bind_real_dom = function DOMElement_bind_real_dom() {
     this.___isLink = true;
   } 
   
-  this.___link = document.createElement(tagName); // call ONLY when tagName initialized
+  if(_isIE) {
+      if(ttn=="tr") {
+        if(window.console) console.log("Warning! patching IE table render!");
+        var ttb = document.createElement("TABLE");
+        this.___link = ttb.insertRow(-1);
+      } else if(ttn=="td") {
+        var ttb = document.createElement("TABLE");
+        var ttr = ttb.insertRow(-1);
+        this.___link = ttr.insertCell(-1);
+      } else {
+        this.___link = document.createElement(tagName); // call ONLY when tagName initialized
+      }
+  } else {
+      this.___link = document.createElement(tagName); // call ONLY when tagName initialized
+  }
   this.___link.___id = __dom_id();
   this.attributes.___link = this.___link;
   this.style = this.___link.style; // XXX is this secure?
