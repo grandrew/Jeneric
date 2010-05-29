@@ -3452,15 +3452,17 @@ DOMElement.prototype.setAttributeNode = function DOMElement_setAttributeNode(new
   if(this.tagName == "object" && sname === "data" && !this.___flash) return;
   // TODO: SRC security checks and validation
   
+  /*
   if(sname == "style" && this.___link && newAttr.___link && this.___link.setAttributeNode) {
     if(!_isIE) this.___link.setAttributeNode(newAttr.___link);
     else {
         // IE way..
+        console.log("Setting style IE way! "+newAttr.___link.value);
         applyStyleRules(this.___link, newAttr.nodeValue);
     }
     //console.log("Setting attrNode "+newAttr.___link.value);
   }
-
+  */
   // GDW
   if(newAttr.___link && this.___link) {
     // WARNING XXX set ___link to the same as attached DOMElement!!
@@ -3469,8 +3471,12 @@ DOMElement.prototype.setAttributeNode = function DOMElement_setAttributeNode(new
     try {
         this.___link.setAttributeNode(newAttr.___link);
     } catch (e) {
-        this.___rewriteNode = true; // IE fix
-        if(window.console) console.log("Error setting attribute: "+newAttr.name+" = "+newAttr.value+" on "+this.tagName+" with error: "+e);
+        if(sname == "style") { // IE does not support setting styles as attributes
+            this.___link.style.cssText = value;
+        } else {
+            this.___rewriteNode = true; // IE fix
+            if(window.console) console.log("Error setting attribute: "+newAttr.name+" = "+newAttr.value+" on "+this.tagName+" with error: "+e);
+        }
     }
   } // TODO: return an error (InternalProgrammingError) if any of two coexist without real link
 
