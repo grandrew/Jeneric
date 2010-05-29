@@ -3209,10 +3209,11 @@ DOMElement.prototype.bind_real_dom = function DOMElement_bind_real_dom() {
   
   if(_isIE) {
       if(ttn=="tr") {
-        if(window.console) console.log("Warning! patching IE table render!");
+        if(window.console) console.log("Warning! patching IE table render TR!");
         var ttb = document.createElement("TABLE");
         this.___link = ttb.insertRow(-1);
       } else if(ttn=="td") {
+        if(window.console) console.log("Warning! patching IE table render TD!");
         var ttb = document.createElement("TABLE");
         var ttr = ttb.insertRow(-1);
         this.___link = ttr.insertCell(-1);

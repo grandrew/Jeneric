@@ -18,3 +18,8 @@ html>body #fauxconsole{
 	padding-bottom:.5em;
 	text-align:right;
 }
+
+/* IE8 :hover fix by Peter Nederlof http://www.xs4all.nl/~peterned/csshover.html */
+body {
+   behavior: url("os/csshover3.htc");
+}
