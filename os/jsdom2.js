@@ -346,6 +346,7 @@ DOMImplementation.prototype.___parseLoop = function DOMImplementation____parseLo
         
         // IE8 fix
         if(iNode.___rewriteNode) {
+            if(window.console) console.log("Fixing IE: "+iNode.tagName);
             var iefix = document.createElement("SPAN");
             var inodeHTML = "<"+iNode.tagName+" ";
             for(var ip =0; ip < iNode.attributes._nodes.length; ip++) {

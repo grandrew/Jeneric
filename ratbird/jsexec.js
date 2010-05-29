@@ -2105,8 +2105,8 @@ Jnaric.prototype.step_next = function (g_stack) {
                 ex_obj = ex.x.result;
             }
             
-            if(ex_obj.name) this.ErrorConsole.log("Exception in "+this.uri+" ... "+ex_obj.name+" '"+ex_obj.message+" ("+ex_obj.result+")"+" Line: "+ex_obj.lineNumber+" File: "+ex_obj.fileName+"' Stack trace: "+__print_strace(e_stack));
-            else if (ex_obj.toString instanceof this.FunctionObject) {
+            if(ex_obj && ex_obj.name) this.ErrorConsole.log("Exception in "+this.uri+" ... "+ex_obj.name+" '"+ex_obj.message+" ("+ex_obj.result+")"+" Line: "+ex_obj.lineNumber+" File: "+ex_obj.fileName+"' Stack trace: "+__print_strace(e_stack));
+            else if (ex_obj && ex_obj.toString instanceof this.FunctionObject) {
                 
                 var __onfinish = null;
                 if(this.onfinish && (g_stack === this.g_stack) && (this._load_stack.length == 0)) {
