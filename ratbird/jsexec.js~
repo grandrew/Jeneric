@@ -1598,6 +1598,10 @@ Jnaric.prototype.__abort = function () {
     this._load_stack=[];
     this.g_stack.stack = [];
     this.onfinish = null; // TODO: should onfinish be fired on abort?? guess not.. but it must not be lost!
+    for(var tm in this.timeouts) {
+      clearTimeout(this.timeouts[tm]);
+      clearInterval(this.timeouts[tm]);
+    }
     //this.onerror = null;
 };
 
