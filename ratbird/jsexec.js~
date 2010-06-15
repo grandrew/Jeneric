@@ -1599,6 +1599,7 @@ Jnaric.prototype.__abort = function () {
     this.g_stack.stack = [];
     this.onfinish = null; // TODO: should onfinish be fired on abort?? guess not.. but it must not be lost!
     for(var tm in this.timeouts) {
+      if(window.console) console.log("Removing tmid "+this.timeouts[tm]);
       clearTimeout(this.timeouts[tm]);
       clearInterval(this.timeouts[tm]);
     }
