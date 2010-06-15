@@ -545,11 +545,12 @@ hubConnection = {
                 
                 try {
                     //this.stomp.send(JSON.stringify(this.rqe[i]["r"], replacer), HUB_PATH);
+                    var jsn = JSON.stringify(this.rqe[i]["r"], replacer);
                     if(DEBUG && window.console) {
-                        console.log("Sending "+this.rqe[i]["r"]);
+                        console.log("Sending "+jsn);
                         //AAA_json = this.rqe[i]["r"];
                     }
-                    var jsn = JSON.stringify(this.rqe[i]["r"], replacer);
+                    
                     //if(window.console) console.log("Sending "+jsn);
                 } catch (e) {
                     this.rqe[i]["r"]["status"] = "EEXCP"; // DOC document this too
