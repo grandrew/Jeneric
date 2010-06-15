@@ -2085,6 +2085,7 @@ function eos_deleteChild(vm, name) {
                     newss.push(__jn_stacks.stacks_running[j]);
             __jn_stacks.stacks_running = newss;
         }
+        ch.__abort();
     }
     
     // clean CSS stylesheets
