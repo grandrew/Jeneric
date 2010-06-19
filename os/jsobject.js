@@ -748,7 +748,7 @@ Jnaric.prototype.getParent = function () {
 function kIPC(vm, uri, method, args, onok, onerr, timeout) {
 
     var rq = {
-        id: __jn_stacks.newId(), 
+        id: __jn_stacks.newId()+(new Date().getTime())+"", // dunno why at init time the ID counter is not enough and can interfere with something else :\
         uri: uri,
         terminal_id: "~", // always 'myself' for local requests - remote set at hubConnection
 /*
