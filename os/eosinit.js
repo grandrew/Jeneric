@@ -530,7 +530,9 @@ hubConnection = {
                 if(this.rqe[i]["resend_count"] >= MAXRESEND_TO_RESET) {
                     if(DEBUG && window.console) console.log("Resetting STOMP due to resend_count hit");
                     this.stomp.reset();
-                    this.resend_count = 0;
+                    for(var irr=0;irr<this.rqe.length;irr++) {
+                      this.rqe[irr]["resend_count"] = 0;
+                    }
                 }
                 
                 this.rqe[i]["r"].session = this.___SESSIONKEY;
