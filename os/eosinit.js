@@ -38,7 +38,8 @@ MAX_WINDOW_SIZE = 60000; // ms. max window size for ACKs to remember
 KEY_LENGTH = 80; // bytes stringkey length
 PING_INTERVAL = 90000;
 MAXFAIL_TO_RESET = 1; // failed transmits to reset STOMP connection
-MAXRESEND_TO_RESET = 4; // resends to reset STOMP connection
+MAXRESEND_TO_RESET = 5; // resends to reset STOMP connection
+STOMP_ERRORS_TO_RESET = 3;
 
 // GENERAL INIT part
 KCONFIG = {
@@ -359,6 +360,7 @@ hubConnection = {
     last_ack: (new Date()).getTime(),
     fail_count: 0,
     resend_count: 0,
+    stomperror_count: 0,
     announce: function () {
         // TODO: announce ourself with credentials so server says we're the one we need
         //       i.e. send terminal authentication data
@@ -521,7 +523,7 @@ hubConnection = {
             } else {
                 if(!force && this.rqe[i]["last_resend"] && ((ct - this.rqe[i]["last_resend"]) < RQ_RESEND_INTERVAL)) continue;
                 this.rqe[i]["last_resend"] = ct;
-                if(!this.rqe[i]["resend_count"]) this.rqe[i]["resend_count"] = 0;
+                if(!this.rqe[i]["resend_count"]) this.rqe[i]["resend_count"] = 1;
                 else this.rqe[i]["resend_count"] += 1;
                 //this.resend_count += this.rqe[i]["resend_count"];
                 //if(this.resend_count > MAXRESEND_TO_RESET) {
@@ -567,7 +569,11 @@ hubConnection = {
                     // try again later
                     //hubConnection.connect(); // hope this works
                     if(window.console) console.log("STOMP SEND Error occured: "+e);
-                    hubConnection.stomp.reset(); // hope this works
+                    if(this.stomperror_count > STOMP_ERRORS_TO_RESET) {
+                      hubConnection.stomp.reset(); 
+                      this.stomperror_count=0;
+                    }
+                    else this.stomperror_count++;
                 }
             }
         }
