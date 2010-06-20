@@ -410,7 +410,7 @@ hubConnection = {
             
             clearInterval(hubConnection.si);
             hubConnection.si = setInterval(hr, RQ_RESEND_INTERVAL); 
-            
+            hubConnection.stomperror_count = 0;
             // set session key cookie 
             createCookie("session", hubConnection.___SESSIONKEY);
             
@@ -529,10 +529,12 @@ hubConnection = {
                 //if(this.resend_count > MAXRESEND_TO_RESET) {
                 if(this.rqe[i]["resend_count"] >= MAXRESEND_TO_RESET) {
                     if(DEBUG && window.console) console.log("Resetting STOMP due to resend_count hit");
-                    this.stomp.reset();
                     for(var irr=0;irr<this.rqe.length;irr++) {
                       this.rqe[irr]["resend_count"] = 0;
                     }
+                    this.rqe[i]["resend_count"] = 0;
+                    this.stomp.reset();
+                    
                 }
                 
                 this.rqe[i]["r"].session = this.___SESSIONKEY;
