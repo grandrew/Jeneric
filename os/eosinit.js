@@ -571,7 +571,8 @@ hubConnection = {
                     // try again later
                     //hubConnection.connect(); // hope this works
                     if(window.console) console.log("STOMP SEND Error occured: "+e);
-                    if(this.stomperror_count > STOMP_ERRORS_TO_RESET) {
+                    if(this.stomperror_count >= STOMP_ERRORS_TO_RESET) {
+                      if(window.console) console.log("Resetting connection due to STOMP_ERRORS_TO_RESET hit");
                       hubConnection.stomp.reset(); 
                       this.stomperror_count=0;
                     }
