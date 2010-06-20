@@ -33,12 +33,12 @@ E_PORT = 61613;
 HUB_PATH = "/hub";
 ANNOUNCE_PATH = "/announce";
 RQ_RESEND_INTERVAL = 4000; // milliseconds to wait before request send retries
-ACK_TIMEOUT = 40000; // milliseconds before give up resending
+ACK_TIMEOUT = 70000; // milliseconds before give up resending
 MAX_WINDOW_SIZE = 60000; // ms. max window size for ACKs to remember
 KEY_LENGTH = 80; // bytes stringkey length
 PING_INTERVAL = 90000;
-MAXFAIL_TO_RESET = 2; // failed transmits to reset STOMP connection
-MAXRESEND_TO_RESET = 5; // resends to reset STOMP connection
+MAXFAIL_TO_RESET = 1; // failed transmits to reset STOMP connection
+MAXRESEND_TO_RESET = 4; // resends to reset STOMP connection
 
 // GENERAL INIT part
 KCONFIG = {
