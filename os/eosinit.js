@@ -529,10 +529,10 @@ hubConnection = {
                 //if(this.resend_count > MAXRESEND_TO_RESET) {
                 if(this.rqe[i]["resend_count"] >= MAXRESEND_TO_RESET) {
                     if(DEBUG && window.console) console.log("Resetting STOMP due to resend_count hit");
-                    for(var irr=0;irr<this.rqe.length;irr++) {
-                      this.rqe[irr]["resend_count"] = 0;
+                    for(var orr in this.rqe) {
+                      this.rqe[orr]["resend_count"] = 0;
                     }
-                    this.rqe[i]["resend_count"] = 0;
+                    this.rqe[i]["resend_count"] = 0; // not needed
                     this.stomp.reset();
                     
                 }
