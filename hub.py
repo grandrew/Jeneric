@@ -286,6 +286,10 @@ class Hub(StompClientFactory):
                 
             else:
                 # XXX: send without "hub_oid" ?? -> less traffic
+                # now select what exactly we're going to send:
+                if not "last_sent" in self.rqe[i]: self.rqe[i]["last_sent"] = ct
+                else:
+                  if ct - self.rqe[i]["last_sent"] < RQ_RESEND_INTERVAL: continue
                 deref = self.rqe[i]["d"];
                 if DEBUG > 3: print "Sending", self.rqe[i]["r"], "to", deref
                 #self.dummy_send(self.rqe[i]["d"], json.encode(self.rqe[i]["r"]) )
