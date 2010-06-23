@@ -40,6 +40,7 @@ PING_INTERVAL = 90000;
 MAXFAIL_TO_RESET = 1; // failed transmits to reset STOMP connection
 MAXRESEND_TO_RESET = 5; // resends to reset STOMP connection
 STOMP_ERRORS_TO_RESET = 3;
+STOMP_RESET_LOCK_INTERVAL = 4; // milliseconds to lock sending till a reset
 
 // GENERAL INIT part
 KCONFIG = {
@@ -361,6 +362,7 @@ hubConnection = {
     fail_count: 0,
     resend_count: 0,
     stomperror_count: 0,
+    send_lock: true,
     announce: function () {
         // TODO: announce ourself with credentials so server says we're the one we need
         //       i.e. send terminal authentication data
@@ -376,6 +378,8 @@ hubConnection = {
     },
     
     init: function () {
+    
+        
     
         this.stomp.onopen = function() {
         };
@@ -411,6 +415,10 @@ hubConnection = {
             clearInterval(hubConnection.si);
             hubConnection.si = setInterval(hr, RQ_RESEND_INTERVAL); 
             hubConnection.stomperror_count = 0;
+            if(hubConnection.send_lock) {
+                hubConnection.send_lock = false;
+                hubConnection.send_real();
+            }
             // set session key cookie 
             createCookie("session", hubConnection.___SESSIONKEY);
             
@@ -477,6 +485,19 @@ hubConnection = {
 
     },
     
+    lock_release: function () {
+        if(!hubConnection.send_lock) return;
+        hubConnection.send_lock = false;
+        hubConnection.send_real();
+    },
+    
+    safe_reset: function () {
+        this.stomp.reset();
+        this.send_lock = true;
+        clearTimeout(this.locktm);
+        this.locktm=setTimeout(hubConnection.lock_release, STOMP_RESET_LOCK_INTERVAL);
+    },
+    
     connect: function () {
         if(window.console) console.log("starting HUB connection...");
         this.stomp.connect(E_SERVER, E_PORT, "eos", "eos"); 
@@ -485,6 +506,7 @@ hubConnection = {
     send: function (rq) {
         rq.terminal_id = KCONFIG.terminal_id; // set before send...
         this.rqe[rq.id] = {r: rq, t: (new Date()).getTime()};
+        if(this.send_lock) return;
         this.send_real();
     },
     
@@ -493,7 +515,8 @@ hubConnection = {
         if ( (ct - this.last_ack) > PING_INTERVAL*1.5) {
             if(DEBUG && window.console) console.log("Resetting STOMP due to last_ack hit");
             this.last_ack = ct;
-            this.stomp.reset();
+            //this.stomp.reset();
+            this.safe_reset();
         }
         for(var i in this.rqe) {
             //if(i == "__defineProperty__") continue; // XXX FUCK!!
@@ -514,7 +537,8 @@ hubConnection = {
                 this.fail_count += 1;
                 if(this.fail_count >= MAXFAIL_TO_RESET) {
                     if(DEBUG && window.console) console.log("Resetting STOMP due to fail_count hit");
-                    this.stomp.reset();
+                    //this.stomp.reset();
+                    this.safe_reset();
                     this.fail_count = 0;
                 }
 
@@ -533,7 +557,8 @@ hubConnection = {
                       this.rqe[orr]["resend_count"] = 0;
                     }
                     this.rqe[i]["resend_count"] = 0; // not needed
-                    this.stomp.reset();
+                    //this.stomp.reset();
+                    this.safe_reset();
                     
                 }
                 
@@ -575,7 +600,8 @@ hubConnection = {
                     if(window.console) console.log("STOMP SEND Error occured: "+e);
                     if(this.stomperror_count >= STOMP_ERRORS_TO_RESET) {
                       if(window.console) console.log("Resetting connection due to STOMP_ERRORS_TO_RESET hit");
-                      hubConnection.stomp.reset(); 
+                      //hubConnection.stomp.reset(); 
+                      hubConnection.safe_reset();
                       this.stomperror_count=0;
                     }
                     else this.stomperror_count++;
