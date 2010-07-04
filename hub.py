@@ -264,6 +264,8 @@ class Hub(StompClientFactory):
                         continue
                     
                 # notify silently
+                # TODO: here is probably the erroneous code that leads to EEEEEE NT WAS:
+                #       we dont need to continue further actions for both response and request - see hubConnection in kernel
                 self.rqe[i]["r"]["status"] = "EDROP" # DOC document this too
 
                 try:

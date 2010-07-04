@@ -564,7 +564,6 @@ hubConnection = {
                 
                 this.rqe[i]["r"].session = this.___SESSIONKEY;
                 var rqq = this.rqe[i]["r"];
-                // TODO: Blob send goes here
                 //      XXX check how will blob send fail behave!!
                 
                 
