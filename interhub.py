@@ -1,4 +1,3 @@
-DEBUG  = 5
 
 
 from stompservice import StompClientFactory
@@ -14,6 +13,7 @@ from storage import * # import storage submodule (JEFS1)
 #REGISTRAR_DB = "/var/lib/eoshub/registrar.sqlite"
 
 # TODO: use BLOBs
+DEBUG  = 5
 TMP_DB = "/tmp/blob_tmp_db.sqlite"
 
 ANNOUNCE_PATH = "/announce"
@@ -68,6 +68,8 @@ class HubConnection(StompClientFactory):
     
     terminal_id = "" # set it at init
     terminal_key = "" # set at init
+    username = "eos"
+    password = "eos"
     
     
     ___SESSIONKEY = genhash(KEY_LENGTH)
@@ -86,6 +88,10 @@ class HubConnection(StompClientFactory):
     #############
     # client clone
     
+    def ping(self):
+        rq = {"id": genhash(), "terminal_id": self.terminal_id, "uri": "/", "method": "ping", "args": []}
+	self.send(rq)
+
     def announce(self):
         ann = {"session": self.___SESSIONKEY};
         if len(self.terminal_id)>0 and len(self.terminal_key)>0:
@@ -103,6 +109,10 @@ class HubConnection(StompClientFactory):
         # create new terminal name
         self.timer = LoopingCall(self.send_real)
         self.timer.start(RQ_RESEND_INTERVAL)
+
+        self.pinger = LoopingCall(self.ping)
+        self.pinger.start(PING_INTERVAL)
+	self.announce()
         
         # TODO: clean requests left unanswered!
         #self.cleantimeout = LoopingCall(clean_timeout)
@@ -145,7 +155,7 @@ class HubConnection(StompClientFactory):
         # TODO: dont forget to set terminal_id appropriately!
         
         if DEBUG > 3: print "HUBCONN: Will deliver", rq, "from", self.___SESSIONKEY
-        self.rqe[str(rq["id"])] = {"d": dest, "r": rq, "tm": time.time() };
+        self.rqe[str(rq["id"])] = { "r": rq, "tm": time.time() };
         try:
             self.timer.stop()
             self.timer.start(RQ_RESEND_INTERVAL)
@@ -245,56 +255,70 @@ class HubRelay:
         self.conn2.terminal_key = conn2["terminal_key"]
         
         # now set receivers
-        conn1.receive = self.receive1
-        conn2.receive = self.receive2
+        self.conn1.receive = self.receive1
+        self.conn2.receive = self.receive2
         
         # now run.
         reactor.connectTCP(conn1["host"], conn1["port"], self.conn1)
         reactor.connectTCP(conn2["host"], conn2["port"], self.conn2)
     
     def receive1(self, rq):
-        self.receive(rq, conn1)
+        self.receive(rq, self.conn1)
     def receive2(self, rq):
-        self.receive(rq, conn2)
+        self.receive(rq, self.conn2)
     
-    def receive(self, rq, conn):
+    def receive(self, rq, conn=None):
         lURI = rq["uri"].split("/")
+	if DEBUG > 3: print "HUBCONN_RECVD", repr(rq)
 
         if "status" in rq:
             # response... 
-            if len(lURI) < 1:
-                print "Malformed request (URI)!", repr(rq)
-                return        
+            if DEBUG > 3: print "Got respone "
+            #if len(lURI) < 1:
+            #    print "Malformed request (URI)!", repr(rq)
+            #    rq["status"] = "EPERM"
+            #    rq["result"] = "Permission denied"
+            #    conn.send(rq)
+            #    return        
 
-            if conn == conn1:
-                rq["uri"] = string.join([conn2.terminal_id]+lURI,"/") # append our name
-                rq["terminal_id"] = conn2.terminal_id;
-                conn2.send(rq);
+            rq["id"] = rq["id"][:-5]
+
+            if conn == self.conn1:
+                rq["uri"] = string.join([self.conn2.terminal_id]+lURI,"/") # append our name
+                rq["terminal_id"] = self.conn2.terminal_id;
+                if DEBUG > 3: print "Sending ", repr(rq)
+                self.conn2.send(rq);
             else:
-                rq["uri"] = string.join([conn1.terminal_id]+lURI,"/") # append our name
-                rq["terminal_id"] = conn1.terminal_id; 
-                conn1.send(rq)
+                rq["uri"] = string.join([self.conn1.terminal_id]+lURI,"/") # append our name
+                rq["terminal_id"] = self.conn1.terminal_id; 
+                if DEBUG > 3: print "Sending ", repr(rq)
+                self.conn1.send(rq)
         else:
             # receive and relay the request
             
-            if len(lURI) < 2:
-                print "Malformed request (URI)!", repr(rq)
-                return        
+            #if len(lURI) < 1:
+            #    rq["status"] = "EPERM"
+            #    rq["result"] = "Permission denied"
+            #    conn.send(rq)
+            #    print "Malformed request (URI)!", repr(rq)
+            #    return        
 
-            
-            rq["uri"] = string.join(lURI[1:],"/") # bypass our name
+            if rq["uri"] == "~": # request for hub
+                rq["uri"] = "/"
+            else: rq["uri"] = "/"+string.join(lURI[1:],"/") # bypass our name
+	    rq["id"] = rq["id"]+"RELAY"
 
-            if lURI[0] == self.conn1.terminal_id:
-                rq["terminal_id"] = conn1.terminal_id;
-                self.conn1.send(rq)
-            elif lURI[0] == self.conn2.terminal_id:
-                rq["terminal_id"] = conn2.terminal_id;
+            if conn == self.conn1:
+                rq["terminal_id"] = self.conn2.terminal_id;
+                if DEBUG > 3: print "Sending ", repr(rq)
                 self.conn2.send(rq)
             else:
-                print "HubRelay ERROR: wrong destination", repr(rq)
+                rq["terminal_id"] = self.conn1.terminal_id;
+                if DEBUG > 3: print "Sending ", repr(rq)
+                self.conn1.send(rq)
 
 def test_ih():
-    c1 = {"terminal_id": "hub1", "terminal_key": "hub1", "host":"alternet.homelinux.net", "port": 61613}
-    c2 = {"terminal_id": "hub2", "terminal_key": "hub2", "host":"go.jeneric.net", "port": 61613}    
+    c1 = {"terminal_id": "hub1_testing", "terminal_key": "hub1_testing", "host":"jeneric.dyndns.org", "port": 61613}
+    c2 = {"terminal_id": "hub2_testing", "terminal_key": "hub2_testing", "host":"go.jeneric.net", "port": 61613}    
     hr = HubRelay(c1, c2)
     reactor.run()
