@@ -1402,7 +1402,7 @@ if CONNECT_HUB_DEFAULT and (not (socket.gethostname() in DONTLOOP)):
         if DEBUG: print "Failed to create default local hub link; trying to update"
         c.close()
         c = dbconn.cursor()
-        c.execute("update reg set key=%s where name=%s", (LOCAL["terminal_id"], LOCAL["terminal_key"])
+        c.execute("update reg set key=%s where name=%s", (LOCAL["terminal_id"], LOCAL["terminal_key"]))
     hr = HubRelay(LOCAL, REMOTE)
 
 reactor.connectTCP('localhost', 61613, h)
