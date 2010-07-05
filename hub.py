@@ -65,7 +65,7 @@ PFX_SIZE = 9 # size of terminal name generated in chars excluding PFX
 # SFX = "" # hub domain suffix
 
 ANNOUNCE_PATH = "/announce"
-
+CONNECT_HUB_DEFAULT = False
 
 # later: data pipes, etc.
 
@@ -78,6 +78,8 @@ MAX_WINDOW_SIZE = 60 # transport layer maximum window size [ack]
 RQ_RESEND_INTERVAL = 10 # seconds between resend attempts
 ACK_TIMEOUT = 60 # seconds timeout to give up resending
 
+RQ_PENDING_TIMEOUT = 600 # 10 minutes maximum request block time; after this time last the request will be lost
+                         # DOC: to avoid this, use keepalive/event subscription method
 ###########################################################################################
 
 
@@ -171,6 +173,11 @@ def clean_timeout():
                     del sessions[t]
                 except KeyError:
                     if DEBUG: print "consistency failure: Could not clean out terminal", t
+        delr = []
+        for r in rq_pending:
+            if ct - rq_pending[r]["tm"] > RQ_PENDING_TIMEOUT:
+                delr.append(r)
+        for r in delr: del rq_pending[r]
     except RuntimeError:
         pass;            
 # thread.start_new_thread(clean_timeout, ())
@@ -193,7 +200,7 @@ def newTermId():
 
 
 def rq_append(rq, oldid, sess):
-    rq_pending[str(rq["id"])] = {"r": rq, "old_id":oldid, "s":sess}
+    rq_pending[str(rq["id"])] = {"r": rq, "old_id":oldid, "s":sess, "tm": time.time()}
 
 
 def rq_pull(rq):
@@ -1362,7 +1369,11 @@ storage.bp = bp
 
 site = server.Site(bp)
 
-
+DONTLOOP = ["svoyaset.ru", "jeneric.net", "go.jeneric.net", "platform25.com"]
+import socket
+if CONNECT_HUB_DEFAULT and (not (socket.gethostname() in DONTLOOP)):
+    from interhub import *
+    pass
 
 reactor.connectTCP('localhost', 61613, h)
 reactor.listenTCP(8100, site)
