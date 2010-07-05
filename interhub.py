@@ -2,10 +2,11 @@
 
 from stompservice import StompClientFactory
 from twisted.internet import reactor
+from twisted.internet import threads
 from twisted.internet.task import LoopingCall
 from random import random,seed,choice
 from orbited import json
-import string,time,thread,copy,sqlite3, traceback,copy
+import string,time,thread,copy,sqlite3, traceback,copy, httplib
 import simplejson
 from storage import * # import storage submodule (JEFS1)
 
@@ -45,6 +46,8 @@ ACK_TIMEOUT = 60 # seconds timeout to give up resending
 
 ###########################################################################################
 
+RELAY_STRING = "RELAY"
+RELAY_STRING_LEN = len(RELAY_STRING)
 
 # this subsystem will not be a source of any IDs, so just comment out and delete
 #rq_pending = {}
@@ -70,7 +73,8 @@ class HubConnection(StompClientFactory):
     terminal_key = "" # set at init
     username = "eos"
     password = "eos"
-    
+    host=""
+    port=""
     
     ___SESSIONKEY = genhash(KEY_LENGTH)
 
@@ -83,14 +87,14 @@ class HubConnection(StompClientFactory):
 
     rqe = {}
     acks = {}
-    
+    blob_rqs = {}
   
     #############
     # client clone
     
     def ping(self):
         rq = {"id": genhash(), "terminal_id": self.terminal_id, "uri": "/", "method": "ping", "args": []}
-	self.send(rq)
+        self.send(rq)
 
     def announce(self):
         ann = {"session": self.___SESSIONKEY};
@@ -112,7 +116,7 @@ class HubConnection(StompClientFactory):
 
         self.pinger = LoopingCall(self.ping)
         self.pinger.start(PING_INTERVAL)
-	self.announce()
+        self.announce()
         
         # TODO: clean requests left unanswered!
         #self.cleantimeout = LoopingCall(clean_timeout)
@@ -144,15 +148,43 @@ class HubConnection(StompClientFactory):
 
         if not self.ack_snd(rq["id"]):
             return # means we've already processed this session|id pair
+        
+        # now check for BLOBs in result??
+        # XXX very simple check -- no blobs transfer as object parameters; blob-only result
+        #     this may be for future implementations in JS?
+        if "result" in rq and type(rq["result"]) == type("") and rq["result"][:5] == "Blob(" and rq["result"][-1] == ")":
+            # we have blob received, delay sending until result arrived
+            self.blob_rqs[rq["id"]] = {"rq": rq, "tm": time.time()}
+            if DEBUG > 2: print "BLOB detected, getting in thread!"
+            reactor.callInThread(self.get_blob, rq["id"], rq["result"])
+            return
 
         # now we got the rq ready to rcv
         self.receive(rq)
+        
+    def get_blob(self, rqid, blobid):
+        hconn = httplib.HTTPConnection(self.host)
+        hconn.request("GET", "/blobget?blobid="+blobid+"&blob_session="+self.___SESSIONKEY)
+        r1 = hconn.getresponse()
+        rq = self.blob_rqs[rqid]
+        rq["result"] = r1.read()
+        rq["is_blob"] = True # hack here!!
+        del self.blob_rqs[rqid]
+        reactor.callFromThread(self.recv_message, rq)
 
+    def send_blob(self, blobid, data):
+        # I hope it will retry...
+        h = httplib.HTTP(self.host)
+        h.putrequest('POST', "/blobsend?blobid="+blobid+"&blob_session="+self.___SESSIONKEY)
+        h.putheader('content-type', 'application/octet-stream')
+        h.putheader('content-length', str(len(data)))
+        h.endheaders()
+        h.send(data)
 
     # def send(self, dest(???), rq):    
     def deliver(self, rq): # will become self.send after init, and send->dummy_send!!! XXX ABI glitch
         
-        # TODO: dont forget to set terminal_id appropriately!
+        # dont forget to set terminal_id appropriately!
         
         if DEBUG > 3: print "HUBCONN: Will deliver", rq, "from", self.___SESSIONKEY
         self.rqe[str(rq["id"])] = { "r": rq, "tm": time.time() };
@@ -198,7 +230,7 @@ class HubConnection(StompClientFactory):
                     
                 
             else:
-                # XXX: send without "hub_oid" ?? -> less traffic
+                
                 # now select what exactly we're going to send:
                 if not "last_sent" in self.rqe[i]: self.rqe[i]["last_sent"] = ct
                 else:
@@ -206,13 +238,20 @@ class HubConnection(StompClientFactory):
                 
                 self.rqe[i]["r"]["session"] = self.___SESSIONKEY
                 
-                # TODO: BLOB SEND HERE!!
+                if "is_blob" in rq:
+                    # send blob in a thread!
+                    if DEBUG >2: print "Sending BLOB.. replacing"
+                    blobid = "Blob(%s.%s)" % (genhash(3), genhash(8))
+                    rqr = rq["result"] # what if...
+                    reactor.callInThread(self.send_blob, blobid, rqr) # just in case i'm sending direct ref to string
+                    rq["result"] = blobid
 
                 if DEBUG > 3: print "HUBCONN: Sending", self.rqe[i]["r"], "from", self.___SESSIONKEY
                 
                 self.dummy_send(HUB_PATH, simplejson.dumps(self.rqe[i]["r"]) )
+        # TODO: clean blob RQs??
         # cleanup ACKs window
-        for i in copy.copy(self.acks): # XXX WTF COPY!!!
+        for i in copy.copy(self.acks):
             if ct - self.acks[i] > MAX_WINDOW_SIZE:
                 del self.acks[i]
                 #break
@@ -249,10 +288,14 @@ class HubRelay:
         self.conn1 = HubConnection()
         self.conn1.terminal_id = conn1["terminal_id"]
         self.conn1.terminal_key = conn1["terminal_key"]
+        self.conn1.host = conn1["host"]
+        self.conn1.port = conn1["port"]
         
         self.conn2 = HubConnection()
         self.conn2.terminal_id = conn2["terminal_id"]
         self.conn2.terminal_key = conn2["terminal_key"]
+        self.conn1.host = conn2["host"]
+        self.conn1.port = conn2["port"]
         
         # now set receivers
         self.conn1.receive = self.receive1
@@ -269,7 +312,7 @@ class HubRelay:
     
     def receive(self, rq, conn=None):
         lURI = rq["uri"].split("/")
-	if DEBUG > 3: print "HUBCONN_RECVD", repr(rq)
+        if DEBUG > 3: print "HUBCONN_RECVD", repr(rq)
 
         if "status" in rq:
             # response... 
@@ -281,7 +324,7 @@ class HubRelay:
             #    conn.send(rq)
             #    return        
 
-            rq["id"] = rq["id"][:-5]
+            if RELAY_STRING in rq["id"]: rq["id"] = rq["id"][:-RELAY_STRING_LEN]
 
             if conn == self.conn1:
                 rq["uri"] = string.join([self.conn2.terminal_id]+lURI,"/") # append our name
@@ -306,7 +349,7 @@ class HubRelay:
             if rq["uri"] == "~": # request for hub
                 rq["uri"] = "/"
             else: rq["uri"] = "/"+string.join(lURI[1:],"/") # bypass our name
-	    rq["id"] = rq["id"]+"RELAY"
+	    rq["id"] = rq["id"]+RELAY_STRING
 
             if conn == self.conn1:
                 rq["terminal_id"] = self.conn2.terminal_id;
