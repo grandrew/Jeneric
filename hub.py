@@ -18,7 +18,6 @@
 
 #########################################################################################
 
-# TODO: SWITCH database to postgres!! (psycopg)
 # TODO: WARNING: deny these terminalnames to be registered: http_reuest, data_write
 
 # - terminal registration support
@@ -55,6 +54,7 @@ from orbited import json
 import string,time,thread,copy,sqlite3, traceback,copy
 import simplejson
 from storage import * # import storage submodule (JEFS1)
+from interhub import *
 
 INT_FS_LIST = ["bin", "home", "lib"] # XXX TODO HERE: add "test" terminal
 REGISTRAR_DB = "/var/lib/eoshub/registrar.sqlite"
@@ -65,7 +65,6 @@ PFX_SIZE = 9 # size of terminal name generated in chars excluding PFX
 # SFX = "" # hub domain suffix
 
 ANNOUNCE_PATH = "/announce"
-CONNECT_HUB_DEFAULT = False
 
 # later: data pipes, etc.
 
@@ -80,8 +79,32 @@ ACK_TIMEOUT = 60 # seconds timeout to give up resending
 
 RQ_PENDING_TIMEOUT = 600 # 10 minutes maximum request block time; after this time last the request will be lost
                          # DOC: to avoid this, use keepalive/event subscription method
-###########################################################################################
 
+###########################################################################################
+def genhash(length=8, chars=string.letters + string.digits):
+    return ''.join([choice(chars) for i in range(length)])
+###########################################################################################
+# default hub connection - this is for default startup-time only link
+CONNECT_HUB_DEFAULT = True
+LOCAL_HC_KEY = genhash() # change this if you want more control over your own link
+
+LOCAL = {
+  "terminal_id": "go.jeneric.net", 
+  "terminal_key": LOCAL_HC_KEY, 
+  "host":"localhost", # change this if differs
+  "port": 61613
+}
+
+REMOTE = {
+  "terminal_id": "jeneric_dyndns_org", # CHANGE this to your registered terminal link - go register at go.jeneric.net
+  "terminal_key": "##########", # CHANGE this to YOUR key
+  "host":"go.jeneric.net", 
+  "port": 61613
+}    
+
+# You may add your own links in the form 
+# HubRelay(LINK_LOCAL, LINK_REMOTE) with LINK_* structs set as above examples
+###########################################################################################
 
 rq_pending = {}
 idsource = 0 # id source counter
@@ -215,8 +238,6 @@ def rq_pull(rq):
 seed(time.time())
 
 
-def genhash(length=8, chars=string.letters + string.digits):
-    return ''.join([choice(chars) for i in range(length)])
 
 
 class Hub(StompClientFactory):
@@ -382,9 +403,9 @@ class Hub(StompClientFactory):
                 if len(key) > 256: 
                   s = "EEXCP"
                   r = "key cannot be longer than 256 chars"
-                if "." in name or "/" in name:
+                if "." in name or "/" in name or "@" in name or "data_write" == name:
                   s = "EEXCP"
-                  r = "terminal name cannot contain a dot or slash"
+                  r = "terminal name cannot contain a dot or slash or at sign"
                 if "#" in name or name == "inherit": # and others?
                   s = "EEXCP"
                   r = "terminal name cannot contain a #"
@@ -1371,9 +1392,18 @@ site = server.Site(bp)
 
 DONTLOOP = ["svoyaset.ru", "jeneric.net", "go.jeneric.net", "platform25.com"]
 import socket
-if CONNECT_HUB_DEFAULT and (not (socket.gethostname() in DONTLOOP)):
-    from interhub import *
-    pass
+if CONNECT_HUB_DEFAULT and (not (socket.gethostname() in DONTLOOP)):   
+    try:
+        c = dbconn.cursor()
+        c.execute("insert into reg (name, key, identity, created, accessed) values (%s,%s,%s,%s,%s)", (LOCAL["terminal_id"],LOCAL["terminal_key"],"LOCAL", int(time.time()),int(time.time())))
+        dbconn.commit()
+        c.close()
+    except sqlite3.Error, e:
+        if DEBUG: print "Failed to create default local hub link; trying to update"
+        c.close()
+        c = dbconn.cursor()
+        c.execute("update reg set key=%s where name=%s", (LOCAL["terminal_id"], LOCAL["terminal_key"])
+    hr = HubRelay(LOCAL, REMOTE)
 
 reactor.connectTCP('localhost', 61613, h)
 reactor.listenTCP(8100, site)
