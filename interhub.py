@@ -43,6 +43,7 @@ TIMEOUT_SESSION = 200 # seconds
 MAX_WINDOW_SIZE = 60 # transport layer maximum window size [ack]
 RQ_RESEND_INTERVAL = 10 # seconds between resend attempts
 ACK_TIMEOUT = 60 # seconds timeout to give up resending
+MAX_BLOB_RCVWAIT = 150
 
 ###########################################################################################
 
@@ -124,7 +125,9 @@ class HubConnection(StompClientFactory):
 
 
     def recv_message(self,msg):
-        if DEBUG > 3: print "HUBCONN: Received", repr(msg), "to", self.___SESSIONKEY
+        if DEBUG > 3: 
+          if len(repr(msg)) < 3000: print "HUBCONN: Received", repr(msg), "to", self.___SESSIONKEY
+	  else: print "Received large object."
 
         # now try to parse and pass the request
 
@@ -137,8 +140,6 @@ class HubConnection(StompClientFactory):
         if "ack" in rq:
             self.ack_rcv(rq["ack"])
             return
-
-
         # deal with nosession!
         if "error" in rq and rq["error"] == "NOSESSION":
             if DEBUG: print "HUBCONN: nosession, reannounce"
@@ -146,31 +147,35 @@ class HubConnection(StompClientFactory):
             self.send_real(True) # force
             return
 
-        if not self.ack_snd(rq["id"]):
-            return # means we've already processed this session|id pair
-        
         # now check for BLOBs in result??
         # XXX very simple check -- no blobs transfer as object parameters; blob-only result
         #     this may be for future implementations in JS?
         if "result" in rq and type(rq["result"]) == type("") and rq["result"][:5] == "Blob(" and rq["result"][-1] == ")":
             # we have blob received, delay sending until result arrived
             self.blob_rqs[rq["id"]] = {"rq": rq, "tm": time.time()}
-            if DEBUG > 2: print "BLOB detected, getting in thread!"
+            if DEBUG > 2: print "BLOB detected, getting in thread! blobid:", rq["result"]
             reactor.callInThread(self.get_blob, rq["id"], rq["result"])
             return
 
+
+
+        if not self.ack_snd(rq["id"]):
+            return # means we've already processed this session|id pair
+        
         # now we got the rq ready to rcv
         self.receive(rq)
         
     def get_blob(self, rqid, blobid):
+        if DEBUG>3: print "get_blob: requesting blobid ", blobid, "from", self.host
         hconn = httplib.HTTPConnection(self.host)
         hconn.request("GET", "/blobget?blobid="+blobid+"&blob_session="+self.___SESSIONKEY)
         r1 = hconn.getresponse()
         rq = self.blob_rqs[rqid]
-        rq["result"] = r1.read()
-        rq["is_blob"] = True # hack here!!
+        rq["rq"]["result"] = r1.read()
+        rq["rq"]["is_blob"] = True # hack here!!
         del self.blob_rqs[rqid]
-        reactor.callFromThread(self.recv_message, rq)
+        if DEBUG>3: print "get_blob: got result of length: ", len(rq["rq"]["result"])
+        reactor.callFromThread(self.recv_message, {"body": rq["rq"]})
 
     def send_blob(self, blobid, data):
         # I hope it will retry...
@@ -186,7 +191,9 @@ class HubConnection(StompClientFactory):
         
         # dont forget to set terminal_id appropriately!
         
-        if DEBUG > 3: print "HUBCONN: Will deliver", rq, "from", self.___SESSIONKEY
+        if DEBUG > 3: 
+          if len(repr(rq)) < 3000: print "HUBCONN: Will deliver", rq, "from", self.___SESSIONKEY
+          else: print "Will deliver large object from", self.___SESSIONKEY
         self.rqe[str(rq["id"])] = { "r": rq, "tm": time.time() };
         try:
             self.timer.stop()
@@ -214,7 +221,9 @@ class HubConnection(StompClientFactory):
                     #    nt=""
                     #    continue
                     # we just failed to send response!!
-                    if DEBUG>1: print "HUBCONN: Failed to send response", repr(self.rqe[i]), "from", self.___SESSIONKEY
+                    if DEBUG>1: 
+                        if len(repr(self.rqe[i])) < 3000: print "HUBCONN: Failed to send response", repr(self.rqe[i]), "from", self.___SESSIONKEY
+                        else: print "HUBCONN: Failed to send large object id", self.rqe[i]["id"]," from", self.___SESSIONKEY 
                     # do nothing
                 else: # request failed
                     self.rqe[i]["r"]["status"] = "ECONN";
@@ -238,18 +247,26 @@ class HubConnection(StompClientFactory):
                 
                 self.rqe[i]["r"]["session"] = self.___SESSIONKEY
                 
-                if "is_blob" in rq:
+                if "is_blob" in self.rqe[i]["r"]:
                     # send blob in a thread!
                     if DEBUG >2: print "Sending BLOB.. replacing"
                     blobid = "Blob(%s.%s)" % (genhash(3), genhash(8))
-                    rqr = rq["result"] # what if...
+                    rqr = self.rqe[i]["r"]["result"] # what if...
                     reactor.callInThread(self.send_blob, blobid, rqr) # just in case i'm sending direct ref to string
-                    rq["result"] = blobid
+                    self.rqe[i]["r"]["result"] = blobid
 
-                if DEBUG > 3: print "HUBCONN: Sending", self.rqe[i]["r"], "from", self.___SESSIONKEY
+                if DEBUG > 3: 
+                    if len(repr(self.rqe[i]["r"])) < 3000: print "HUBCONN: Sending", self.rqe[i]["r"], "from", self.___SESSIONKEY
+                    else: print "HUBCONN: Sending large object"
                 
                 self.dummy_send(HUB_PATH, simplejson.dumps(self.rqe[i]["r"]) )
         # TODO: clean blob RQs??
+        rem = []
+        for rqid in self.blob_rqs:
+            if ct - self.blob_rqs[rqid]["tm"] > MAX_BLOB_RCVWAIT:
+                if DEBUG: print "Removing dead blob receipt request!", repr(self.blob_rqs[rqid])
+                rem.append(rqid)
+        for r in rem: del self.blob_rqs[r]
         # cleanup ACKs window
         for i in copy.copy(self.acks):
             if ct - self.acks[i] > MAX_WINDOW_SIZE:
@@ -294,8 +311,8 @@ class HubRelay:
         self.conn2 = HubConnection()
         self.conn2.terminal_id = conn2["terminal_id"]
         self.conn2.terminal_key = conn2["terminal_key"]
-        self.conn1.host = conn2["host"]
-        self.conn1.port = conn2["port"]
+        self.conn2.host = conn2["host"]
+        self.conn2.port = conn2["port"]
         
         # now set receivers
         self.conn1.receive = self.receive1
@@ -312,7 +329,9 @@ class HubRelay:
     
     def receive(self, rq, conn=None):
         lURI = rq["uri"].split("/")
-        if DEBUG > 3: print "HUBCONN_RECVD", repr(rq)
+        if DEBUG > 3: 
+          if len(repr(rq)) < 3000: print "HUBCONN_RECVD", repr(rq)
+          else: print "RECVD largre object"
 
         if "status" in rq:
             # response... 
@@ -329,12 +348,16 @@ class HubRelay:
             if conn == self.conn1:
                 rq["uri"] = string.join([self.conn2.terminal_id]+lURI,"/") # append our name
                 rq["terminal_id"] = self.conn2.terminal_id;
-                if DEBUG > 3: print "Sending ", repr(rq)
+                if DEBUG > 3: 
+                   if len(repr(rq)) < 3000: print "Sending ", repr(rq), "to", self.conn2.host
+                   else: print "Sending large obj to ", self.conn2.host
                 self.conn2.send(rq);
             else:
                 rq["uri"] = string.join([self.conn1.terminal_id]+lURI,"/") # append our name
                 rq["terminal_id"] = self.conn1.terminal_id; 
-                if DEBUG > 3: print "Sending ", repr(rq)
+                if DEBUG > 3: 
+                   if len(repr(rq)) < 3000: print "Sending ", repr(rq), "to", self.conn1.host
+                   else: print "Sending large obj to ", self.conn1.host
                 self.conn1.send(rq)
         else:
             # receive and relay the request
@@ -353,11 +376,15 @@ class HubRelay:
 
             if conn == self.conn1:
                 rq["terminal_id"] = self.conn2.terminal_id;
-                if DEBUG > 3: print "Sending ", repr(rq)
+                if DEBUG > 3: 
+                   if len(repr(rq)) < 3000: print "Sending ", repr(rq), "to", self.conn2.host
+                   else: print "Sending large obj to ", self.conn2.host
                 self.conn2.send(rq)
             else:
                 rq["terminal_id"] = self.conn1.terminal_id;
-                if DEBUG > 3: print "Sending ", repr(rq)
+                if DEBUG > 3: 
+                   if len(repr(rq)) < 3000: print "Sending ", repr(rq), "to", self.conn1.host
+                   else: print "Sending large obj to ", self.conn1.host
                 self.conn1.send(rq)
 
 def test_ih():
