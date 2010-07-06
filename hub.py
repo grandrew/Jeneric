@@ -299,7 +299,7 @@ class Hub(StompClientFactory):
                     if "last_sent" in self.rqe[i]:
                         self.rqe[i]["r"]["timeout"] = int(self.rqe[i]["r"]["timeout"] - ( ((ct - self.rqe[i]["tm"]) - (self.rqe[i]["last_sent"] - self.rqe[i]["tm"])) )*1000)
                     else:
-                        self.rqe[i]["r"]["timeout"] = int(self.rqe[i]["r"]["timeout"] - ( (ct - self.rqe[i]["tm"]) * 1000 )
+                        self.rqe[i]["r"]["timeout"] = int(self.rqe[i]["r"]["timeout"] - ( (ct - self.rqe[i]["tm"]) * 1000 ))
                 self.rqe[i]["last_sent"] = ct
                 deref = self.rqe[i]["d"];
                 if DEBUG > 3: print "Sending", self.rqe[i]["r"], "to", deref
