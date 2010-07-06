@@ -746,8 +746,9 @@ Jnaric.prototype.getParent = function () {
 // TODO: REWRITE THE eos_execURI to BE STACK_INDEPENDENT!!!
 //       like do kIPC() and have eos_execURI as a wrapper??
 function kIPC(vm, uri, method, args, onok, onerr, timeout) {
-
+    timeout = timeout || MAX_RQ_TIME;
     var rq = {
+        v: 1, // protocol version
         id: __jn_stacks.newId()+(new Date().getTime())+"", // dunno why at init time the ID counter is not enough and can interfere with something else :\
         uri: uri,
         terminal_id: "~", // always 'myself' for local requests - remote set at hubConnection
@@ -761,7 +762,9 @@ function kIPC(vm, uri, method, args, onok, onerr, timeout) {
         caller_uri: vm.uri, // named request
 
         method: method,
-        args: args
+        args: args,
+        
+        timeout: parseInt(timeout) // timeout to drop
     };
     
     //var TIMEOUT_OK = {v: false};

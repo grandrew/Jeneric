@@ -41,6 +41,7 @@ MAXFAIL_TO_RESET = 1; // failed transmits to reset STOMP connection
 MAXRESEND_TO_RESET = 5; // resends to reset STOMP connection
 STOMP_ERRORS_TO_RESET = 3;
 STOMP_RESET_LOCK_INTERVAL = 4000; // milliseconds to lock sending till a reset
+MAX_RQ_TIME = 600000; // 10 minutes maximum request time
 
 // GENERAL INIT part
 KCONFIG = {
@@ -544,8 +545,18 @@ hubConnection = {
 
                 delete this.rqe[i]; // XXX TODO how will it interact with property-iteration?
                 
+            } else if (this.rqe[i]["r"].timeout < 100) {
+                delete this.rqe[i]; // drop silently due to explicit timeout
             } else {
                 if(!force && this.rqe[i]["last_resend"] && ((ct - this.rqe[i]["last_resend"]) < RQ_RESEND_INTERVAL)) continue;
+                // tick timeout
+                if( this.rqe[i]["r"].timeout ) {
+                    if("last_resend" in this.rqe[i]) {
+                        this.rqe[i]["r"].timeout = this.rqe[i]["r"].timeout - ((ct - this.rqe[i]["t"]) - (this.rqe[i].last_resend - this.rqe[i]["t"]));
+                    } else {
+                        this.rqe[i]["r"].timeout = this.rqe[i]["r"].timeout -  (ct - this.rqe[i]["t"]);
+                    }
+                }
                 this.rqe[i]["last_resend"] = ct;
                 if(!this.rqe[i]["resend_count"]) this.rqe[i]["resend_count"] = 1;
                 else this.rqe[i]["resend_count"] += 1;
@@ -559,7 +570,6 @@ hubConnection = {
                     this.rqe[i]["resend_count"] = 0; // not needed
                     //this.stomp.reset();
                     this.safe_reset();
-                    
                 }
                 
                 this.rqe[i]["r"].session = this.___SESSIONKEY;

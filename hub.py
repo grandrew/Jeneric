@@ -10,7 +10,7 @@
 #   : zope-interfcae
 # simplejson egg;  cjson doesnt work/buggy -> python-cjson egg [or (install... (python-cjson?)
 # stompservice egg
-# orbited egg
+# orbited 0.7 egg
 # z3c.sharedmimeinfo egg
 # - patch line 119 /usr/lib/python2.5/site-packages/morbid-0.8.7.3-py2.5.egg/morbid/mqsecurity.py
 # +        global security_parameters
@@ -18,33 +18,12 @@
 
 #########################################################################################
 
-# TODO: WARNING: deny these terminalnames to be registered: http_reuest, data_write
-
-# - terminal registration support
-#   + terminal methods support
-#       + register(tname, tkey)
-#       + auth(tname, tkey): will change tname and send the hook 
-#         XXX may result in bad behaviour since terminal creds change at run-time (mostly security issue)
-#       - passwd (tname, kurkey, newkey) - change password
-#   + 'ping' method support; AND check if any request/response touches session!
-#       + and ping from hubConnection
-#   + announce with credentials tname/tkey -> from init ## parameters
-#   + ic# write() ipc!
-# + remove object_name from here and jsobject!
-# - support for persistent hub connection sessions - for seamless restarting (terminals do not like if the 
-#   session is dropped) - or TODO for terminals: support reauth when session drops
-# - IHCP support (controller, peer)
+# - move configurable values to external config and make it use either default config (for disribution)
+#   or the one found supplied (by rewriting the values in it)
 # - dynamic transport window on both sides
 # - clean up the request objects on response internally! (in case we're reporting errors)
-# - reserved names: http_request, blob64send/get/blob..
-
-# first, have a memory storage
-
-# test redir
-# test security??
 
 DEBUG  = 5
-
 
 from stompservice import StompClientFactory
 from twisted.internet import reactor
@@ -56,21 +35,16 @@ import simplejson
 from storage import * # import storage submodule (JEFS1)
 from interhub import *
 
-INT_FS_LIST = ["bin", "home", "lib"] # XXX TODO HERE: add "test" terminal
-REGISTRAR_DB = "/var/lib/eoshub/registrar.sqlite"
+INT_FS_LIST = ["bin", "home", "lib"] # for internal hub storage pseudo-terminal names
+REGISTRAR_DB = "/var/lib/eoshub/registrar.sqlite" # unused.
 TMP_DB = "/tmp/blob_tmp_db.sqlite"
 
-PFX = "" # terminal ID prefix
-PFX_SIZE = 9 # size of terminal name generated in chars excluding PFX
-# SFX = "" # hub domain suffix
+PFX = "" # auto-generated terminal ID prefix
+PFX_SIZE = 9 # size of terminal name generated in digit-chars excluding PFX
+MIN_TERMINAL_NAME_CHARS = 8 # minimal length of a terminal registered with hub public registration routine
+# TODO: register flood protection?
 
-ANNOUNCE_PATH = "/announce"
-
-# later: data pipes, etc.
-
-HUB_PATH = "/hub"
-HUB_PRIVATE_KEY = "SuPeRkEy" # OMFG!! <-> STOMP -->> orbited
-#SESSION_PATH = "/session"
+HUB_PRIVATE_KEY = "SuPeRkEy" # CHANGE IT!! <-> STOMP -->> orbited
 
 TIMEOUT_SESSION = 200 # seconds
 MAX_WINDOW_SIZE = 60 # transport layer maximum window size [ack]
@@ -81,15 +55,12 @@ RQ_PENDING_TIMEOUT = 600 # 10 minutes maximum request block time; after this tim
                          # DOC: to avoid this, use keepalive/event subscription method
 
 ###########################################################################################
-def genhash(length=8, chars=string.letters + string.digits):
-    return ''.join([choice(chars) for i in range(length)])
-###########################################################################################
 # default hub connection - this is for default startup-time only link
 CONNECT_HUB_DEFAULT = True
 LOCAL_HC_KEY = genhash() # change this if you want more control over your own link
 
 LOCAL = {
-  "terminal_id": "go.jeneric.net", 
+  "terminal_id": "jeneric.net", 
   "terminal_key": LOCAL_HC_KEY, 
   "host":"localhost", # change this if differs
   "port": 61613
@@ -105,6 +76,10 @@ REMOTE = {
 # You may add your own links in the form 
 # HubRelay(LINK_LOCAL, LINK_REMOTE) with LINK_* structs set as above examples
 ###########################################################################################
+
+ANNOUNCE_PATH = "/announce"
+
+HUB_PATH = "/hub"
 
 rq_pending = {}
 idsource = 0 # id source counter
@@ -313,13 +288,19 @@ class Hub(StompClientFactory):
                 del self.rqe[i] # 
                 #self.send_real()
                 #break
-                
+            elif ("timeout" in self.rqe[i]["r"]) and self.rqe[i]["r"]["timeout"] < 100:
+                del self.rqe[i]
             else:
                 # XXX: send without "hub_oid" ?? -> less traffic
                 # now select what exactly we're going to send:
-                if not "last_sent" in self.rqe[i]: self.rqe[i]["last_sent"] = ct
-                else:
-                  if ct - self.rqe[i]["last_sent"] < RQ_RESEND_INTERVAL: continue
+                if "last_sent" in self.rqe[i]: 
+                    if ct - self.rqe[i]["last_sent"] < RQ_RESEND_INTERVAL: continue
+                if "timeout" in self.rqe[i]["r"]:
+                    if "last_sent" in self.rqe[i]:
+                        self.rqe[i]["r"]["timeout"] = int(self.rqe[i]["r"]["timeout"] - ( ((ct - self.rqe[i]["tm"]) - (self.rqe[i]["last_sent"] - self.rqe[i]["tm"])) )*1000)
+                    else:
+                        self.rqe[i]["r"]["timeout"] = int(self.rqe[i]["r"]["timeout"] - ( (ct - self.rqe[i]["tm"]) * 1000 )
+                self.rqe[i]["last_sent"] = ct
                 deref = self.rqe[i]["d"];
                 if DEBUG > 3: print "Sending", self.rqe[i]["r"], "to", deref
                 #self.dummy_send(self.rqe[i]["d"], json.encode(self.rqe[i]["r"]) )
@@ -391,9 +372,9 @@ class Hub(StompClientFactory):
                 s = "EEXCP"
                 r = "invalid arguments"
             if len(s) == 0: # XXX arbitrary length limitations??
-                if len(name) < 8: 
+                if len(name) < MIN_TERMINAL_NAME_CHARS: 
                   s = "EEXCP"
-                  r = "name cannot be less than 8 chars"
+                  r = "name cannot be less than %s chars" % (str(MIN_TERMINAL_NAME_CHARS))
                 if len(key) < 2:
                   s = "EEXCP"
                   r = "key cannot be less than 2 chars"
