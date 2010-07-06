@@ -801,6 +801,7 @@ function kIPC(vm, uri, method, args, onok, onerr, timeout) {
             if(vm.DEBUG) vm.ErrorConsole.log("in kIPC... request for HUB");
 
             // DOC if no onerror and only onok: call onok always -> as a standard kernel programming practice
+            // TODO: introduce timeout to requests in case the request gets never response
             __eos_requests[rq.id] = {request: rq, onok: myonok, onerror: onerr}; 
             hubConnection.send(rq); 
         } else {         // TODO: URI caching
