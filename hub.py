@@ -1387,11 +1387,13 @@ if CONNECT_HUB_DEFAULT and (not (socket.gethostname() in DONTLOOP)):
         c.execute("insert into reg (name, key, identity, created, accessed) values (%s,%s,%s,%s,%s)", (LOCAL["terminal_id"],LOCAL["terminal_key"],"LOCAL", int(time.time()),int(time.time())))
         dbconn.commit()
         c.close()
-    except sqlite3.Error, e:
+    except psycopg2.IntegrityError, e:
         if DEBUG: print "Failed to create default local hub link; trying to update"
         c.close()
+	dbconn.rollback()
         c = dbconn.cursor()
         c.execute("update reg set key=%s where name=%s", (LOCAL["terminal_id"], LOCAL["terminal_key"]))
+	dbconn.commit()
     hr = HubRelay(LOCAL, REMOTE)
 
 reactor.connectTCP('localhost', 61613, h)
