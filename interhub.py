@@ -137,15 +137,15 @@ class HubConnection(StompClientFactory):
         else:
             rq = msg["body"] # for locally-bound ipc only
         
-        if rq["uri"] == "~" and rq["method"] == "hubConnectionChanged":
+       
+        if "ack" in rq:
+            self.ack_rcv(rq["ack"])
+            return
+        if "uri" in rq and rq["uri"] == "~" and rq["method"] == "hubConnectionChanged":
             if rq["args"][0] != self.terminal_id: 
                 if DEBUG: print "Warning: dropping terminal_id to",rq["args"][0], "due to authentication failure"
                 self.terminal_id = rq["args"][0]
                 self.terminal_key = ""
-            return
-        
-        if "ack" in rq:
-            self.ack_rcv(rq["ack"])
             return
         # deal with nosession!
         if "error" in rq and rq["error"] == "NOSESSION":
