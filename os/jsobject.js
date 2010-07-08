@@ -283,11 +283,8 @@ function eos_execURI(vm, sUri, sMethod, lArgs, timeout) {
         
         if(rq.status == "OK") {        
             x2.result = rq.result;
-
-            // the following is the procedure just to release the stack
             cs.EXCEPTION = RETURN;
-            cs.STOP = false;
-            __jn_stacks.start(cs.pid);
+            
         } else {
 
             cs.EXCEPTION = THROW;
@@ -296,29 +293,26 @@ function eos_execURI(vm, sUri, sMethod, lArgs, timeout) {
                 var ex = new vm.global.InternalError("execURI failed with exception: "+rq.result);
                 ex.result = rq.result;
             } else if (rq.status == "ECONN") { 
-                cs.EXCEPTION = THROW;
                 var ex = new vm.global.InternalError("connection failed: "+rq.result);
                 ex.result = rq.result;
             } else if (rq.status == "EPERM") {
-                cs.EXCEPTION = THROW;
                 var ex = new vm.global.SecurityError(rq.result);
                 ex.result = rq.result;
             } else if (rq.status == "EDROP") {
-                cs.EXCEPTION = THROW;
                 var ex = new new vm.global.InternalError("connection failed: "+rq.result);
                 ex.result = rq.result;
             } else {
                 // unknown status received
-                cs.EXCEPTION = THROW;
                 var ex = new vm.global.InternalError("execURI failed with UNKNOWN status: "+rq.status);
             }
 
             cs.exc.result = ex;
-            cs.STOP = false;
-            __jn_stacks.start(cs.pid);
 
         }
-
+        
+        // the following is the procedure just to release the stack
+        cs.STOP = false;
+        __jn_stacks.start(cs.pid);
 
     };
     
@@ -749,7 +743,7 @@ Jnaric.prototype.getParent = function () {
 // TODO: REWRITE THE eos_execURI to BE STACK_INDEPENDENT!!!
 //       like do kIPC() and have eos_execURI as a wrapper??
 function kIPC(vm, uri, method, args, onok, onerr, timeout) {
-    timeout = timeout || MAX_RQ_TIME;
+    
     var rq = {
         v: 1, // protocol version
         id: __jn_stacks.newId()+(new Date().getTime())+"", // dunno why at init time the ID counter is not enough and can interfere with something else :\
@@ -767,7 +761,7 @@ function kIPC(vm, uri, method, args, onok, onerr, timeout) {
         method: method,
         args: args,
         
-        timeout: parseInt(timeout) // timeout to drop
+        timeout: parseInt((timeout || MAX_RQ_TIME)) // timeout to drop
     };
     
     //var TIMEOUT_OK = {v: false};
