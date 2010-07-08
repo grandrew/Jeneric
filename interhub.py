@@ -141,13 +141,6 @@ class HubConnection(StompClientFactory):
         if "ack" in rq:
             self.ack_rcv(rq["ack"])
             return
-        if "uri" in rq and rq["uri"] == "~" and rq["method"] == "hubConnectionChanged":
-            if rq["args"][0] != self.terminal_id: 
-                if DEBUG: print "Warning: dropping terminal_id to",rq["args"][0], "due to authentication failure"
-                self.terminal_id = rq["args"][0]
-                self.terminal_key = ""
-            return
-        # deal with nosession!
         if "error" in rq and rq["error"] == "NOSESSION":
             if DEBUG: print "HUBCONN: nosession, reannounce"
             self.announce();
@@ -157,6 +150,17 @@ class HubConnection(StompClientFactory):
         # now check for BLOBs in result??
         # XXX very simple check -- no blobs transfer as object parameters; blob-only result
         #     this may be for future implementations in JS?
+
+
+        if not self.ack_snd(rq["id"]):
+            return # means we've already processed this session|id pair
+
+        if "uri" in rq and rq["uri"] == "~" and rq["method"] == "hubConnectionChanged":
+            if rq["args"][0] != self.terminal_id: 
+                if DEBUG: print "Warning: dropping terminal_id to",rq["args"][0], "due to authentication failure"
+                self.terminal_id = rq["args"][0]
+                self.terminal_key = ""
+            return
         if "result" in rq and type(rq["result"]) == type("") and rq["result"][:5] == "Blob(" and rq["result"][-1] == ")":
             # we have blob received, delay sending until result arrived
             self.blob_rqs[rq["id"]] = {"rq": rq, "tm": time.time()}
@@ -164,11 +168,7 @@ class HubConnection(StompClientFactory):
             reactor.callInThread(self.get_blob, rq["id"], rq["result"])
             return
 
-
-
-        if not self.ack_snd(rq["id"]):
-            return # means we've already processed this session|id pair
-        
+       
         # now we got the rq ready to rcv
         self.receive(rq)
         
