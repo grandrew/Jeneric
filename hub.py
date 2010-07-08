@@ -658,6 +658,20 @@ class Hub(StompClientFactory):
                 self.ack_rcv(rq["ack"])
                 return
             
+            if "," in rq["uri"]: # DOC here! broadcast!
+                    i=0
+                    for dest_uri in rq["uri"].split(","):
+                        msg2 = copy.deepcopy(msg)
+                        rq2 = copy.deepcopy(rq)
+                        rq2["uri"] = dest_uri
+                        rq2["broadcast"] = True
+			rq2["id"] = rq2["id"]+"_BCAST"+str(i)
+                        msg2["body"] = rq2
+                        self.recv_message(msg2)
+                        i+=1
+                    return
+ 
+
             try:
                 msg["headers"]["session"] = rq["session"]
             except KeyError:
@@ -737,16 +751,7 @@ class Hub(StompClientFactory):
                     self.send(msg["headers"]["session"], rq)                    
                     return 
                 
-                if "," in rq["uri"]: # DOC here! broadcast!
-                    for dest_uri in rq["uri"].split(","):
-                        msg2 = copy.deepcopy(msg)
-                        rq2 = copy.deepcopy(rq)
-                        rq2["uri"] = dest_uri
-                        rq2["broadcast"] = True
-                        msg2["body"] = rq2
-                        self.recv_message(msg2)
-                    return
-                # first, check if the request is for our own subsystem
+               # first, check if the request is for our own subsystem
                 if rq["uri"] == "/":
                     rq["terminal_id"] = terminal # just change it
                     # process the request and send the response
