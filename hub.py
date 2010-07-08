@@ -658,6 +658,20 @@ class Hub(StompClientFactory):
                 self.ack_rcv(rq["ack"])
                 return
             
+            if "," in rq["uri"]: # DOC here! broadcast!
+                    i=0
+                    for dest_uri in rq["uri"].split(","):
+                        msg2 = copy.deepcopy(msg)
+                        rq2 = copy.deepcopy(rq)
+                        rq2["uri"] = dest_uri
+                        rq2["broadcast"] = True
+			rq2["id"] = rq2["id"]+"_BCAST"+str(i)
+                        msg2["body"] = rq2
+                        self.recv_message(msg2)
+                        i+=1
+                    return
+ 
+
             try:
                 msg["headers"]["session"] = rq["session"]
             except KeyError:
@@ -737,16 +751,7 @@ class Hub(StompClientFactory):
                     self.send(msg["headers"]["session"], rq)                    
                     return 
                 
-                if "," in rq["uri"]: # DOC here! broadcast!
-                    for dest_uri in rq["uri"].split(","):
-                        msg2 = copy.deepcopy(msg)
-                        rq2 = copy.deepcopy(rq)
-                        rq2["uri"] = dest_uri
-                        rq2["broadcast"] = True
-                        msg2["body"] = rq2
-                        self.recv_message(msg2)
-                    return
-                # first, check if the request is for our own subsystem
+               # first, check if the request is for our own subsystem
                 if rq["uri"] == "/":
                     rq["terminal_id"] = terminal # just change it
                     # process the request and send the response
@@ -1387,11 +1392,13 @@ if CONNECT_HUB_DEFAULT and (not (socket.gethostname() in DONTLOOP)):
         c.execute("insert into reg (name, key, identity, created, accessed) values (%s,%s,%s,%s,%s)", (LOCAL["terminal_id"],LOCAL["terminal_key"],"LOCAL", int(time.time()),int(time.time())))
         dbconn.commit()
         c.close()
-    except sqlite3.Error, e:
+    except psycopg2.IntegrityError, e:
         if DEBUG: print "Failed to create default local hub link; trying to update"
         c.close()
+	dbconn.rollback()
         c = dbconn.cursor()
-        c.execute("update reg set key=%s where name=%s", (LOCAL["terminal_id"], LOCAL["terminal_key"]))
+        c.execute("update reg set key=%s where name=%s", (LOCAL["terminal_key"], LOCAL["terminal_id"]))
+	dbconn.commit()
     hr = HubRelay(LOCAL, REMOTE)
 
 reactor.connectTCP('localhost', 61613, h)
