@@ -197,6 +197,7 @@ def validate(rq,c):
     # security update - we can have terminals for which the action is defined (incl. "*") and others for which action is inherit
     it = 0;
     d = True
+    mdefined = False
 
     # TODO: check if method is not in the object ipc deny/allow - set method name to "*" for the following steps:
     while d and it < 100:
@@ -211,17 +212,33 @@ def validate(rq,c):
             d = c.fetchone()
             it += 1
     
-        c.execute("SELECT * FROM deny WHERE uri=%s AND method=%s AND terminal_id=%s", (parent, rq["method"], rq["terminal_id"]))
-        d = c.fetchone();
-        if d:
-            return False;
+        
+#        c.execute("SELECT * FROM deny WHERE uri=%s AND method=%s AND terminal_id=%s", (parent, rq["method"], rq["terminal_id"]))
+#        d = c.fetchone();
+#        if d:
+#            return False;
+
+        c.execute("SELECT * FROM deny WHERE uri=%s AND method=%s", (parent, rq["method"]))
+        d = c.fetchall();
+        if len(d):
+            mdefined = True
+            for t in d:
+                if t[3] == rq["terminal_id"]: return False
 
 
                 
-        c.execute("SELECT * FROM allow WHERE uri=%s AND method=%s AND (terminal_id=%s OR terminal_id=%s)", (parent, rq["method"], rq["terminal_id"], "*"))
-        d = c.fetchone();
-        if d:
-            return True;
+#        c.execute("SELECT * FROM allow WHERE uri=%s AND method=%s AND (terminal_id=%s OR terminal_id=%s)", (parent, rq["method"], rq["terminal_id"], "*"))
+#        d = c.fetchone();
+#        if d:
+#            return True;
+
+
+        c.execute("SELECT * FROM allow WHERE uri=%s AND method=%s", (parent, rq["method"]))
+        d = c.fetchall();
+        if len(d):
+            mdefined = True
+            for t in d:
+                if t[3] == rq["terminal_id"]: return True
         
 
         # else, check if there are some ACLs defined:
@@ -230,6 +247,7 @@ def validate(rq,c):
         c2 = pgconn.cursor()
         d=c.fetchone()
         while d:
+            mdefined = True
             # TODO: multiple ACL inheritance?
             c2.execute("SELECT * FROM acls WHERE aclname=%s AND terminal_id=%s", (d[0],rq["terminal_id"]))
             if c2.fetchone(): return False
@@ -240,6 +258,7 @@ def validate(rq,c):
         c2 = pgconn.cursor()
         d=c.fetchone()
         while d:
+            mdefined = True
             # TODO: multiple ACL inheritance?
             c2.execute("SELECT * FROM acls WHERE aclname=%s AND terminal_id=%s", (d[0],rq["terminal_id"]))
             if c2.fetchone(): return True
@@ -255,59 +274,60 @@ def validate(rq,c):
         c.execute("SELECT * FROM allow WHERE uri=%s AND method=%s AND terminal_id=%s", (parent, rq["method"], "inherit"))
         d = c.fetchone();
         if d:
+            mdefined = True
             parent = string.join(parent.split("/")[:-1], "/") # TODO: WARNING: disallow "/" in names!!
 
         
         ###################################################################################################
         # NOW the same for method "*"
         
-        c.execute("SELECT * FROM deny WHERE uri=%s AND method=%s AND terminal_id=%s", (parent, "*", rq["terminal_id"]))
-        d = c.fetchone();
-        if d:
-            return False;
-
-
-                
-        c.execute("SELECT * FROM allow WHERE uri=%s AND method=%s AND (terminal_id=%s OR terminal_id=%s)", (parent, "*", rq["terminal_id"], "*"))
-        d = c.fetchone();
-        if d:
-            return True;
         
-
-        # else, check if there are some ACLs defined:
-        
-        c.execute("SELECT aclname FROM acl_deny WHERE uri=%s AND method=%s", (rq["uri"], "*"))
-        c2 = pgconn.cursor()
-        d=c.fetchone()
-        while d:
-            # TODO: multiple ACL inheritance?
-            c2.execute("SELECT * FROM acls WHERE aclname=%s AND terminal_id=%s", (d[0],rq["terminal_id"]))
-            if c2.fetchone(): return False
-            d=c.fetchone()
-        
-        
-        c.execute("SELECT aclname FROM acl_allow WHERE uri=%s AND method=%s", (rq["uri"], "*"))
-        c2 = pgconn.cursor()
-        d=c.fetchone()
-        while d:
-            # TODO: multiple ACL inheritance?
-            c2.execute("SELECT * FROM acls WHERE aclname=%s AND terminal_id=%s", (d[0],rq["terminal_id"]))
-            if c2.fetchone(): return True
-            d=c.fetchone()
+        # we need to make sure the method was not defined previously and was not acted as "deny"
+        if not mdefined:
             
-        #c.execute("SELECT parent_uri FROM inherit WHERE uri=%s AND ( method=%s OR method=%s )", (rq["uri"], rq["method"], "*"))
-        #d = c.fetchone();
-        
-        #while d and it < 100:
-        #    parent = d[0]
+            c.execute("SELECT * FROM deny WHERE uri=%s AND method=%s AND terminal_id=%s", (parent, "*", rq["terminal_id"]))
+            d = c.fetchone();
+            if d:
+                return False;
 
-        # now check if we have 'inherit' in the method-list:
-        c.execute("SELECT * FROM allow WHERE uri=%s AND method=%s AND terminal_id=%s", (parent, "*", "inherit"))
-        d = c.fetchone();
-        if d:
-            parent = string.join(parent.split("/")[:-1], "/") # TODO: WARNING: disallow "/" in names!!
+                    
+            c.execute("SELECT * FROM allow WHERE uri=%s AND method=%s AND (terminal_id=%s OR terminal_id=%s)", (parent, "*", rq["terminal_id"], "*"))
+            d = c.fetchone();
+            if d:
+                return True;
+            
+            # else, check if there are some ACLs defined:
+            
+            c.execute("SELECT aclname FROM acl_deny WHERE uri=%s AND method=%s", (rq["uri"], "*"))
+            c2 = pgconn.cursor()
+            d=c.fetchone()
+            while d:
+                # TODO: multiple ACL inheritance?
+                c2.execute("SELECT * FROM acls WHERE aclname=%s AND terminal_id=%s", (d[0],rq["terminal_id"]))
+                if c2.fetchone(): return False
+                d=c.fetchone()
+            
+            
+            c.execute("SELECT aclname FROM acl_allow WHERE uri=%s AND method=%s", (rq["uri"], "*"))
+            c2 = pgconn.cursor()
+            d=c.fetchone()
+            while d:
+                # TODO: multiple ACL inheritance?
+                c2.execute("SELECT * FROM acls WHERE aclname=%s AND terminal_id=%s", (d[0],rq["terminal_id"]))
+                if c2.fetchone(): return True
+                d=c.fetchone()
+                
+            #c.execute("SELECT parent_uri FROM inherit WHERE uri=%s AND ( method=%s OR method=%s )", (rq["uri"], rq["method"], "*"))
+            #d = c.fetchone();
+            
+            #while d and it < 100:
+            #    parent = d[0]
 
-        
+            # now check if we have 'inherit' in the method-list:
+            c.execute("SELECT * FROM allow WHERE uri=%s AND method=%s AND terminal_id=%s", (parent, "*", "inherit"))
+            d = c.fetchone();
+            if d:
+                parent = string.join(parent.split("/")[:-1], "/") # TODO: WARNING: disallow "/" in names!!
         
         
         
