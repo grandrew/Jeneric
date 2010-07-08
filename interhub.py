@@ -127,7 +127,7 @@ class HubConnection(StompClientFactory):
     def recv_message(self,msg):
         if DEBUG > 3: 
           if len(repr(msg)) < 3000: print "HUBCONN: Received", repr(msg), "to", self.___SESSIONKEY
-	  else: print "Received large object."
+          else: print "Received large object."
 
         # now try to parse and pass the request
 
@@ -136,6 +136,13 @@ class HubConnection(StompClientFactory):
             rq = simplejson.loads(msg["body"])
         else:
             rq = msg["body"] # for locally-bound ipc only
+        
+        if rq["uri"] == "~" and rq["method"] == "hubConnectionChanged":
+            if rq["args"][0] != self.terminal_id: 
+                if DEBUG: print "Warning: dropping terminal_id to",rq["args"][0], "due to authentication failure"
+                self.terminal_id = rq["args"][0]
+                self.terminal_key = ""
+            return
         
         if "ack" in rq:
             self.ack_rcv(rq["ack"])
