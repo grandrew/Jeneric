@@ -62,8 +62,9 @@
 #   + search for parent and set parent oid(?)?
 #   + append ourself to childList of a found parent (if any - in the case of absense we are on top)
 
-"""
+#from hub import DEBUG
 
+"""
 >>> import time
 >>> time.time()
 1268347288.781671
@@ -201,12 +202,12 @@ def validate(rq,c):
     # TODO: check if method is not in the object ipc deny/allow - set method name to "*" for the following steps:
     while d and it < 100:
         mdefined = False
-        print "------   VALIDATE: doing for", parent 
+        # print "------   VALIDATE: doing for", parent 
         c.execute("SELECT parent_uri FROM inherit WHERE uri=%s AND ( method=%s OR method=%s )", (parent, rq["method"], "*"))
         d = c.fetchone();
         
         while d and it < 100:
-            print "------- VALIDATE222"
+            # print "------- VALIDATE222"
             parent = d[0]
             # the following line actually acts a very limited value - no 'method:ingerit' notation supported anymore
             c.execute("SELECT parent_uri FROM inherit WHERE uri=%s AND ( method=%s OR method=%s )", (parent, rq["method"], "*"))
@@ -225,11 +226,11 @@ def validate(rq,c):
             mdefined = True
             for t in d:
                 if t[3] == rq["terminal_id"] or t[3]=="*": 
-                    print "-------- FALSE deny FROM", parent
+                    # print "-------- FALSE deny FROM", parent
                     return False
                 elif t[3] == "inherit":
                     parent = string.join(parent.split("/")[:-1], "/")  # TODO: path manipulation here!
-                    print "------- comntinue1"
+                    # print "------- comntinue1"
                     continue
 
 
@@ -239,17 +240,14 @@ def validate(rq,c):
 #        if d:
 #            return True;
 
-        print "SELECT * FROM allow WHERE uri=%s AND method=%s" % (parent, rq["method"])
         c.execute("SELECT * FROM allow WHERE uri=%s AND method=%s", (parent, rq["method"]))
         d = c.fetchall();
         if len(d):
             mdefined = True
             for t in d:
-                print "working", repr(t), "qrr", rq["terminal_id"]
                 if t[3] == rq["terminal_id"] or t[3]=="*": return True
                 elif t[3] == "inherit":
                     parent = string.join(parent.split("/")[:-1], "/")  # TODO: path manipulation here!
-                    print "-------------- continue2"
                     continue
 
        
@@ -302,7 +300,7 @@ def validate(rq,c):
             c.execute("SELECT * FROM deny WHERE uri=%s AND method=%s AND terminal_id=%s", (parent, "*", rq["terminal_id"]))
             d = c.fetchone();
             if d:
-                print "FALSE deny * FROM", parent
+                #print "FALSE deny * FROM", parent
                 return False;
 
                     
@@ -349,7 +347,7 @@ def validate(rq,c):
         it+=1
         # TODO: inherit cache!
     
-    print "------    FALSE general from", parent, "it", it, "method", rq["method"], "uri", rq["uri"]
+    #print "------    FALSE general from", parent, "it", it, "method", rq["method"], "uri", rq["uri"]
     return False
     
     

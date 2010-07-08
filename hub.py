@@ -22,7 +22,6 @@
 #   or the one found supplied (by rewriting the values in it)
 # - dynamic transport window on both sides
 # - clean up the request objects on response internally! (in case we're reporting errors)
-
 DEBUG  = 5
 
 from stompservice import StompClientFactory
