@@ -55,13 +55,15 @@
 	      if(!e) e = window.event;
 	      //e.cancelBubble is supported by IE - this will kill the bubbling process.
 	      e.cancelBubble = true;
-	      e.returnValue = 'You sure you want to shut down jeneric?'; //This is displayed on the dialog
+	      var rv = 'You sure you want to shut down jeneric?'; //This is displayed on the dialog
+	      e.returnValue = rv;
 
 	      //e.stopPropagation works in Firefox.
 	      if (e.stopPropagation) {
 		      e.stopPropagation();
 		      e.preventDefault();
 	      }
+	      return rv;
       }
       window.onbeforeunload=goodbye;
       jeneric_init(document.body); // init Jeneric with output attached directly to body
