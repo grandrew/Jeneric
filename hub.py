@@ -737,7 +737,15 @@ class Hub(StompClientFactory):
                     self.send(msg["headers"]["session"], rq)                    
                     return 
                 
-                
+                if "," in rq["uri"]: # DOC here! broadcast!
+                    for dest_uri in rq["uri"].split(","):
+                        msg2 = copy.deepcopy(msg)
+                        rq2 = copy.deepcopy(rq)
+                        rq2["uri"] = dest_uri
+                        rq2["broadcast"] = True
+                        msg2["body"] = rq2
+                        self.recv_message(msg2)
+                    return
                 # first, check if the request is for our own subsystem
                 if rq["uri"] == "/":
                     rq["terminal_id"] = terminal # just change it

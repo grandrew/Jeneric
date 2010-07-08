@@ -128,6 +128,8 @@ BlobBuilder.prototype.append = function (obj) {
     }
 }; ////////////////////////////////////
 
+
+// TODO: conform to http://code.google.com/p/gears/wiki/BlobWebAPIPropsal
 function BlobObject() {
     // TODO: copy prototypes to local Blob object at bind_om()
     // this.___blob is the actual blob; if supported!
@@ -496,6 +498,7 @@ function eos_rcvEvent(rq) {
             var cbo = function (rs) {
                 // rs is already a good object..
 //console.log("Sending back...");
+                if(rq.broadcast) return; // DOC: do not reply to broadcasts
                 hubConnection.send(rs);                
             };
 
@@ -802,8 +805,13 @@ function kIPC(vm, uri, method, args, onok, onerr, timeout) {
 
             // DOC if no onerror and only onok: call onok always -> as a standard kernel programming practice
             // TODO: introduce timeout to requests in case the request gets never response
-            __eos_requests[rq.id] = {request: rq, onok: myonok, onerror: onerr}; 
+            
             hubConnection.send(rq); 
+            if(uri.indexOf(",") > -1) {
+                onok({id: rq.id, status: "OK", result: null});
+            } else {
+                __eos_requests[rq.id] = {request: rq, onok: myonok, onerror: onerr}; 
+            }
         } else {         // TODO: URI caching
             try { // TODO get rid of this.. later
                 // cache
