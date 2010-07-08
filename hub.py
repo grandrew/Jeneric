@@ -658,7 +658,7 @@ class Hub(StompClientFactory):
                 self.ack_rcv(rq["ack"])
                 return
             
-            if "," in rq["uri"]: # DOC here! broadcast!
+            if "uri" in rq and "," in rq["uri"]: # DOC here! broadcast!
                     i=0
                     for dest_uri in rq["uri"].split(","):
                         msg2 = copy.deepcopy(msg)
