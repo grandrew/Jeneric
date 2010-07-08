@@ -257,6 +257,55 @@ def validate(rq,c):
         if d:
             parent = string.join(parent.split("/")[:-1], "/") # TODO: WARNING: disallow "/" in names!!
 
+        
+        ###################################################################################################
+        # NOW the same for method "*"
+        
+        c.execute("SELECT * FROM deny WHERE uri=%s AND method=%s AND terminal_id=%s", (parent, "*", rq["terminal_id"]))
+        d = c.fetchone();
+        if d:
+            return False;
+
+
+                
+        c.execute("SELECT * FROM allow WHERE uri=%s AND method=%s AND (terminal_id=%s OR terminal_id=%s)", (parent, "*", rq["terminal_id"], "*"))
+        d = c.fetchone();
+        if d:
+            return True;
+        
+
+        # else, check if there are some ACLs defined:
+        
+        c.execute("SELECT aclname FROM acl_deny WHERE uri=%s AND method=%s", (rq["uri"], "*"))
+        c2 = pgconn.cursor()
+        d=c.fetchone()
+        while d:
+            # TODO: multiple ACL inheritance?
+            c2.execute("SELECT * FROM acls WHERE aclname=%s AND terminal_id=%s", (d[0],rq["terminal_id"]))
+            if c2.fetchone(): return False
+            d=c.fetchone()
+        
+        
+        c.execute("SELECT aclname FROM acl_allow WHERE uri=%s AND method=%s", (rq["uri"], "*"))
+        c2 = pgconn.cursor()
+        d=c.fetchone()
+        while d:
+            # TODO: multiple ACL inheritance?
+            c2.execute("SELECT * FROM acls WHERE aclname=%s AND terminal_id=%s", (d[0],rq["terminal_id"]))
+            if c2.fetchone(): return True
+            d=c.fetchone()
+            
+        #c.execute("SELECT parent_uri FROM inherit WHERE uri=%s AND ( method=%s OR method=%s )", (rq["uri"], rq["method"], "*"))
+        #d = c.fetchone();
+        
+        #while d and it < 100:
+        #    parent = d[0]
+
+        # now check if we have 'inherit' in the method-list:
+        c.execute("SELECT * FROM allow WHERE uri=%s AND method=%s AND terminal_id=%s", (parent, "*", "inherit"))
+        d = c.fetchone();
+        if d:
+            parent = string.join(parent.split("/")[:-1], "/") # TODO: WARNING: disallow "/" in names!!
 
         
         
