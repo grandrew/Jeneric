@@ -51,27 +51,23 @@ security.signRequest = function (rq) {
     var type = this.object.getMyTypeURI();
     if(type.charAt(0) == "/" || type.indexOf("~/insecure") != -1) {
         if(type.match(/^\/bin|^\/test/)) return true;
-        if(this.hasOwnProperty("path_allowed")) {
+        var ohash = this.object.uri2id(type);
+	if(rq.uri == "/bin/checked/"+ohash) return true;
+        try {
+            if(this.object.execURI("/bin/checked/"+ohash, "read", [])) {
+                this.path_allowed = true;
+                return true;
+            }
+        } catch (e) {
+        
+        }
+        var stype = type.replace(/\//g, "_");
+        if( (rq.uri.toString().charAt(0) == "~" && rq.uri.toString().indexOf("~/insecure/"+stype) == -1) || rq.uri.toString().indexOf("/home/"+this.object.kconfig("terminal_id")) != -1) {
+            return "signRenuest: only access to ~/insecure/* (local) and not /home/<terminal_id> (global) is allowed by this security policy";
+        }
+        if(rq.uri.toString().charAt(0) == "~" && (rq.method !== "read" && rq.method !== "write")) {
+            this.path_allowed = "signRequest: only 'read' and 'write' requests are allowed locally";
             return this.path_allowed;
-        } else {
-            var ohash = this.object.uri2id(type);
-            try {
-                if(this.object.execURI("/bin/checked/"+ohash, "read", [])) {
-                    this.path_allowed = true;
-                    return true;
-                }
-            } catch (e) {
-            
-            }
-            var stype = type.replace(/\//g, "_");
-            if(rq.uri.toString().indexOf("~/insecure/"+stype) == -1 || rq.uri.toString().indexOf("/home/"+this.object.kconfig("terminal_id")) != -1) {
-                this.path_allowed = "signRequest: only access to ~/insecure/* (local) and not /home/<terminal_id> (global) is allowed by this security policy";
-                return this.path_allowed;
-            }
-            if(rq.uri.toString().charAt(0) == "~" && (rq.method !== "read" && rq.method !== "write")) {
-                this.path_allowed = "signRequest: only 'read' and 'write' requests are allowed locally";
-                return this.path_allowed;
-            }
         }
          
     }
