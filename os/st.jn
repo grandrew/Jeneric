@@ -51,7 +51,7 @@ security.signRequest = function (rq) {
     var type = this.object.getMyTypeURI();
     if(type.charAt(0) == "/" || type.indexOf("~/insecure") != -1) {
         if(type.match(/^\/bin|^\/test/)) return true;
-        if(this.hasOwnProperty(path_allowed)) {
+        if(this.hasOwnProperty("path_allowed")) {
             return this.path_allowed;
         } else {
             var ohash = this.object.uri2id(type);

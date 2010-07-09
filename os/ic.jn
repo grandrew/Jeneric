@@ -585,26 +585,25 @@ while(true) {
                 else object.createChild(pname, c, "~/sys/anarchic", xd); 
             }
             else {
-                lc = "~/bin/"+c;
-                try {
-                    if(conform_st) execURI("~/run", "createChild", [pname, lc, "~/sys/anarchic", xd]);
-                    else object.createChild(pname, lc, "~/sys/anarchic", xd); 
-                    c = lc;
-                } catch(e) {
-                    lc = "/bin/"+c;
+                var try_paths = ["~/bin/", "/bin/", "/jeneric.net/bin/"];
+                for(var k=0; k<try_paths.length; k++) {
+                    lc = try_paths[k]+c;
                     try {
                         if(conform_st) execURI("~/run", "createChild", [pname, lc, "~/sys/anarchic", xd]);
                         else object.createChild(pname, lc, "~/sys/anarchic", xd); 
                         c = lc;
+                        ok = true;
+                        break;
                     } catch (e) {
-                        throw "not found by URI";
+                        // do nothing
                     }
                 }
-            }
-            
+                if(k == try_paths.length) throw "not found by URI";
+                  
+            }    
             // now set security to allow-everything-in
             if(conform_st) {
-                start_new_thread(function() {execURI(pfx+pname, "securitySet", [{"ipcIn": "*"}], 50000)}); // never allow to fail...
+                start_new_thread(function() {execURI(pfx+pname, "securitySet", [{"ipcIn": {"securitySet": [], "securityGet": [], "*": ["*"]}}], 50000)}); // never allow to fail...
             }
             
             var pid = start_new_thread(execChild, [pfx+pname, c, argv]); // use pid??
