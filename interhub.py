@@ -143,7 +143,7 @@ class HubConnection(StompClientFactory):
                 if not top: return rq
         if top:
             # finalize
-        if DEBUG>3: print "blob_getter_recursive: finished getting BLOB"
+            if DEBUG>3: print "blob_getter_recursive: finished getting BLOB"
             reactor.callFromThread(self.recv_message, {"body": d})
         return None
             
