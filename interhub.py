@@ -72,6 +72,10 @@ class BlobObject:
     data = ""
     rq = None # blobCount to be here!
 
+class BlobMarker:
+  pass
+
+
 class HubConnection(StompClientFactory):
     
     terminal_id = "" # set it at init
@@ -94,25 +98,27 @@ class HubConnection(StompClientFactory):
     acks = {}
     blob_rqs = {} # UNUSED
     
-    def blob_reviver_recursive(self, rq, top = True, seq=[]):
+    def blob_reviver_recursive(self, rq, top = True):
+        r = None
         if type(rq) == type([]):
             for ob in rq:
-                r = self.blob_reviver_recursive(ob, False, seq)
-                if r: 
-                    seq.append(r)
-                    break 
+                r = self.blob_reviver_recursive(ob, False)
+                if r == BlobMarker: 
+                  if not top: return r 
+                  else: break
         elif type(rq) == type({}):
             for ob in rq:
-                r = self.blob_reviver_recursive(rq[ob], False, seq)
-                if r: 
-                    seq.append(r)
-                    break
+                r = self.blob_reviver_recursive(rq[ob], False)
+                if r == BlobMarker: 
+                  if not top: return r 
+                  else: break
         else: # our case!
             if (type(rq) == type("")) and (rq[:5] == "Blob(" and rq[-1] == ")") and ("." in rq):
-                return rq # just say we detected a blob
-        if top and len(seq) > 0:
+               if DEBUG > 3: print "<<< blob_reviver_recursive: Found BLOB id", rq
+               return BlobMarker # just say we detected a blob
+        if top and r == BlobMarker:
             # finalize
-            if DEBUG> 3: print " -------- GOT BLOB LIST:", repr(seq)
+            if DEBUG> 3: print " -------- GOT BLOB"
             reactor.callInThread(self.blob_getter_recursive, rq)
             return True
         return None
@@ -121,21 +127,24 @@ class HubConnection(StompClientFactory):
         if type(rq) == type([]):
             d = []
             for ob in rq:
-                d.append(self.blob_reviver_recursive(ob, False))
+                d.append(self.blob_getter_recursive(ob, False))
             if not top: return d
         elif type(rq) == type({}):
             d = {}
             for ob in rq:
-                d[ob] = self.blob_reviver_recursive(rq[ob], False)
+                d[ob] = self.blob_getter_recursive(rq[ob], False)
             if not top: return d
         else: # our case!
             if (type(rq) == type("")) and (rq[:5] == "Blob(" and rq[-1] == ")") and ("." in rq):
-                d = get_blob_only(rq)
+                if DEBUG>3: print "getting blob from", rq
+                d = self.get_blob_only(rq)
                 if not top: return d
             else:
                 if not top: return rq
         if top:
             # finalize
+	    if DEBUG>3: print "blob_getter_recursive: finished getting BLOB"
+	    d["is_blob"] = True # TODO !!!!!! REMOVE THIS HACK NO ! DONT REMOVE
             reactor.callFromThread(self.recv_message, {"body": d})
         return None
             
@@ -221,7 +230,11 @@ class HubConnection(StompClientFactory):
         #    # this is dangerous
         #    del self.acks[repr(rq["id"])]
         #    return
-        if self.blob_reviver_recursive(rq): return # we have blob received, delay sending until result arrived
+        #if "Blob" in repr(rq): print " SHEEEEEEEEEEEEEEEEEEEET!!! "
+        #if not "is_blob" in rq: # FUCKING HACK
+        if self.blob_reviver_recursive(rq):
+              del self.acks[repr(rq["id"])]
+              return # we have blob received, delay sending until result arrived
 
        
         # now we got the rq ready to rcv
@@ -322,6 +335,7 @@ class HubConnection(StompClientFactory):
                     # send blob in a thread!
                     if DEBUG >2: print "Sending BLOB.. replacing"
                     blobid = "Blob(%s.%s)" % (genhash(3), genhash(8))
+                    #if not "result" in self.rqe[i]["r"]: print " FUUUUUUUUUUUUUUUUUUUUUUUCK!!!", repr(self.rqe[i]["r"])
                     rqr = self.rqe[i]["r"]["result"] # what if...
                     reactor.callInThread(self.send_blob, blobid, rqr) # just in case i'm sending direct ref to string
                     self.rqe[i]["r"]["result"] = blobid
