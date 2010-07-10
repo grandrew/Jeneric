@@ -166,6 +166,8 @@ class HubConnection(StompClientFactory):
             self.blob_rqs[rq["id"]] = {"rq": rq, "tm": time.time()}
             if DEBUG > 2: print "BLOB detected, getting in thread! blobid:", rq["result"]
             reactor.callInThread(self.get_blob, rq["id"], rq["result"])
+            # this is dangerous
+            del self.acks[repr(rq["id"])]
             return
 
        
@@ -335,7 +337,7 @@ class HubRelay:
         self.receive(rq, self.conn2)
     
     def receive(self, rq, conn=None):
-        lURI = rq["uri"].split("/")
+        if "uri" in rq: lURI = rq["uri"].split("/")
         if DEBUG > 3: 
           if len(repr(rq)) < 3000: print "HUBCONN_RECVD", repr(rq)
           else: print "RECVD largre object"
@@ -349,18 +351,19 @@ class HubRelay:
             #    rq["result"] = "Permission denied"
             #    conn.send(rq)
             #    return        
+            # TODO: request without URI is not supported!!!
 
             if RELAY_STRING in rq["id"]: rq["id"] = rq["id"][:-RELAY_STRING_LEN]
 
             if conn == self.conn1:
-                rq["uri"] = string.join([self.conn2.terminal_id]+lURI,"/") # append our name
+                if "uri" in rq: rq["uri"] = string.join([self.conn2.terminal_id]+lURI,"/") # append our name
                 rq["terminal_id"] = self.conn2.terminal_id;
                 if DEBUG > 3: 
                    if len(repr(rq)) < 3000: print "Sending ", repr(rq), "to", self.conn2.host
                    else: print "Sending large obj to ", self.conn2.host
                 self.conn2.send(rq);
             else:
-                rq["uri"] = string.join([self.conn1.terminal_id]+lURI,"/") # append our name
+                if "uri" in rq: rq["uri"] = string.join([self.conn1.terminal_id]+lURI,"/") # append our name
                 rq["terminal_id"] = self.conn1.terminal_id; 
                 if DEBUG > 3: 
                    if len(repr(rq)) < 3000: print "Sending ", repr(rq), "to", self.conn1.host
