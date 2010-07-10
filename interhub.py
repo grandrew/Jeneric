@@ -94,7 +94,7 @@ class HubConnection(StompClientFactory):
     # client clone
     
     def ping(self):
-        rq = {"id": genhash(), "terminal_id": self.terminal_id, "uri": "/", "method": "ping", "args": []}
+        rq = {"id": self.terminal_id+genhash(), "terminal_id": self.terminal_id, "uri": "/", "method": "ping", "args": []}
         self.send(rq)
 
     def announce(self):
@@ -141,15 +141,15 @@ class HubConnection(StompClientFactory):
         if "ack" in rq:
             self.ack_rcv(rq["ack"])
             return
+        # now check for BLOBs in result??
+        # XXX very simple check -- no blobs transfer as object parameters; blob-only result
+        #     this may be for future implementations in JS?
+
         if "error" in rq and rq["error"] == "NOSESSION":
             if DEBUG: print "HUBCONN: nosession, reannounce"
             self.announce();
             self.send_real(True) # force
             return
-
-        # now check for BLOBs in result??
-        # XXX very simple check -- no blobs transfer as object parameters; blob-only result
-        #     this may be for future implementations in JS?
 
 
         if not self.ack_snd(rq["id"]):
@@ -161,11 +161,14 @@ class HubConnection(StompClientFactory):
                 self.terminal_id = rq["args"][0]
                 self.terminal_key = ""
             return
+        if "method" in rq and rq["method"] == "ping" and self.terminal_id in rq["id"]: return # our pong
         if "result" in rq and type(rq["result"]) == type("") and rq["result"][:5] == "Blob(" and rq["result"][-1] == ")":
             # we have blob received, delay sending until result arrived
             self.blob_rqs[rq["id"]] = {"rq": rq, "tm": time.time()}
             if DEBUG > 2: print "BLOB detected, getting in thread! blobid:", rq["result"]
             reactor.callInThread(self.get_blob, rq["id"], rq["result"])
+            # this is dangerous
+            del self.acks[repr(rq["id"])]
             return
 
        
@@ -335,7 +338,7 @@ class HubRelay:
         self.receive(rq, self.conn2)
     
     def receive(self, rq, conn=None):
-        lURI = rq["uri"].split("/")
+        if "uri" in rq: lURI = rq["uri"].split("/")
         if DEBUG > 3: 
           if len(repr(rq)) < 3000: print "HUBCONN_RECVD", repr(rq)
           else: print "RECVD largre object"
@@ -349,18 +352,19 @@ class HubRelay:
             #    rq["result"] = "Permission denied"
             #    conn.send(rq)
             #    return        
+            # TODO: request without URI is not supported!!!
 
             if RELAY_STRING in rq["id"]: rq["id"] = rq["id"][:-RELAY_STRING_LEN]
 
             if conn == self.conn1:
-                rq["uri"] = string.join([self.conn2.terminal_id]+lURI,"/") # append our name
+                if "uri" in rq: rq["uri"] = string.join([self.conn2.terminal_id]+lURI,"/") # append our name
                 rq["terminal_id"] = self.conn2.terminal_id;
                 if DEBUG > 3: 
                    if len(repr(rq)) < 3000: print "Sending ", repr(rq), "to", self.conn2.host
                    else: print "Sending large obj to ", self.conn2.host
                 self.conn2.send(rq);
             else:
-                rq["uri"] = string.join([self.conn1.terminal_id]+lURI,"/") # append our name
+                if "uri" in rq: rq["uri"] = string.join([self.conn1.terminal_id]+lURI,"/") # append our name
                 rq["terminal_id"] = self.conn1.terminal_id; 
                 if DEBUG > 3: 
                    if len(repr(rq)) < 3000: print "Sending ", repr(rq), "to", self.conn1.host

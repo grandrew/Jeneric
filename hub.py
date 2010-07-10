@@ -156,7 +156,7 @@ def clean_timeout():
     # USE TWISTED DELAYED EXECUTION!!!
     # -- ok done. Just check taht it works.
     if DEBUG:
-        print "STATS -- rqe:", len(h.rqe), "acks:", len(h.acks), "sessions:", len(sessions), "terms:", len(terminals)
+        print "STATS -- rqe:", len(h.rqe), "acks:", len(h.acks), "sessions:", len(sessions), "terms:", len(terminals), "rq_pending:", len(rq_pending)
     try:
         for t in sessions:
             if ct - sessions[t]["tm"] > TIMEOUT_SESSION:

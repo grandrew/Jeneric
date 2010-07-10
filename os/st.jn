@@ -111,8 +111,8 @@ security.ipc.validateRequest = function(obj, rq) {
         // if we reached here, send validation request to ACL object
         if(acls.length) return {result: this.object.execIPC("~/security/ACL", "acl_validate", [rq.terminal_id, acls]), inheritParent: this.object.getMyURI()};
         else if(neg_acls.length) return {result: !this.object.execIPC("~/security/ACL", "acl_validate", [rq.terminal_id, acls]), inheritParent: this.object.getMyURI()};
-    } else return {result: false, inheritParent: this.object.getMyURI()};
-    // never reached.
+    } 
+    return {result: false, inheritParent: this.object.getMyURI()};
 };
 
 security.ipc.securityGet = security.getSecurityState;
