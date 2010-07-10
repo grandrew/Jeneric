@@ -70,7 +70,7 @@ def genhash(length=8, chars=string.letters + string.digits):
 
 class BlobObject:
     data = ""
-    rq = None # blobCount to be here!
+    blobid = ""
 
 class BlobMarker:
   pass
@@ -96,7 +96,7 @@ class HubConnection(StompClientFactory):
 
     rqe = {}
     acks = {}
-    blob_rqs = {} # UNUSED
+    #blob_rqs = {} # UNUSED
     
     def blob_reviver_recursive(self, rq, top = True):
         r = None
@@ -143,11 +143,37 @@ class HubConnection(StompClientFactory):
                 if not top: return rq
         if top:
             # finalize
-	    if DEBUG>3: print "blob_getter_recursive: finished getting BLOB"
-	    d["is_blob"] = True # TODO !!!!!! REMOVE THIS HACK NO ! DONT REMOVE
+        if DEBUG>3: print "blob_getter_recursive: finished getting BLOB"
             reactor.callFromThread(self.recv_message, {"body": d})
         return None
             
+
+    def BlobObject_sender_recursive(self, rq, top = True):
+        if type(rq) == type([]):
+            d = []
+            for ob in rq:
+                d.append(self.BlobObject_sender_recursive(ob, False))
+            if not top: return d
+        elif type(rq) == type({}):
+            d = {}
+            for ob in rq:
+                d[ob] = self.BlobObject_sender_recursive(rq[ob], False)
+            if not top: return d
+        else: # our case!
+            if isinstance(rq, BlobObject):
+                if DEBUG>3: print "sending blob from", rq.blobid
+                d = rq.blobid
+                reactor.callInThread(self.send_blob, rq.blobid, rq.data)
+                if not top: return d
+            else:
+                if not top: return rq
+        if top:
+            if DEBUG>3: print "BlobObject_sender_recursive: finished sending BLOBs"
+            return d
+            
+        return None
+            
+
   
     #############
     # client clone
@@ -240,25 +266,16 @@ class HubConnection(StompClientFactory):
         # now we got the rq ready to rcv
         self.receive(rq)
     
-    # UNUSED:
-    #def get_blob(self, rqid, blobid):
-    #    if DEBUG>3: print "get_blob: requesting blobid ", blobid, "from", self.host
-    #    hconn = httplib.HTTPConnection(self.host)
-    #    hconn.request("GET", "/blobget?blobid="+blobid+"&blob_session="+self.___SESSIONKEY)
-    #    r1 = hconn.getresponse()
-    #    rq = self.blob_rqs[rqid]
-    #    rq["rq"]["result"] = r1.read()
-    #    rq["rq"]["is_blob"] = True # hack here!!
-    #    del self.blob_rqs[rqid]
-    #    if DEBUG>3: print "get_blob: got result of length: ", len(rq["rq"]["result"])
-    #    reactor.callFromThread(self.recv_message, {"body": rq["rq"]})
 
     def get_blob_only(self, blobid):
         if DEBUG>3: print "get_blob_only: requesting blobid ", blobid, "from", self.host
         hconn = httplib.HTTPConnection(self.host)
         hconn.request("GET", "/blobget?blobid="+blobid+"&blob_session="+self.___SESSIONKEY)
         r1 = hconn.getresponse()
-        return r1.read()
+        b = BlobObject()
+        b.data = r1.read()
+        b.blobid = blobid
+        return b
 
 
     def send_blob(self, blobid, data):
@@ -331,14 +348,16 @@ class HubConnection(StompClientFactory):
                 
                 self.rqe[i]["r"]["session"] = self.___SESSIONKEY
                 
-                if "is_blob" in self.rqe[i]["r"]:
-                    # send blob in a thread!
-                    if DEBUG >2: print "Sending BLOB.. replacing"
-                    blobid = "Blob(%s.%s)" % (genhash(3), genhash(8))
-                    #if not "result" in self.rqe[i]["r"]: print " FUUUUUUUUUUUUUUUUUUUUUUUCK!!!", repr(self.rqe[i]["r"])
-                    rqr = self.rqe[i]["r"]["result"] # what if...
-                    reactor.callInThread(self.send_blob, blobid, rqr) # just in case i'm sending direct ref to string
-                    self.rqe[i]["r"]["result"] = blobid
+                self.rqe[i]["r"] = self.BlobObject_sender_recursive(self.rqe[i]["r"])
+                
+                #if "is_blob" in self.rqe[i]["r"]:
+                #    # send blob in a thread!
+                #    if DEBUG >2: print "Sending BLOB.. replacing"
+                #    blobid = "Blob(%s.%s)" % (genhash(3), genhash(8))
+                #    #if not "result" in self.rqe[i]["r"]: print " FUUUUUUUUUUUUUUUUUUUUUUUCK!!!", repr(self.rqe[i]["r"])
+                #    rqr = self.rqe[i]["r"]["result"] # what if...
+                #    reactor.callInThread(self.send_blob, blobid, rqr) # just in case i'm sending direct ref to string
+                #    self.rqe[i]["r"]["result"] = blobid
 
                 if DEBUG > 3: 
                     if len(repr(self.rqe[i]["r"])) < 3000: print "HUBCONN: Sending", self.rqe[i]["r"], "from", self.___SESSIONKEY
