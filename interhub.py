@@ -94,7 +94,7 @@ class HubConnection(StompClientFactory):
     # client clone
     
     def ping(self):
-        rq = {"id": genhash(), "terminal_id": self.terminal_id, "uri": "/", "method": "ping", "args": []}
+        rq = {"id": self.terminal_id+genhash(), "terminal_id": self.terminal_id, "uri": "/", "method": "ping", "args": []}
         self.send(rq)
 
     def announce(self):
@@ -141,15 +141,15 @@ class HubConnection(StompClientFactory):
         if "ack" in rq:
             self.ack_rcv(rq["ack"])
             return
+        # now check for BLOBs in result??
+        # XXX very simple check -- no blobs transfer as object parameters; blob-only result
+        #     this may be for future implementations in JS?
+
         if "error" in rq and rq["error"] == "NOSESSION":
             if DEBUG: print "HUBCONN: nosession, reannounce"
             self.announce();
             self.send_real(True) # force
             return
-
-        # now check for BLOBs in result??
-        # XXX very simple check -- no blobs transfer as object parameters; blob-only result
-        #     this may be for future implementations in JS?
 
 
         if not self.ack_snd(rq["id"]):
@@ -161,6 +161,7 @@ class HubConnection(StompClientFactory):
                 self.terminal_id = rq["args"][0]
                 self.terminal_key = ""
             return
+        if "method" in rq and rq["method"] == "ping" and self.terminal_id in rq["id"]: return # our pong
         if "result" in rq and type(rq["result"]) == type("") and rq["result"][:5] == "Blob(" and rq["result"][-1] == ")":
             # we have blob received, delay sending until result arrived
             self.blob_rqs[rq["id"]] = {"rq": rq, "tm": time.time()}
