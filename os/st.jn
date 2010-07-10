@@ -2,6 +2,22 @@
 // LICENSE: GPL v.3 or later (C) 2010 Andrew Gryaznov realgrandrew@gmail.com, a.gryaznov@svoyaset.ru
 if(!security.state || !security.state.ipcIn) security.state = {  ipcIn: "inherit" };
 
+_include = include;
+PATH = {"~/lib", "/lib", "/jeneric.net/lib"};
+include = function (SCRIPT_PATH) {
+    if(SCRIPT_PATH.match(/^\/|^\.|^~/) != null) {
+      _include(SCRIPT_PATH);
+    } else {
+      for(var o in PATH) {
+        try {
+          _include(o+"/"+SCRIPT_PATH);
+          return;
+        } catch (e) {}
+        throw "Could not find/include script: "+SCRIPT_PATH;
+      }
+    }
+}
+
 // first, reattach fetchUrl & load to security
 security.fetchUrl = fetchUrl;
 security.load = load;
