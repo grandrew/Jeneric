@@ -63,10 +63,14 @@ RELAY_STRING_LEN = len(RELAY_STRING)
 
 seed(time.time())
 
+isiterable = lambda obj: (isinstance(obj, basestring) or getattr(obj, '__iter__', False)) and not (type(obj) == type(""))
 
 def genhash(length=8, chars=string.letters + string.digits):
     return ''.join([choice(chars) for i in range(length)])
 
+class BlobObject:
+    data = ""
+    rq = None # blobCount to be here!
 
 class HubConnection(StompClientFactory):
     
@@ -88,7 +92,53 @@ class HubConnection(StompClientFactory):
 
     rqe = {}
     acks = {}
-    blob_rqs = {}
+    blob_rqs = {} # UNUSED
+    
+    def blob_reviver_recursive(self, rq, top = True, seq=[]):
+        if type(rq) == type([]):
+            for ob in rq:
+                r = self.blob_reviver_recursive(ob, False, seq)
+                if r: 
+                    seq.append(r)
+                    break 
+        elif type(rq) == type({}):
+            for ob in rq:
+                r = self.blob_reviver_recursive(rq[ob], False, seq)
+                if r: 
+                    seq.append(r)
+                    break
+        else: # our case!
+            if (type(rq) == type("")) and (rq[:5] == "Blob(" and rq[-1] == ")") and ("." in rq):
+                return rq # just say we detected a blob
+        if top and len(seq) > 0:
+            # finalize
+            if DEBUG> 3: print " -------- GOT BLOB LIST:", repr(seq)
+            reactor.callInThread(self.blob_getter_recursive, rq)
+            return True
+        return None
+
+    def blob_getter_recursive(self, rq, top = True):
+        if type(rq) == type([]):
+            d = []
+            for ob in rq:
+                d.append(self.blob_reviver_recursive(ob, False))
+            if not top: return d
+        elif type(rq) == type({}):
+            d = {}
+            for ob in rq:
+                d[ob] = self.blob_reviver_recursive(rq[ob], False)
+            if not top: return d
+        else: # our case!
+            if (type(rq) == type("")) and (rq[:5] == "Blob(" and rq[-1] == ")") and ("." in rq):
+                d = get_blob_only(rq)
+                if not top: return d
+            else:
+                if not top: return rq
+        if top:
+            # finalize
+            reactor.callFromThread(self.recv_message, {"body": d})
+        return None
+            
   
     #############
     # client clone
@@ -162,30 +212,41 @@ class HubConnection(StompClientFactory):
                 self.terminal_key = ""
             return
         if "method" in rq and rq["method"] == "ping" and self.terminal_id in rq["id"]: return # our pong
-        if "result" in rq and type(rq["result"]) == type("") and rq["result"][:5] == "Blob(" and rq["result"][-1] == ")":
-            # we have blob received, delay sending until result arrived
-            self.blob_rqs[rq["id"]] = {"rq": rq, "tm": time.time()}
-            if DEBUG > 2: print "BLOB detected, getting in thread! blobid:", rq["result"]
-            reactor.callInThread(self.get_blob, rq["id"], rq["result"])
-            # this is dangerous
-            del self.acks[repr(rq["id"])]
-            return
+        
+        #if "result" in rq and type(rq["result"]) == type("") and rq["result"][:5] == "Blob(" and rq["result"][-1] == ")":
+        #    # we have blob received, delay sending until result arrived
+        #    self.blob_rqs[rq["id"]] = {"rq": rq, "tm": time.time()}
+        #    if DEBUG > 2: print "BLOB detected, getting in thread! blobid:", rq["result"]
+        #    reactor.callInThread(self.get_blob, rq["id"], rq["result"])
+        #    # this is dangerous
+        #    del self.acks[repr(rq["id"])]
+        #    return
+        if self.blob_reviver_recursive(rq): return # we have blob received, delay sending until result arrived
 
        
         # now we got the rq ready to rcv
         self.receive(rq)
-        
-    def get_blob(self, rqid, blobid):
-        if DEBUG>3: print "get_blob: requesting blobid ", blobid, "from", self.host
+    
+    # UNUSED:
+    #def get_blob(self, rqid, blobid):
+    #    if DEBUG>3: print "get_blob: requesting blobid ", blobid, "from", self.host
+    #    hconn = httplib.HTTPConnection(self.host)
+    #    hconn.request("GET", "/blobget?blobid="+blobid+"&blob_session="+self.___SESSIONKEY)
+    #    r1 = hconn.getresponse()
+    #    rq = self.blob_rqs[rqid]
+    #    rq["rq"]["result"] = r1.read()
+    #    rq["rq"]["is_blob"] = True # hack here!!
+    #    del self.blob_rqs[rqid]
+    #    if DEBUG>3: print "get_blob: got result of length: ", len(rq["rq"]["result"])
+    #    reactor.callFromThread(self.recv_message, {"body": rq["rq"]})
+
+    def get_blob_only(self, blobid):
+        if DEBUG>3: print "get_blob_only: requesting blobid ", blobid, "from", self.host
         hconn = httplib.HTTPConnection(self.host)
         hconn.request("GET", "/blobget?blobid="+blobid+"&blob_session="+self.___SESSIONKEY)
         r1 = hconn.getresponse()
-        rq = self.blob_rqs[rqid]
-        rq["rq"]["result"] = r1.read()
-        rq["rq"]["is_blob"] = True # hack here!!
-        del self.blob_rqs[rqid]
-        if DEBUG>3: print "get_blob: got result of length: ", len(rq["rq"]["result"])
-        reactor.callFromThread(self.recv_message, {"body": rq["rq"]})
+        return r1.read()
+
 
     def send_blob(self, blobid, data):
         # I hope it will retry...
@@ -272,11 +333,11 @@ class HubConnection(StompClientFactory):
                 self.dummy_send(HUB_PATH, simplejson.dumps(self.rqe[i]["r"]) )
         # TODO: clean blob RQs??
         rem = []
-        for rqid in self.blob_rqs:
-            if ct - self.blob_rqs[rqid]["tm"] > MAX_BLOB_RCVWAIT:
-                if DEBUG: print "Removing dead blob receipt request!", repr(self.blob_rqs[rqid])
-                rem.append(rqid)
-        for r in rem: del self.blob_rqs[r]
+        #for rqid in self.blob_rqs:
+        #    if ct - self.blob_rqs[rqid]["tm"] > MAX_BLOB_RCVWAIT:
+        #        if DEBUG: print "Removing dead blob receipt request!", repr(self.blob_rqs[rqid])
+        #        rem.append(rqid)
+        #for r in rem: del self.blob_rqs[r]
         # cleanup ACKs window
         for i in copy.copy(self.acks):
             if ct - self.acks[i] > MAX_WINDOW_SIZE:
