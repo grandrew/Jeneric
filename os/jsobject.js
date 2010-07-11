@@ -1859,6 +1859,7 @@ eos_om = {
             // use ex.finally_exec to copy locals to global on finish
             
             var copy_scope = function __copy_scope() {
+                if (__tihs.global == this.x.scope.object) return;
                 for (var v in this.x.scope.object) {
                     __tihs.global[v] = this.x.scope.object[v]; // DOC include will rewrite all locals to global!
                                                                // dont use include inside methods if you dont know what you're doing!
