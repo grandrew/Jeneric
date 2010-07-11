@@ -1845,8 +1845,8 @@ eos_om = {
             __tihs.cur_stack.STOP = _mystop;
             var __cs = __tihs.cur_stack;
         } else {
-			var __cs = sstack;
-		}
+            var __cs = sstack;
+        }
         
         var exec_f = function (rs, obj) {
             var data = rs.result;
@@ -1855,15 +1855,25 @@ eos_om = {
                     return;
             // TODO HERE: add task if stack is not yet init; go another path for task specified
             //      ... __jn_stacks.add_task(this, g_stack, this.nice, this.throttle);
+            
+            // use ex.finally_exec to copy locals to global on finish
+            
+            var copy_scope = function __copy_scope() {
+                for (var v in this.x.scope.object) {
+                    __tihs.global[v] = this.x.scope.object[v]; // DOC include will rewrite all locals to global!
+                                                               // dont use include inside methods if you dont know what you're doing!
+                }
+            }
+            
             try {
                 var _p = parse(data, src_uri, 0);
                 
                 if(!sstack) {
                     //__cs.stack.unshift({n: _p, x: __cs.exc, pmy: {}}); // virtually 
-                    __cs.push(S_EXEC, {n: _p, x: __cs.exc, pmy: {}}); // append it to the 'end' of execution stack
+                    __cs.push(S_EXEC, {n: _p, x: __cs.exc, pmy: {}, finally_exec: copy_scope}); // append it to the 'end' of execution stack
                 }
                 else {
-                    sstack.stack.unshift({n: _p, x: __cs.exc, pmy: {}}); // virtually 
+                    sstack.stack.unshift({n: _p, x: __cs.exc, pmy: {}, finally_exec: copy_scope}); // virtually 
                     if(!sstack.pid || sstack.stack.length == 1)   
                             __jn_stacks.add_task(__tihs, sstack, __tihs.nice, __tihs.throttle);
                     sstack.queueSize--; // XXX see jsdom2: how sstack is set up in setAttribute; also see jsdom how window.addEventListener & onload work
