@@ -3,7 +3,7 @@
 if(!security.state || !security.state.ipcIn) security.state = {  ipcIn: "inherit" };
 
 _include = include;
-PATH = {"~/lib", "/lib", "/jeneric.net/lib"};
+PATH = {"~/lib":1, "/lib":1, "/jeneric.net/lib":1};
 include = function (SCRIPT_PATH) {
     if(SCRIPT_PATH.match(/^\/|^\.|^~/) != null) {
       _include(SCRIPT_PATH);
@@ -16,7 +16,7 @@ include = function (SCRIPT_PATH) {
         throw "Could not find/include script: "+SCRIPT_PATH;
       }
     }
-}
+};
 
 // first, reattach fetchUrl & load to security
 security.fetchUrl = fetchUrl;
