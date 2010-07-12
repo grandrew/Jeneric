@@ -1788,6 +1788,7 @@ function __Window() {
     this.frameElement = null;
     this.frames = [];
     this.length = 0;
+    this.___link = window;
         
 }
 
@@ -2266,25 +2267,13 @@ ComputedStyle.prototype.getPropertyValue = function (name) {
 
 
 __window_getters = {
-    innerHeight: function (name) {
-        return this.document.documentElement.___getters.clientHeight("clientHeight");
-    },
-    innerWidth: function (name) {
-        return this.document.documentElement.___getters.clientWidth("clientWidth");
-    },
+    innerHeight: __htmldom_get_direct,
+    innerWidth: __htmldom_get_direct,
     name: function (name) { return ""; }, // ???
-    outerHeight: function (name) {
-        return this.document.documentElement.___getters.offsetHeight("offsetHeight");
-    },
-    outerWidth: function (name) {
-        return this.document.documentElement.___getters.offsetWidth("offsetWidth");
-    },
-    scrollX: function (name) {
-        return this.document.documentElement.___getters.scrollLeft("scrollLeft");
-    },
-    scrollY: function (name) {
-        return this.document.documentElement.___getters.scrollTop("scrollTop");
-    }
+    //outerHeight: __htmldom_get_direct, // not supported
+    //outerWidth: __htmldom_get_direct, // not supported
+    scrollX: __htmldom_get_direct,
+    scrollY: __htmldom_get_direct
     
     // TODO: implement window.selection
 };
@@ -2382,7 +2371,7 @@ __execCMDs = {
     bold:1,
     contentReadOnly:1,
     copy:1,
-    createLink:1, // must be treated accurately
+    createLink:1, // must be treated carefuly
     cut:1,
     decreaseFontSize:1,
     "delete":1,
