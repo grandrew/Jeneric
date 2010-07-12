@@ -1778,6 +1778,7 @@ function extendWindow(global) {
     for(ob in __Window.prototype) {
         global[ob] = __Window.prototype[ob];
     }
+    global.window.___link = window;
     
 }
 

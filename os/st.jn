@@ -13,8 +13,8 @@ include = function (SCRIPT_PATH) {
           _include(o+"/"+SCRIPT_PATH);
           return;
         } catch (e) {}
-        throw "Could not find/include script: "+SCRIPT_PATH;
       }
+      throw "Could not find/include script: "+SCRIPT_PATH;
     }
 };
 
