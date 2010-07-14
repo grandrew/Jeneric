@@ -37,7 +37,7 @@ function fixed_bind(el) {
   var anc;
 
   // find fixed-position elements
-  if (cst.position=='fixed') {
+  if (cst.position=='fixed' || st.position=='fixed') {
     needLayout= true;
     fixed_positions[fixed_positions.length]= el;
     // store original positioning as we'll overwrite it
@@ -193,8 +193,9 @@ function fixed_scroll() {
     viewportY= (st.fixedNest) ? 0 : scrollY;
     if (st.fixedCLeft!='auto') st.left= (st.fixedCLeft+viewportX)+'px';
     if (st.fixedCTop!='auto') st.top= (st.fixedCTop+viewportY)+'px';
-    viewportX= (st.fixedCB==null || st.fixedCB==fixed_viewport) ? 0 : viewportX;
-    viewportY= (st.fixedCB==null || st.fixedCB==fixed_viewport) ? 0 : viewportY;
+    // IE8 warning: this just seems to be unnesessary?!?! at least for elements relative to page body
+    //viewportX= (st.fixedCB==null || st.fixedCB==fixed_viewport) ? 0 : viewportX;
+    //viewportY= (st.fixedCB==null || st.fixedCB==fixed_viewport) ? 0 : viewportY;
     st.right= (st.fixedCRight-viewportX+1)+'px'; st.right= (st.fixedCRight-viewportX)+'px';
     st.bottom= (st.fixedCBottom-viewportY+1)+'px'; st.bottom= (st.fixedCBottom-viewportY)+'px';
   }
@@ -325,7 +326,7 @@ function fixed_pageTop(el) {
 // nothing until <body> arrives, then call main init. Pass any new elements
 // found on each scan to be bound   
 
-var fixed_SCANDELAY= 500;
+var fixed_SCANDELAY= 1000;
 
 function fixed_scan() {
   if (!document.body) return;
@@ -347,7 +348,7 @@ function fixed_stop() {
 
 fixed_scan();
 fixed_scanner= window.setInterval(fixed_scan, fixed_SCANDELAY);
-window.attachEvent('onload', fixed_stop);
+//window.attachEvent('onload', fixed_stop);
 window.attachEvent('onresize', fixed_delayout);
 window.attachEvent('onscroll', fixed_scroll);
 
