@@ -2268,13 +2268,29 @@ ComputedStyle.prototype.getPropertyValue = function (name) {
 
 
 __window_getters = {
-    innerHeight: __htmldom_get_direct,
-    innerWidth: __htmldom_get_direct,
+    innerHeight: function () {
+        if(window.innerHeight) return window.innerHeight;
+	if(document.documentElement && document.documentElement.clientHeight) return document.documentElement.clientHeight;
+	return document.body.clientHeight;
+    },
+    innerWidth: function () {
+        if(window.innerWidth) return window.innerWidth;
+	if(document.documentElement && document.documentElement.clientWidth) return document.documentElement.clientWidth;
+	return document.body.clientWidth;
+    },
     name: function (name) { return ""; }, // ???
     //outerHeight: __htmldom_get_direct, // not supported
     //outerWidth: __htmldom_get_direct, // not supported
-    scrollX: __htmldom_get_direct,
-    scrollY: __htmldom_get_direct
+    scrollX: function () {
+    	if(window.scrollX) return window.scrollX;
+	if(document.documentElement.scrollLeft) return document.documentElement.scrollLeft;
+	return document.body.scrollLeft;
+    },
+    scrollY: function () {
+    	if(window.scrollY) return window.scrollY;
+	if(document.documentElement.scrollTop) return document.documentElement.scrollTop;
+	return document.body.scrollTop;
+    }
     
     // TODO: implement window.selection
 };
