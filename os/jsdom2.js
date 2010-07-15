@@ -2313,6 +2313,8 @@ DOMNode.prototype.isSupported = function DOMNode_isSupported(feature, version) {
   return this.ownerDocument.implementation.hasFeature(feature, version);
 }
 
+// -*- FILE SPLIT HERE -*-
+
 /**
  * @method DOMNode.getElementsByTagName - Returns a NodeList of all the Elements with a given tag name
  *   in the order in which they would be encountered in a preorder traversal of the Document tree.

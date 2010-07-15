@@ -1874,6 +1874,8 @@ __Stack.prototype.push = function (x, o) {
 // global exception stack
 //e_stack = [];
 
+// -*- FILE SPLIT HERE -*-
+
 Jnaric.prototype.step_next = function (g_stack) {
     var ex, v;
     ex = g_stack.stack[(g_stack.stack.length-1)];

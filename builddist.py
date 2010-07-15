@@ -9,6 +9,8 @@
 
 # remember to include a stylesheet and some JS files from the below, also in manifest
 
+import sys, urllib2, urllib, time
+
 COMPILE_FILES = [
     "ratbird/DataRequestor.js",
     "ratbird/json2.js",
@@ -23,8 +25,8 @@ COMPILE_FILES = [
     "os/xmlsax.js",
     "os/jsdom2.js",
     "os/jsdom.js",
-    "os/orbited_init.js", # TODO!!!! instead of <script> TCPSocket = Orbited.TCPSocket; </script> !!!
-    "static/protocols/stomp/stomp.js",
+    "os/orbited_init.js",
+    "os/stomp.js",
     "os/eosinit.js"
 ]
 
@@ -49,10 +51,104 @@ MANIFEST_FILES = [
     "os/jnext/sockets.js"
 ]
 
+MANIFEST_PATH = "os/jeneric.manifest"
+
+url = "http://closure-compiler.appspot.com/compile";
+
+FILE_SPLIT_MARK = "// -*- FILE SPLIT HERE -*-"
+
+def fbundle( lFiles, postlen = 0):
+    b = "";
+    lp = []
+    tp = 0
+    tot = 0
+    for f in lFiles:
+        print "  Bundling", f, "...",
+        tb = open(f).read();
+        print int(len(tb)/1024), "kb"
+        i = 1
+        for fpart in tb.split(FILE_SPLIT_MARK):
+            print "    part", i, int(len(fpart)/1024), "kb"
+            tb = fpart
+            if postlen:
+                tp += len(tb)
+                if tp >= postlen:
+                    tp -= len(tb)
+                    lp.append(b)
+                    b = tb
+                    print "Created POST bundle of", int(tp/1024), "kb"
+                    tot += tp
+                    tp = len(tb)
+                else:
+                    b += tb
+            else:        
+                b += tb
+                tot += len(tb)
+            i +=1
+    if postlen: 
+        lp.append(b)
+        tot += len(b)
+        print "Created POST bundle of", int(tp/1024), "kb"
+    print "Total: ", int(tot/1024), "kb"
+    if postlen: return lp
+    else: return b
+
+def fcompile(data):
+    cdata = ""
+    print "Compressing using Google Closure: "
+    for d in data:
+        print "  <in:", int(len(d)/1024), "kb, out:",
+        params = urllib.urlencode({
+            'js_code': d, 
+#            'compilation_level': "WHITESPACE_ONLY",
+            'compilation_level': "SIMPLE_OPTIMIZATIONS",  
+            "output_format": "text", 
+            "output_info": "compiled_code"
+        })
+        r = urllib.urlopen(url, params)
+        gout = r.read()
+        if len(gout) < 1024: print gout
+        if len(gout) == 0:
+            print "FAILED. Retreiving info:"
+            print "----------------"
+            params = urllib.urlencode({
+                'js_code': d, 
+#                'compilation_level': "WHITESPACE_ONLY",
+                'compilation_level': "SIMPLE_OPTIMIZATIONS", 
+                "output_format": "text", 
+                "output_info": "errors"
+            })
+            r = urllib.urlopen(url, params)
+            print r.read()
+            print "----------------"
+            
+        cdata += gout
+        print int(len(gout)/1024), "kb>"
+    print "done"
+    print "Total compressed:", int(len(cdata)/1024), "kb"
+    return cdata
+
+def fsource(lFiles):
+    print "Bundling base system distribution objects...",
+    i=0
+    rdata = "\nBUNDLED_FILES={"
+    for f in lFiles:
+        rdata += '"%s": ' % f
+        d = open(f).read().replace("\\", "\\\\").replace("'", "\'").replace("\n", "\\n\\\n")
+        if i < (len(lFiles) - 1): rdata += "'%s'," % d
+        else: rdata += "'%s'" % d
+        i+=1
+    rdata += "};"
+    print i, "files of length", int(len(rdata)/1024), "kb"
+    return rdata
+
 def builddist():
-    compiled = fcompile(fbundle(COMPILE_FILES));
+    ts = time.time();
+    compiled = fcompile(fbundle(COMPILE_FILES, 100000)); # google max is 200kb
     bundled = fbundle(DONTCOMPILE_FILES);
     sources = fsource(BASE_SOURCES);
+    
+    print "Total jeneric size is: ", int((len(compiled) + len(bundled) + len(sources))/1024), "kb"
     
     fd = open("os/jeneric.js", "w")
     fd.write(compiled);
@@ -63,6 +159,20 @@ def builddist():
     fd.close()
     
     # and finally write manifest!
+    try:
+      buildver = int(open(MANIFEST_PATH).read().split("\n")[1][8:])
+    except:
+      buildver = 0
+    buildver +=1
+    print "Build version", buildver
+    print "Writing manifest... ", len(MANIFEST_FILES), "files"
+
+    build_str = "# BUILD "+str(buildver)
+    MANIFEST = "CACHE MANIFEST\n%s\n" % build_str
+    for f in MANIFEST_FILES:
+        MANIFEST += f+"\n"
+    file(MANIFEST_PATH, 'w').write(MANIFEST)
+    print "build time: ", int(time.time() - ts), "s"
 
 
 if __name__ == '__main__':

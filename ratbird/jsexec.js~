@@ -568,9 +568,10 @@ GLOBAL_METHODS = {
         };
         var t_id = setTimeout(run_code, millisec);
         this.timeouts[t_id] = null; // TODO: clean out timeouts! (somehow??)
+        this.timeouts.length++;
         if(this.timeouts.length > 5000) {
             this.ErrorConsole.log("timeouts cache overflow; restart required!!");
-            for(ob in this.timeouts) { delete this.timeouts[ob]; break; }
+            for(ob in this.timeouts) { delete this.timeouts[ob]; this.timeouts.length--; break; }
         }
         return t_id;
     },
@@ -657,9 +658,10 @@ GLOBAL_METHODS = {
         };
         var t_id = setInterval(run_code, millisec);
         this.timeouts[t_id]=null; // TODO: clean out timeouts! (somehow??)
+        this.timeouts.length++;
         if(this.timeouts.length > 5000) {
             this.ErrorConsole.log("timeouts cache overflow; restart required!!");
-            for(ob in this.timeouts) { delete this.timeouts[ob]; break; }
+            for(ob in this.timeouts) { delete this.timeouts[ob]; this.timeouts.length--; break; }
         }
         return t_id;
     },
@@ -1106,7 +1108,7 @@ function Jnaric() {
     
     
     this.idsource = 0;
-    this.timeouts = [];
+    this.timeouts = {length: 0};
     
     var __tihs = this; // closure
     
@@ -1599,9 +1601,9 @@ Jnaric.prototype.__abort = function () {
     this.g_stack.stack = [];
     this.onfinish = null; // TODO: should onfinish be fired on abort?? guess not.. but it must not be lost!
     for(var tm in this.timeouts) {
-      if(window.console) console.log("Removing tmid "+this.timeouts[tm]);
-      clearTimeout(this.timeouts[tm]);
-      clearInterval(this.timeouts[tm]);
+      //if(window.console) console.log("Removing tmid "+this.timeouts[tm]);
+      clearTimeout(parseInt(tm));
+      clearInterval(parseInt(tm));
     }
     //this.onerror = null;
 };
