@@ -1113,6 +1113,7 @@ function Jnaric() {
     var __tihs = this; // closure
     
     this.VERSION = "ratbird kernel 0.1 alpha";
+    if(window.JENERIC_BUILD) this.VERSION += (" BUILD "+JENERIC_BUILD);
     
     this.FunctionObject = function (node, scope) {
         this.node = node;

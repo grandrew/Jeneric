@@ -1,5 +1,6 @@
 CACHE MANIFEST
-# BUILD 4
+# BUILD 13
 os/fauxconsole.css
 os/jnext/jnext.js
 os/jnext/sockets.js
+os/CFInstall.min.js

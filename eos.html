@@ -10,7 +10,7 @@
 
 <body>
     
-    <script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/chrome-frame/1/CFInstall.min.js"> </script>
+    <script type="text/javascript" src="os/CFInstall.min.js"> </script>
     <script>
      if(navigator.userAgent.indexOf("MSIE 8") == -1) CFInstall.check({});
     </script>
@@ -26,7 +26,7 @@
 	      if(!e) e = window.event;
 	      //e.cancelBubble is supported by IE - this will kill the bubbling process.
 	      e.cancelBubble = true;
-	      var rv = 'You sure you want to shut down jeneric?'; //This is displayed on the dialog
+	      var rv = 'Are you sure you want to shut down jeneric?'; //This is displayed on the dialog
 	      e.returnValue = rv;
 
 	      //e.stopPropagation works in Firefox.

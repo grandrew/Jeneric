@@ -103,7 +103,9 @@ function jeneric_init(elemt) {
     // TWEAKINIT part
 
     //_terminal_vm.load("os/anarchic.jn");
-    _terminal_vm.load("os/st.jn");
+    if(window.BUNDLED_FILES && window.BUNDLED_FILES["os/st.jn"]) {
+      _terminal_vm.evaluate(window.BUNDLED_FILES["os/st.jn"]);
+    } else _terminal_vm.load("os/st.jn");
 
 
     // write the object!
@@ -117,7 +119,12 @@ function jeneric_init(elemt) {
     ffoo = function () { 
         _cn++; 
         if(_cn == INITOBS) { // see below
-            _terminal_vm.load("os/terminal.jn"); 
+            //_terminal_vm.load("os/terminal.jn");
+            if(window.BUNDLED_FILES && window.BUNDLED_FILES["os/terminal.jn"]) {
+            _terminal_vm.evaluate(window.BUNDLED_FILES["os/terminal.jn"]);
+            } else _terminal_vm.load("os/terminal.jn");
+
+
             hubConnection.connect();
         }
     }; 
@@ -152,10 +159,10 @@ function jeneric_init(elemt) {
             var n = nvm;
             if(init_objects[ix].contenturl) {
                 var s = init_objects[ix].contenturl;
-                if(window.BUNDLED_FILES && BUNDLED_FILES[init_objects[ix].contenturl]) {
-                    n.global.sdata = BUNDLED_FILES[init_objects[ix].contenturl];
+                if(window.BUNDLED_FILES && BUNDLED_FILES[s]) {
                     n.onfinish = function () {
                         n.onfinish = ffoo;
+                        n.global.sdata = BUNDLED_FILES[s];
                         n.evaluate("wakeupIPCLock.release();"); 
                     }; 
                 } else {
@@ -312,12 +319,26 @@ function manualRamstoreObject(oname, oparent, typeurl, security) {
     // TWEAKINIT part
 
     //_vm.load("os/anarchic.jn");
+
+    if(security) {
+       if(window.BUNDLED_FILES && window.BUNDLED_FILES[security]) {
+          _vm.evaluate(window.BUNDLED_FILES[security]);
+       } else _vm.load(security);
+    } else {
+        if(window.BUNDLED_FILES && window.BUNDLED_FILES["os/readonly.jn"]) {
+          _vm.evaluate(window.BUNDLED_FILES["os/readonly.jn"]);
+       } else _vm.load("os/readonly.jn");
+    }
     
-    if(security) _vm.load(security);
-    else _vm.load("os/readonly.jn");
-    
-    if(typeurl) _vm.load(typeurl);
-    else _vm.load("os/tmpstore.jn"); // XXX THIS IS CHEATING!!!
+    if(typeurl) {
+       if(window.BUNDLED_FILES && window.BUNDLED_FILES[typeurl]) {
+          _vm.evaluate(window.BUNDLED_FILES[typeurl]);
+       } else _vm.load(typeurl);
+    } else {
+        if(window.BUNDLED_FILES && window.BUNDLED_FILES["os/tmpstore.jn"]) {
+          _vm.evaluate(window.BUNDLED_FILES["os/tmpstore.jn"]);
+       } else _vm.load("os/tmpstore.jn");
+    }
         
     oparent.childList[oname] = _vm;
     __eos_objects[_vm.uri] = _vm;

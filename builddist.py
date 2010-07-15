@@ -9,7 +9,7 @@
 
 # remember to include a stylesheet and some JS files from the below, also in manifest
 
-import sys, urllib2, urllib, time
+import sys, urllib2, urllib, time, os.path, string, os, commands
 
 COMPILE_FILES = [
     "ratbird/DataRequestor.js",
@@ -42,13 +42,16 @@ BASE_SOURCES = [
     "os/st_acl.jn",
     "os/tmpstore.jn",
     "os/ic.jn",
-    "os/totinit.jn"
+    "os/totinit.jn",
+    "os/st.jn",
+    "os/terminal.jn"
 ]
 
 MANIFEST_FILES = [
     "os/fauxconsole.css",
     "os/jnext/jnext.js",
-    "os/jnext/sockets.js"
+    "os/jnext/sockets.js",
+    "os/CFInstall.min.js"
 ]
 
 MANIFEST_PATH = "os/jeneric.manifest"
@@ -93,9 +96,27 @@ def fbundle( lFiles, postlen = 0):
     if postlen: return lp
     else: return b
 
+def closure_local(data):
+    if os.path.isfile("compiler.jar"):
+        print "Found google closure compiler"
+        d = string.join(data, "\n");
+        print "Compiling... in=", int(len(d)/1024), "kb", 
+        file("/tmp/clos.tmp.js", "w").write(d)
+        print commands.getoutput("java -jar compiler.jar --compilation_level SIMPLE_OPTIMIZATIONS --js /tmp/clos.tmp.js --js_output_file /tmp/clos.tmp.c.js")
+        out = file("/tmp/clos.tmp.c.js").read();
+        print int(len(out)/1024), "kb"
+	os.remove("/tmp/clos.tmp.js")
+	os.remove("/tmp/clos.tmp.c.js")
+        return out
+    return None
+
+
 def fcompile(data):
     cdata = ""
     print "Compressing using Google Closure: "
+    ret = closure_local(data)
+    if ret: return ret
+    print "WARNING! Local installation of google closure compiler not found, using API"
     for d in data:
         print "  <in:", int(len(d)/1024), "kb, out:",
         params = urllib.urlencode({
@@ -107,7 +128,9 @@ def fcompile(data):
         })
         r = urllib.urlopen(url, params)
         gout = r.read()
-        if len(gout) < 1024: print gout
+        if len(gout) < 1024:
+          print gout
+          sys.exit(-1);
         if len(gout) == 0:
             print "FAILED. Retreiving info:"
             print "----------------"
@@ -121,6 +144,7 @@ def fcompile(data):
             r = urllib.urlopen(url, params)
             print r.read()
             print "----------------"
+            sys.exit(-1)
             
         cdata += gout
         print int(len(gout)/1024), "kb>"
@@ -149,8 +173,15 @@ def builddist():
     sources = fsource(BASE_SOURCES);
     
     print "\n\nTotal jeneric size is: ", int((len(compiled) + len(bundled) + len(sources))/1024), "kb"
+
+    try:
+      buildver = int(open(MANIFEST_PATH).read().split("\n")[1][8:])
+    except:
+      buildver = 0
+    buildver +=1
     
     fd = open("os/jeneric.js", "w")
+    fd.write("JENERIC_BUILD=%s;\n" % str(buildver))
     fd.write(compiled);
     fd.write("\n");
     fd.write(bundled);
@@ -159,11 +190,6 @@ def builddist():
     fd.close()
     
     # and finally write manifest!
-    try:
-      buildver = int(open(MANIFEST_PATH).read().split("\n")[1][8:])
-    except:
-      buildver = 0
-    buildver +=1
     print "Build version", buildver
     print "Writing manifest... ", len(MANIFEST_FILES), "files"
 
