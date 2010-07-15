@@ -134,7 +134,7 @@ def fsource(lFiles):
     rdata = "\nBUNDLED_FILES={"
     for f in lFiles:
         rdata += '"%s": ' % f
-        d = open(f).read().replace("\\", "\\\\").replace("'", "\'").replace("\n", "\\n\\\n")
+        d = open(f).read().replace("\\", "\\\\").replace("'", "\\'").replace("\n", "\\n\\\n")
         if i < (len(lFiles) - 1): rdata += "'%s'," % d
         else: rdata += "'%s'" % d
         i+=1
@@ -148,7 +148,7 @@ def builddist():
     bundled = fbundle(DONTCOMPILE_FILES);
     sources = fsource(BASE_SOURCES);
     
-    print "Total jeneric size is: ", int((len(compiled) + len(bundled) + len(sources))/1024), "kb"
+    print "\n\nTotal jeneric size is: ", int((len(compiled) + len(bundled) + len(sources))/1024), "kb"
     
     fd = open("os/jeneric.js", "w")
     fd.write(compiled);
