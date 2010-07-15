@@ -147,14 +147,23 @@ function jeneric_init(elemt) {
     for(var ix=0; ix < init_objects.length; ix++) {
         nvm = manualRamstoreObject(init_objects[ix].name, __eos_objects[init_objects[ix].parentURI], init_objects[ix].typeurl, init_objects[ix].security);
         if(init_objects[ix].typeuri) nvm.TypeURI=init_objects[ix].typeuri;
+        
         (function () {
             var n = nvm;
             if(init_objects[ix].contenturl) {
                 var s = init_objects[ix].contenturl;
-                n.onfinish = function () {
-                    n.onfinish = ffoo;
-                    n.evaluate("sdata = fetchUrl2('"+s+"');wakeupIPCLock.release();"); 
-                }; 
+                if(window.BUNDLED_FILES && BUNDLED_FILES[init_objects[ix].contenturl]) {
+                    n.global.sdata = BUNDLED_FILES[init_objects[ix].contenturl];
+                    n.onfinish = function () {
+                        n.onfinish = ffoo;
+                        n.evaluate("wakeupIPCLock.release();"); 
+                    }; 
+                } else {
+                    n.onfinish = function () {
+                        n.onfinish = ffoo;
+                        n.evaluate("sdata = fetchUrl2('"+s+"');wakeupIPCLock.release();"); 
+                    }; 
+                }
             } else {
                 n.onfinish = function () {
                     n.onfinish = ffoo;
@@ -163,6 +172,7 @@ function jeneric_init(elemt) {
             }
         })();
         INITOBS++;
+        
     }
     
     // now set security states...
