@@ -1688,6 +1688,7 @@ eos_om = {
         if(name in __tihs.childList) {
             __tihs.cur_stack.EXCEPTION = THROW;
             __tihs.cur_stack.my.x2.result = "duplicate child name";
+            __tihs.cur_stack.exc.result = "duplicate child name";
             return;
         }
         if(name.toString().indexOf("/") != -1) {

@@ -51,7 +51,8 @@ MANIFEST_FILES = [
     "os/fauxconsole.css",
     "os/jnext/jnext.js",
     "os/jnext/sockets.js",
-    "os/CFInstall.min.js"
+    "os/CFInstall.min.js",
+    "/eos.html"
 ]
 
 MANIFEST_PATH = "os/jeneric.manifest"
@@ -197,6 +198,7 @@ def builddist():
     MANIFEST = "CACHE MANIFEST\n%s\n" % build_str
     for f in MANIFEST_FILES:
         MANIFEST += f+"\n"
+    MANIFEST += "\nFALLBACK:\n/ eos.html\n/index.php eos.html\n/index.html eos.html\n"
     file(MANIFEST_PATH, 'w').write(MANIFEST)
     print "build time: ", int(time.time() - ts), "s"
 

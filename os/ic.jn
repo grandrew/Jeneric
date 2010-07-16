@@ -253,14 +253,16 @@ set_param_box(box);
 document.body.appendChild(box);
 OutTo = box;
 crun = object.kconfig("run")
-if(!crun) printDOM("Welcome to ic# - an Interactive Core commandline. Type 'help' for help.");
+if(!crun) printDOM("Welcome to ic# - an Interactive Commandline. Type 'help' for help.");
 brDOM();
 // TODO: write Google Gears hint - if not detected
+/*
 if(!object.FixedStorage && !crun)
 {  
     printDOM("Google Gears not installed. Reduced functionality mode. Please check http://gears.google.com/");
     brDOM();
 }
+*/
 // IC# will try to act like an installer when finds there is no '~/run' object
 conform_st = false; // conform to ST (security terminal)
 if(object.getMySecurityURI() == "~/security/terminal") {
@@ -440,7 +442,6 @@ while(true) {
 
         
         break;
-      case "cp":
       case "copy":
         p1 = s.split(" ")[1];
         p2 = s.split(" ")[2];
@@ -474,7 +475,6 @@ while(true) {
 
         
         break;
-      case "ln":
       case "link":
         p1 = s.split(" ")[1];
         p2 = s.split(" ")[2];
