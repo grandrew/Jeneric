@@ -3006,7 +3006,7 @@ DOMDocument.prototype.createNamespace = function DOMDocument_createNamespace(qua
  */
 DOMDocument.prototype.getElementById = function DOMDocument_getElementById(elementId) {
 //  return this._ids[elementId];
-  retNode = null;
+  var retNode = null;
 
   // loop through all Elements in the 'all' collection
   for (var i=0; i < this.all.length; i++) {
