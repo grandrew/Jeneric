@@ -1,4 +1,7 @@
 // heap-crawler
+// (C) 2010 Andrew Gryaznov (realgrandrew@gmail.com)
+// License: GPL v.3
+
 
 DEEP = 100
 

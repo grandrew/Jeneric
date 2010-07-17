@@ -54,7 +54,7 @@ function __dom_id() {
  *   (separated and top and tailed with '|'s)
  * @param  newClass           : string - new class name to add
  *
- * @return : string - the new classCollection, with new className appended,
+ * @return {string} - the new classCollection, with new className appended,
  *   (separated and top and tailed with '|'s)
  */
 function addClass(classCollectionStr, newClass) {
@@ -131,7 +131,7 @@ DOMImplementation = function() {
  *
  * @param  str : string - The string to be escaped
  *
- * @return : string - The escaped string
+ * @return {string} - The escaped string
  */
 DOMImplementation.prototype.escapeString = function DOMNode__escapeString(str) {
 
@@ -146,7 +146,7 @@ DOMImplementation.prototype.escapeString = function DOMNode__escapeString(str) {
  *
  * @param  str : string - The string to be unescaped
  *
- * @return : string - The unescaped string
+ * @return {string} - The unescaped string
  */
 DOMImplementation.prototype.unescapeString = function DOMNode__unescapeString(str) {
 
@@ -218,7 +218,7 @@ DOMImplementation.prototype.loadXML = function DOMImplementation_loadXML(xmlStr,
  *
  * @param  code : int - the DOMException code
  *
- * @return : string - the human readbale error message
+ * @return {string} - the human readbale error message
  */
 DOMImplementation.prototype.translateErrCode = function DOMImplementation_translateErrCode(code) {
   var msg = "";
@@ -1007,7 +1007,7 @@ DOMNodeList.prototype._cloneNodes = function DOMNodeList__cloneNodes(deep, paren
  *
  * @author Jon van Noort (jon@webarcana.com.au) and David Joham (djoham@yahoo.com)
  *
- * @return : string
+ * @return {string}
  */
 DOMNodeList.prototype.toString = function DOMNodeList_toString() {
   var ret = "";
@@ -1425,7 +1425,7 @@ DOMNamedNodeMap.prototype._cloneNodes = function DOMNamedNodeMap__cloneNodes(par
  *
  * @author Jon van Noort (jon@webarcana.com.au) and David Joham (djoham@yahoo.com)
  *
- * @return : string
+ * @return {string}
  */
 DOMNamedNodeMap.prototype.toString = function DOMNamedNodeMap_toString() {
   var ret = "";
@@ -1511,7 +1511,7 @@ DOMNamespaceNodeMap.prototype._cloneNodes = function DOMNamespaceNodeMap__cloneN
  *
  * @author Jon van Noort (jon@webarcana.com.au) and David Joham (djoham@yahoo.com)
  *
- * @return : string
+ * @return {string}
  */
 DOMNamespaceNodeMap.prototype.toString = function DOMNamespaceNodeMap_toString() {
   var ret = "";
@@ -1617,7 +1617,7 @@ DOMNode.prototype.hasAttributes = function DOMNode_hasAttributes() {
  *
  * @author Jon van Noort (jon@webarcana.com.au)
  *
- * @return : string
+ * @return {string}
  */
 DOMNode.prototype.getNodeName = function DOMNode_getNodeName() {
   return this.nodeName;
@@ -1628,7 +1628,7 @@ DOMNode.prototype.getNodeName = function DOMNode_getNodeName() {
  *
  * @author Jon van Noort (jon@webarcana.com.au)
  *
- * @return : string
+ * @return {string}
  */
 DOMNode.prototype.getNodeValue = function DOMNode_getNodeValue() {
    if(this.___link) {
@@ -1760,7 +1760,7 @@ DOMNode.prototype.getOwnerDocument = function DOMNode_getOwnerDocument() {
  *
  * @author Jon van Noort (jon@webarcana.com.au)
  *
- * @return : String
+ * @return {string}
  */
 DOMNode.prototype.getNamespaceURI = function DOMNode_getNamespaceURI() {
   return this.namespaceURI;
@@ -1771,7 +1771,7 @@ DOMNode.prototype.getNamespaceURI = function DOMNode_getNamespaceURI() {
  *
  * @author Jon van Noort (jon@webarcana.com.au)
  *
- * @return : String
+ * @return {string}
  */
 DOMNode.prototype.getPrefix = function DOMNode_getPrefix() {
   return this.prefix;
@@ -1844,7 +1844,7 @@ DOMNode.prototype.setPrefix = function DOMNode_setPrefix(prefix) {
  *
  * @author Jon van Noort (jon@webarcana.com.au)
  *
- * @return : String
+ * @return {string}
  */
 DOMNode.prototype.getLocalName = function DOMNode_getLocalName() {
   return this.localName;
@@ -2373,7 +2373,7 @@ DOMNode.prototype._getElementsByTagNameRecursive = function DOMNode__getElements
  *
  * @author Jon van Noort (jon@webarcana.com.au) and David Joham (djoham@yahoo.com)
  *
- * @return : string - XML String of the XML of the node and all of its children
+ * @return {string} - XML String of the XML of the node and all of its children
  */
 DOMNode.prototype.getXML = function DOMNode_getXML() {
   return this.toString();
@@ -2591,7 +2591,7 @@ DOMNode.prototype.importNode = function DOMNode_importNode(importedNode, deep) {
  *
  * @param  str : string - The string to be escaped
  *
- * @return : string - The escaped string
+ * @return {string} - The escaped string
  */
 DOMNode.prototype.__escapeString = function DOMNode__escapeString(str) {
 
@@ -2606,7 +2606,7 @@ DOMNode.prototype.__escapeString = function DOMNode__escapeString(str) {
  *
  * @param  str : string - The string to be unescaped
  *
- * @return : string - The unescaped string
+ * @return {string} - The unescaped string
  */
 DOMNode.prototype.__unescapeString = function DOMNode__unescapeString(str) {
 
@@ -3035,7 +3035,7 @@ DOMDocument.prototype.getElementById = function DOMDocument_getElementById(eleme
  *
  * @author Jon van Noort (jon@webarcana.com.au)
  *
- * @return : string - The unique (serial) id
+ * @return {string} - The unique (serial) id
  */
 DOMDocument.prototype._genId = function DOMDocument__genId() {
   this._lastId += 1;                             // increment lastId (to generate unique id)
@@ -3110,7 +3110,7 @@ DOMDocument.prototype._isValidNamespace = function DOMDocument__isValidNamespace
  *
  * @author David Joham (djoham@yahoo.com)
  *
- * @return : string
+ * @return {string}
  */
 DOMDocument.prototype.toString = function DOMDocument_toString() {
   return "" + this.childNodes;
@@ -3247,7 +3247,7 @@ DOMElement.prototype.bind_real_dom = function DOMElement_bind_real_dom() {
  *
  * @author Jon van Noort (jon@webarcana.com.au)
  *
- * @return : string
+ * @return {string}
  */
 DOMElement.prototype.getTagName = function DOMElement_getTagName() {
   return this.tagName;
@@ -3260,7 +3260,7 @@ DOMElement.prototype.getTagName = function DOMElement_getTagName() {
  *
  * @param  name : string - The name of the attribute to retrieve
  *
- * @return : string - The Attr value as a string, or the empty string if that attribute does not have a specified value.
+ * @return {string} - The Attr value as a string, or the empty string if that attribute does not have a specified value.
  */
 DOMElement.prototype.getAttribute = function DOMElement_getAttribute(name) {
   var ret = "";
@@ -3549,7 +3549,7 @@ DOMElement.prototype.removeAttributeNode = function DOMElement_removeAttributeNo
  * @param  namespaceURI : string - the namespace URI of the required node
  * @param  localName    : string - the local name of the required node
  *
- * @return : string - The Attr value as a string, or the empty string if that attribute does not have a specified value.
+ * @return {string} - The Attr value as a string, or the empty string if that attribute does not have a specified value.
  
  */
  
@@ -3740,7 +3740,7 @@ DOMElement.prototype.hasAttributeNS = function DOMElement_hasAttributeNS(namespa
  *
  * @author Jon van Noort (jon@webarcana.com.au) and David Joham (djoham@yahoo.com)
  *
- * @return : string
+ * @return {string}
  */
 DOMElement.prototype.toString = function DOMElement_toString() {
   var ret = "";
@@ -3801,7 +3801,7 @@ DOMAttr.prototype = new DOMNode;
  *
  * @author Jon van Noort (jon@webarcana.com.au)
  *
- * @return : string
+ * @return {string}
  */
 DOMAttr.prototype.getName = function DOMAttr_getName() {
   return this.nodeName;
@@ -3823,7 +3823,7 @@ DOMAttr.prototype.getSpecified = function DOMAttr_getSpecified() {
  *
  * @author Jon van Noort (jon@webarcana.com.au)
  *
- * @return : string
+ * @return {string}
  */
 DOMAttr.prototype.getValue = function DOMAttr_getValue() {
   if(this.___link) {
@@ -3888,7 +3888,7 @@ DOMAttr.prototype.setNodeValue = function DOMAttr_setNodeValue(value) {
  *
  * @author Jon van Noort (jon@webarcana.com.au) and David Joham (djoham@yahoo.com)
  *
- * @return : string
+ * @return {string}
  */
 DOMAttr.prototype.toString = function DOMAttr_toString() {
   var ret = "";
@@ -3940,7 +3940,7 @@ DOMNamespace.prototype = new DOMNode;
  *
  * @author Jon van Noort (jon@webarcana.com.au)
  *
- * @return : string
+ * @return {string}
  */
 DOMNamespace.prototype.getValue = function DOMNamespace_getValue() {
   return this.nodeValue;
@@ -3964,7 +3964,7 @@ DOMNamespace.prototype.setValue = function DOMNamespace_setValue(value) {
  *
  * @author Jon van Noort (jon@webarcana.com.au)
  *
- * @return : string
+ * @return {string}
  */
 DOMNamespace.prototype.toString = function DOMNamespace_toString() {
   var ret = "";
@@ -4004,7 +4004,7 @@ DOMCharacterData.prototype = new DOMNode;
  *
  * @author Jon van Noort (jon@webarcana.com.au)
  *
- * @return : string
+ * @return {string}
  */
 DOMCharacterData.prototype.getData = function DOMCharacterData_getData() {
   if(this.___link) return this.___link.nodeValue;
@@ -4055,7 +4055,7 @@ DOMCharacterData.prototype.setNodeValue = function DOMCharacterData_setNodeValue
  *
  * @author Jon van Noort (jon@webarcana.com.au)
  *
- * @return : string
+ * @return {string}
  */
 DOMCharacterData.prototype.getLength = function DOMCharacterData_getLength() {
   if(this.___link) return this.___link.length;
@@ -4072,7 +4072,7 @@ DOMCharacterData.prototype.getLength = function DOMCharacterData_getLength() {
  *
  * @throws : DOMException - INDEX_SIZE_ERR: Raised if specified offset is negative or greater than the number of 16-bit units in data,
  *
- * @return : string - The specified substring.
+ * @return {string} - The specified substring.
  *   If the sum of offset and count exceeds the length, then all characters to the end of the data are returned.
  */
 DOMCharacterData.prototype.substringData = function DOMCharacterData_substringData(offset, count) {
@@ -4317,7 +4317,7 @@ DOMText.prototype.splitText = function DOMText_splitText(offset) {
  *
  * @author Jon van Noort (jon@webarcana.com.au) and David Joham (djoham@yahoo.com)
  *
- * @return : string
+ * @return {string}
  */
 DOMText.prototype.toString = function DOMText_toString() {
   if(this.___link) return this.__escapeString(""+this.___link.nodeValue);
@@ -4398,7 +4398,7 @@ DOMCDATASection.prototype.splitText = function DOMCDATASection_splitText(offset)
  *
  * @author Jon van Noort (jon@webarcana.com.au) and David Joham (djoham@yahoo.com)
  *
- * @return : string
+ * @return {string}
  */
 DOMCDATASection.prototype.toString = function DOMCDATASection_toString() {
   var ret = "";
@@ -4432,7 +4432,7 @@ DOMComment.prototype = new DOMCharacterData;
  *
  * @author Jon van Noort (jon@webarcana.com.au) and David Joham (djoham@yahoo.com)
  *
- * @return : string
+ * @return {string}
  */
 DOMComment.prototype.toString = function DOMComment_toString() {
   var ret = "";
@@ -4474,7 +4474,7 @@ DOMProcessingInstruction.prototype = new DOMNode;
  *
  * @author Jon van Noort (jon@webarcana.com.au)
  *
- * @return : string
+ * @return {string}
  */
 DOMProcessingInstruction.prototype.getTarget = function DOMProcessingInstruction_getTarget() {
   return this.nodeName;
@@ -4485,7 +4485,7 @@ DOMProcessingInstruction.prototype.getTarget = function DOMProcessingInstruction
  *
  * @author Jon van Noort (jon@webarcana.com.au)
  *
- * @return : string
+ * @return {string}
  */
 DOMProcessingInstruction.prototype.getData = function DOMProcessingInstruction_getData() {
   return this.nodeValue;
@@ -4527,7 +4527,7 @@ DOMProcessingInstruction.prototype.setNodeValue = function DOMProcessingInstruct
  *
  * @author Jon van Noort (jon@webarcana.com.au) and David Joham (djoham@yahoo.com)
  *
- * @return : string
+ * @return {string}
  */
 DOMProcessingInstruction.prototype.toString = function DOMProcessingInstruction_toString() {
   var ret = "";
@@ -4561,7 +4561,7 @@ DOMDocumentFragment.prototype = new DOMNode;
  *
  * @author David Joham (djoham@yahoo.com)
  *
- * @return : string
+ * @return {string}
  */
 DOMDocumentFragment.prototype.toString = function DOMDocumentFragment_toString() {
   var xml = "";
