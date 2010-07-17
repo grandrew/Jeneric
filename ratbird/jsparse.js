@@ -131,6 +131,7 @@ function Tokenizer(s, f, l) {
     this.scanOperand = true;
     this.filename = f || "";
     this.lineno = l || 1;
+    this.MARK = 43431352; // MARK for heapcrawler search TODO DELETE
 }
 
 Tokenizer.prototype = {

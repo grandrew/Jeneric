@@ -4,7 +4,7 @@
 
 
 DEEP = 100
-
+DEEPREACHED = 0;
 // obj_desc = {name: "obn", idx: 3}
 SCANNED = 0;
 SCANBASE=[];
@@ -30,11 +30,20 @@ function copy_path(path, last) {
   return np;
 }
 
+function read_path(path, last) {
+  var spath = "";
+  for(var i=0;i<path.length;i++) {
+    spath += path[i].name+".";
+  }
+  return spath;
+}
+
 function traverse_path(path, last) {
   var cur_obj = where;
   var c;
   for(var i=0; i<(path.length-1); i++) {
     c = path[i];
+    c.accessCount += 1;
     //console.log("obname "+c.name);
     cur_obj = cur_obj[c.name];
     if(!cur_obj) return null; // object changed at runtime??
@@ -42,11 +51,11 @@ function traverse_path(path, last) {
   //console.log("cur_obj  1 is " +cur_obj);
   // now last part
   if((cur_obj instanceof Array) && (last.idx < cur_obj.length)) {
-    return { value: cur_obj[last.idx], name: last.idx, idx: 0};
+    return { value: cur_obj[last.idx], name: last.idx, idx: 0, accessCount: 0};
   } else {
     var i = cur_obj.length || 0;
     for(var ob in cur_obj) {
-      if(last.idx == i) return {value: cur_obj[ob], name: ob, idx: 0};
+      if(last.idx == i) return {value: cur_obj[ob], name: ob, idx: 0, accessCount: 0};
       i++;
     }
   }
@@ -69,7 +78,11 @@ function find_step() {
     if(!obj_desc) return; // finished
     cur_obj = traverse_path(path_desc, obj_desc);
     if(!cur_obj) {
-      path_desc.pop();
+      var out = path_desc.pop();
+      if(out.accessCount > MAX_ACCESS) {
+        MAX_ACCESS_OBJ.push( {c: out.accessCount, p: read_path(path_desc, out) });
+        MAX_ACCESS = out.accessCount;
+      }
       //continue;
       return
     }
@@ -95,17 +108,21 @@ function find_step() {
     }
     */
     if(typeof(cur_obj.value) !== "object") return;
-    if(cur_obj.name === "___link" || cur_obj.name === "SCANBASE" || cur_obj.name === "FOUND" || cur_obj.value instanceof HTMLDocument) return; //OMG!
-    if(path_desc.length > DEEP) return;
+    //if(cur_obj.name === "___link" || cur_obj.name === "SCANBASE" || cur_obj.name === "FOUND" || cur_obj.value instanceof HTMLDocument) return; //OMG!
+    if(cur_obj.name === "SCANBASE" || cur_obj.name === "FOUND" || cur_obj.name === "MAX_ACCESS_OBJ") return; //OMG!
+    if(path_desc.length > DEEP) {
+      DEEPREACHED++;
+      return;
+    }
     if(!scanned_add(cur_obj)) return;
     
     if ((cur_obj.value instanceof Array)) {
-      path_desc.push({name: 0, idx: 0, value: cur_obj.value});
+      path_desc.push({name: 0, idx: 0, value: cur_obj.value, accessCount: 0});
       //continue;
       return
     } else if(typeof(cur_obj.value) === "object") {
       for(var ob in cur_obj.value) {
-        path_desc.push({name: ob, idx: 0, value: cur_obj.value});
+        path_desc.push({name: ob, idx: 0, value: cur_obj.value, accessCount: 0});
         //continue;
         return
       }
@@ -121,12 +138,16 @@ function do_travel(from, to) {
   FOUND = [];
   STOP = false;
   SCANBASE = [];
+  SCANNED = 0;
+  DEEPREACHED = 0;
+  MAX_ACCESS = 0;
+  MAX_ACCESS_OBJ = [];
   _TS = (new Date()).getTime();
   travel_timer();
 }
 
 function sinfo() {
-  console.log("SCANNED: "+SCANNED+" SCANBASE: "+SCANBASE.length+" DEEP: "+path_desc.length+" time: "+parseInt(((new Date()).getTime()-_TS)/1000)+"s Found: "+ FOUND.length);
+  console.log("SCANNED: "+SCANNED+" SCANBASE: "+SCANBASE.length+" DEEP: "+path_desc.length+" reached:"+DEEPREACHED+" time: "+parseInt(((new Date()).getTime()-_TS)/1000)+"s Found: "+ FOUND.length);
 }
 
 function travel_timer() {
@@ -143,10 +164,24 @@ function travel_timer() {
   }
   if(path_desc.length) XXXX = setTimeout(travel_timer, 30);
   else {
-    console.log("HEAP SCAN FINISHED in "+parseInt(((new Date()).getTime()-_TS)/1000)+"s; total objects collected: "+SCANBASE.length+ " total scanned: "+SCANNED+" FOUND: "+FOUND.length);
+    console.log("HEAP SCAN FINISHED in "+parseInt(((new Date()).getTime()-_TS)/1000)+"s; total objects collected: "+SCANBASE.length+ " total scanned: "+SCANNED+" DEEP value "+DEEP+" reached "+DEEPREACHED+" times." +" FOUND: "+FOUND.length);
     // CLEAN BASE?
     SCANBASE = [];
   }
 }
 
+/*
+ Jeneric global pollution auditing result:
 
+// polluted with vm's
+iNodeParent
+_terminal_vm
+__SERIALIZER
+__eos_serial
+nvm
+
+// beware also
+setTimeout/setInterval's
+registered callbacks (e.g. for hubConnection)
+
+*/

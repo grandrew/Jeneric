@@ -1113,6 +1113,7 @@ function Jnaric() {
     var __tihs = this; // closure
     
     this.VERSION = "ratbird kernel 0.1 alpha";
+    if(window.JENERIC_BUILD) this.VERSION += (" BUILD "+JENERIC_BUILD);
     
     this.FunctionObject = function (node, scope) {
         this.node = node;
@@ -1184,6 +1185,7 @@ function Jnaric() {
     
     this.ExecutionContext = function(type) {
         this.type = type;
+        this.MARK = 1353; // MARK for heapcrawler TODO DELETE
     }
     this.XCp = this.ExecutionContext.prototype;
     
@@ -1873,6 +1875,8 @@ __Stack.prototype.push = function (x, o) {
 
 // global exception stack
 //e_stack = [];
+
+// -*- FILE SPLIT HERE -*-
 
 Jnaric.prototype.step_next = function (g_stack) {
     var ex, v;

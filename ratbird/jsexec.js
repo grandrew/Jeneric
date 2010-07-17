@@ -1185,6 +1185,7 @@ function Jnaric() {
     
     this.ExecutionContext = function(type) {
         this.type = type;
+        this.MARK = 43431353; // MARK for heapcrawler TODO DELETE
     }
     this.XCp = this.ExecutionContext.prototype;
     
