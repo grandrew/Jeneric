@@ -244,6 +244,7 @@ function eos_execURI(vm, sUri, sMethod, lArgs, timeout) {
     if((typeof sUri != "string") && !(sUri instanceof String)) {
         cs.EXCEPTION = THROW;
         cs.exc.result = new vm.global.TypeError("First execURI argument must be a string, got: "+typeof(sUri));
+        cs.EXCEPTION_OBJ = cs.exc.result; // XXX TODO WARNING!!! this is still required somehow!?!!
         cs.STOP = false;
         return;
     }
@@ -251,6 +252,7 @@ function eos_execURI(vm, sUri, sMethod, lArgs, timeout) {
     if((typeof sMethod != "string") && !(sMethod instanceof String)) {
         cs.EXCEPTION = THROW;
         cs.exc.result = new vm.global.TypeError("Second execURI argument must be a string, got: "+typeof(sMethod));
+        cs.EXCEPTION_OBJ = cs.exc.result; // XXX TODO WARNING!!! this is still required somehow!?!!
         cs.STOP = false;
         return;
     }
@@ -258,6 +260,7 @@ function eos_execURI(vm, sUri, sMethod, lArgs, timeout) {
     if(!(lArgs instanceof Array)) {
         cs.EXCEPTION = THROW;
         cs.exc.result = new vm.global.TypeError("Args execURI argument must be an Array object");
+        cs.EXCEPTION_OBJ = cs.exc.result; // XXX TODO WARNING!!! this is still required somehow!?!!
         cs.STOP = false;
         return;
     }
@@ -265,6 +268,7 @@ function eos_execURI(vm, sUri, sMethod, lArgs, timeout) {
     if((typeof timeout != "undefined") && !(timeout >= 0)) {
         cs.EXCEPTION = THROW;
         cs.exc.result = new vm.global.TypeError("timeout execURI argument must be a number >= 0");
+        cs.EXCEPTION_OBJ = cs.exc.result; // XXX TODO WARNING!!! this is still required somehow!?!!
         cs.STOP = false;
         return;
     }
@@ -1688,23 +1692,26 @@ eos_om = {
         if(name in __tihs.childList) {
             __tihs.cur_stack.EXCEPTION = THROW;
             __tihs.cur_stack.my.x2.result = "duplicate child name";
-            __tihs.cur_stack.exc.result = "duplicate child name";
+            __tihs.cur_stack.EXCEPTION_OBJ = "duplicate child name"; // TODO TODO XXX WARNING!!! DUNNO WHY EX_OBJ IS REQUIRED!!
             return;
         }
         if(name.toString().indexOf("/") != -1) {
             __tihs.cur_stack.EXCEPTION = THROW;
             __tihs.cur_stack.my.x2.result = "child name may not contain slash";
+            __tihs.cur_stack.EXCEPTION_OBJ = "child name may not contain slash";
             return;
         }
         if( (typeof(typeURI) != "string") && !(typeURI instanceof String)) {
             __tihs.cur_stack.EXCEPTION = THROW;
             __tihs.cur_stack.my.x2.result = (new __tihs.global.TypeError("TypeURI must be a string")); 
+            __tihs.cur_stack.EXCEPTION_OBJ = (new __tihs.global.TypeError("TypeURI must be a string")); 
             return;
         }
 
         if( (typeof(secURI) != "string") && !(secURI instanceof String)) {
             __tihs.cur_stack.EXCEPTION = THROW;
             __tihs.cur_stack.my.x2.result = (new __tihs.global.TypeError("SecurityURI must be a string")); 
+            __tihs.cur_stack.EXCEPTION_OBJ = (new __tihs.global.TypeError("SecurityURI must be a string")); 
             return;
         }
         
