@@ -8,7 +8,7 @@ DEEPREACHED = 0;
 // obj_desc = {name: "obn", idx: 3}
 SCANNED = 0;
 SCANBASE=[];
-
+EXCLUDEV = [];
 path_desc = [];
 obj_desc = {};
 
@@ -21,7 +21,7 @@ function copy_path(path, last) {
   var np = [];
   var spath = "";
   for(var i=0;i<path.length;i++) {
-    np.push(path[i]);
+    np.push({name: path[i].name, value: path[i].value, accessCount: path[i].accessCount, idx: path[i].idx});
     spath += path[i].name+".";
   }
   np.pop();
@@ -109,7 +109,12 @@ function find_step() {
     */
     if(typeof(cur_obj.value) !== "object") return;
     //if(cur_obj.name === "___link" || cur_obj.name === "SCANBASE" || cur_obj.name === "FOUND" || cur_obj.value instanceof HTMLDocument) return; //OMG!
-    if(cur_obj.name === "SCANBASE" || cur_obj.name === "FOUND" || cur_obj.name === "MAX_ACCESS_OBJ") return; //OMG!
+    if(cur_obj.name === "SCANBASE" || cur_obj.name === "FOUND"|| cur_obj.name === "EXCLUDEV" || cur_obj.name === "MAX_ACCESS_OBJ") return; //OMG!
+    if(EXCLUDEV.length) {
+      for(var ix=0; ix<EXCLUDEV.length;ix++) {
+        if(EXCLUDEV[ix].value === cur_obj.value) return;
+      }
+    }
     if(path_desc.length > DEEP) {
       DEEPREACHED++;
       return;
@@ -129,8 +134,39 @@ function find_step() {
     }  
   //}
 }
-//do_travel(__eos_objects, 20000)
 
+
+/*
+ * heap_count_paths
+ */
+hcp_first_run = true;
+function heap_count_paths(f, t) {
+  if(path_desc.length) {
+    setTimeout(heap_count_paths, 1000);
+    return;
+  }
+  f = f || where;
+  t = t || target;
+  var ex_len = EXCLUDEV.length;
+  for(var i=0; i<FOUND.length; i++) {
+    for(var j=0; ((j < EXCLUDEV.length) && (EXCLUDEV[j].value !== FOUND[i][0].value));j++) { }
+    if(j==EXCLUDEV.length) EXCLUDEV.push(FOUND[i][0]);
+  }
+  if((ex_len == EXCLUDEV.length) && !hcp_first_run) {
+      console.log("heap_count_paths: Found all paths; total: "+EXCLUDEV.length);
+      return;
+  }
+
+  console.log("Starting new scan with "+EXCLUDEV.length+" paths removed")
+  do_travel(f, t);
+  hcp_first_run = false;
+  setTimeout(heap_count_paths, 1000);
+}
+
+//do_travel(__eos_objects, 20000)
+/*
+ * Main method to scan
+ */
 function do_travel(from, to) {
   where = from;
   target = to;
@@ -142,6 +178,7 @@ function do_travel(from, to) {
   DEEPREACHED = 0;
   MAX_ACCESS = 0;
   MAX_ACCESS_OBJ = [];
+
   _TS = (new Date()).getTime();
   travel_timer();
 }
@@ -155,7 +192,7 @@ function travel_timer() {
     find_step();
     //if(STOP) return;
   }
-  SCANNED += 1000;
+  SCANNED += i;
   //console.log("SCANNED: "+SCANNED+" DEEP: "+path_desc.length+" time: "+parseInt(((new Date()).getTime()-_TS)/1000)+"s Found: "+ FOUND.length);
   ssinf = "SCANNED: "+SCANNED+" DEEP: "+path_desc.length+" time: "+parseInt(((new Date()).getTime()-_TS)/1000)+"s Found: "+ FOUND.length;
   if(STOP) {
