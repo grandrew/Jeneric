@@ -138,6 +138,7 @@ function find_step() {
 
 /*
  * heap_count_paths
+ * usage: heap_count_paths(window, "MARK") // to search for "MARK" in some object you need to trace
  */
 hcp_first_run = true;
 function heap_count_paths(f, t) {

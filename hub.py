@@ -43,6 +43,7 @@ PFX_SIZE = 9 # size of terminal name generated in digit-chars excluding PFX
 MIN_TERMINAL_NAME_CHARS = 8 # minimal length of a terminal registered with hub public registration routine
 # TODO: register flood protection?
 
+STOMP_PORT = 61613
 HUB_PRIVATE_KEY = "SuPeRkEy" # CHANGE IT!! <-> STOMP -->> orbited
 
 TIMEOUT_SESSION = 200 # seconds
@@ -52,6 +53,16 @@ ACK_TIMEOUT = 60 # seconds timeout to give up resending
 
 RQ_PENDING_TIMEOUT = 600 # 10 minutes maximum request block time; after this time last the request will be lost
                          # DOC: to avoid this, use keepalive/event subscription method
+
+# BLOBPIPE configuration
+BLOB_PORT = 8100
+
+CONN_TIMEOUT = 100 # seconds
+BLOB_TIMEOUT = 150 # seconds, to be sure all connections already dropped
+PIPE_TIMEOUT = 150 # seconds to transfer a READBYTES chunk
+
+READBYTES = 100000 # 20000 # bytes
+TREAT_AS_BLOB_SIZE = 1000000 # 1 mb to treat as BLOB
 
 ###########################################################################################
 # default hub connection - this is for default startup-time only link
@@ -75,6 +86,10 @@ REMOTE = {
 # You may add your own links in the form 
 # HubRelay(LINK_LOCAL, LINK_REMOTE) with LINK_* structs set as above examples
 ###########################################################################################
+try:
+  from hub_config import *
+except:
+  pass
 
 ANNOUNCE_PATH = "/announce"
 
@@ -851,12 +866,7 @@ import base64,cStringIO,tempfile
 # render GET /base64, POST /base64
 # blobsend/blobget, base64send/base64get
 
-CONN_TIMEOUT = 100 # seconds
-BLOB_TIMEOUT = 150 # seconds, to be sure all connections already dropped
-PIPE_TIMEOUT = 150 # seconds to transfer a READBYTES chunk
 
-READBYTES = 100000 # 20000 # bytes
-TREAT_AS_BLOB_SIZE = 1000000 # 1 mb to treat as BLOB
 GETPIPE_TERMNAME = "00000000" # name of DataPipe static terminal
 
 # DEFS DONT TOUCH
@@ -1400,7 +1410,7 @@ if CONNECT_HUB_DEFAULT and (not (socket.gethostname() in DONTLOOP)):
 	dbconn.commit()
     hr = HubRelay(LOCAL, REMOTE)
 
-reactor.connectTCP('localhost', 61613, h)
-reactor.listenTCP(8100, site)
+reactor.connectTCP('localhost', STOMP_PORT, h)
+reactor.listenTCP(BLOB_PORT, site)
 reactor.run()
 
