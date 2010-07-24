@@ -44,13 +44,13 @@ STOMP_RESET_LOCK_INTERVAL = 4000; // milliseconds to lock sending till a reset
 MAX_RQ_TIME = 600000; // 10 minutes maximum request time
 
 // GENERAL INIT part
-KCONFIG = {
+KCONFIG = { // these are non-overridable parameters
   host: "http://"+location.host,
   autorestore: false,
   autoswapout: false
 }
 
-KCONFIG_DEFAULTS = {
+KCONFIG_DEFAULTS = { // these are overridable via kernel init string
   terminal_id: "~", // init as unknown, will be set later at terminal object instance
   MEMOBJECTS: 1000, // max allowed amount of objects in memory (in __eos_objects)}; // kernel configuration
   saveinterval: 10000 // interval of object serialization turnaround in ms.
@@ -243,6 +243,7 @@ function jeneric_init(elemt) {
     }
     delete d;
     delete _stor;
+    
 
     // parse kernel parameters, use terminal_id and terminal_key as logon credentials
     // DOC this!
@@ -263,6 +264,32 @@ function jeneric_init(elemt) {
         if(!KCONFIG[dob])KCONFIG[dob] = KCONFIG_DEFAULTS[dob];
     }
     })()
+
+    // set some settings...
+    // detect hostname
+    // DOC this: if the JN kernel script is not loaded from the host that is serving jeneric HUB on port 80
+    //  you MUST explicitly set JENERIC_HOST global variable before jeneric_init
+    //  also, the subdomain SHOULD be of the form subdomain.your.site.com so if yr site is www.site.com it shouldbe subdomain.www.site.com
+    //  also, the jeneric host is auto-detected only if the script is loaded from os/jeneric.js
+    if(window.JENERIC_HOST) {
+        Orbited.settings.hostname = JENERIC_HOST;
+        KCONFIG.host = "http://"+JENERIC_HOST;
+    } else {
+        // try to detect where the JN script is loaded from
+        var scripts = document.getElementsByTagName("SCRIPT");
+        for(var i=0; i<scripts.length; i++) {
+            if(scripts[i].src.toString().indexOf("jeneric.js") != -1) {
+                var mres = scripts[i].src.toString().match((new RegExp("http://(.+)/os/jeneric.js")));
+                var dom;
+                if(mres && (dom = mres[1])) {
+                    Orbited.settings.hostname = dom;
+                    KCONFIG.host = "http://"+dom;
+                }
+                break;
+            }
+        }
+    }
+
     
     // start the pinger
     setInterval((function() {
@@ -727,7 +754,7 @@ function blob_replacer(key, value, req) {
 function sendBlob(bid, blob, req) {
     // again,assume gears is there
     var request = google.gears.factory.create("beta.httprequest");
-    request.open("POST", "/blobsend?blobid="+bid+"&blob_session="+hubConnection.___SESSIONKEY);
+    request.open("POST", KCONFIG.host+"/blobsend?blobid="+bid+"&blob_session="+hubConnection.___SESSIONKEY);
     //request.setRequestHeader("blob_session", hubConnection.___SESSIONKEY); // XXX ugly sessionkey get...
     //request.setRequestHeader("blobid", bid); 
     //console.log("sending BLOB of length "+blob.___blob.length);
@@ -770,7 +797,7 @@ function sendWrappedBlob(bid, blob, req) {
     dr.addArg(_POST, "data", blob.wrappedString);
     dr.addArg(_POST, "blob_session", hubConnection.___SESSIONKEY);
     dr.addArg(_POST, "blobid", bid);
-    dr.getURL( "/base64send" );
+    dr.getURL( KCONFIG.host+"/base64send" );
 
 }
 
@@ -778,7 +805,7 @@ function sendWrappedBlob(bid, blob, req) {
 function getBlob(bid, blobCount, blobObject, req) {
     // again,assume gears is there
     var request = google.gears.factory.create("beta.httprequest");
-    request.open("GET", "/blobget?blobid="+bid+"&blob_session="+hubConnection.___SESSIONKEY);
+    request.open("GET", KCONFIG.host+"/blobget?blobid="+bid+"&blob_session="+hubConnection.___SESSIONKEY);
     //request.setRequestHeader("blob_session", hubConnection.___SESSIONKEY); // XXX ugly sessionkey get...
     //request.setRequestHeader("blobid", bid);
     request.onreadystatechange = function () {
@@ -831,7 +858,7 @@ function getWrappedBlob(bid, blobCount, blobObject, req) {
     };
     dr.addArg(_GET, "blob_session", hubConnection.___SESSIONKEY);
     dr.addArg(_GET, "blobid", bid);
-    dr.getURL( "/base64get" );
+    dr.getURL( KCONFIG.host+"/base64get" );
 
 }
 

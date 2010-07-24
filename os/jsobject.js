@@ -57,6 +57,8 @@ TODO cache object typeURIs and secURIs, aggressively, to dramatically reduce ser
 
 // TODO: some max for requests?
 
+document.domain = document.domain; // required for cross-subdomain operation of Orbited!!
+
 __eos_requests = {}; // object storing all the waiting requests
 __eos_objects = {};
 __eos_comet = {getID: function() {return 1;}}; // TODO get rid of this
