@@ -87,6 +87,7 @@ REMOTE = {
 # You may add your own links in the form 
 # HubRelay(LINK_LOCAL, LINK_REMOTE) with LINK_* structs set as above examples
 ###########################################################################################
+DONTLOOP = ["svoyaset.ru", "jeneric.net", "go.jeneric.net", "platform25.com"]
 try:
   from hub_config import *
 except:
@@ -113,7 +114,7 @@ c = dbconn.cursor()
 try:
     c.execute("create table reg (name varchar PRIMARY KEY, key varchar, identity varchar, created int, accessed int)")
 except:
-    pass; # error-exists
+    pass; # error-exists # OOPS?? why does it work with no rollback???
 dbconn.commit()
 c.close()
 
@@ -1395,7 +1396,7 @@ storage.bp = bp
 
 site = server.Site(bp)
 
-DONTLOOP = ["svoyaset.ru", "jeneric.net", "go.jeneric.net", "platform25.com"]
+
 import socket
 if CONNECT_HUB_DEFAULT and (not (socket.gethostname() in DONTLOOP)):   
     try:

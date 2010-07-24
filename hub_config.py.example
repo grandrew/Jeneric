@@ -14,6 +14,15 @@ HUB_PRIVATE_KEY = "mypassowrd" # CHANGE IT!! <-> STOMP -->> orbited
 
 BLOB_PORT = 8101
 
+LOCAL_HC_KEY = "fkgjnrfkgekgvekvwe" # place something random here
+
+LOCAL = {
+  "terminal_id": "jeneric.net", 
+  "terminal_key": LOCAL_HC_KEY, 
+  "host":"localhost", # change this if differs
+  "port": 61614 # as STOMP_PORT!
+}
+
 REMOTE = {
   "terminal_id": "svoyaset_ru", # CHANGE this to your registered terminal link - go register at go.jeneric.net
   "terminal_key": "mypassword", # CHANGE this to YOUR key
