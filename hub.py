@@ -89,6 +89,7 @@ REMOTE = {
 try:
   from hub_config import *
 except:
+  print "\n\n\n-------------------------\nimport hub_config FAILED.\nTry doing it manually.\n-------------------------\\n\n\n"
   pass
 
 ANNOUNCE_PATH = "/announce"

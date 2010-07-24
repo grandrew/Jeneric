@@ -1,0 +1,19 @@
+import psycopg2
+
+TMP_DB = "/tmp/blob_tmp_db_svoyaset.sqlite"
+
+STOMP_PORT = 61614
+HUB_PRIVATE_KEY = "mypassowrd" # CHANGE IT!! <-> STOMP -->> orbited
+
+BLOB_PORT = 8101
+
+REMOTE = {
+  "terminal_id": "svoyaset_ru", # CHANGE this to your registered terminal link - go register at go.jeneric.net
+  "terminal_key": "mypassword", # CHANGE this to YOUR key
+  "host":"go.jeneric.net",
+  "port": 61613
+}
+
+pgconn = psycopg2.connect("dbname=svoyaset_data user=jeneric_data")
+
+
