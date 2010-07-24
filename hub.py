@@ -37,6 +37,7 @@ from interhub import *
 INT_FS_LIST = ["bin", "home", "lib"] # for internal hub storage pseudo-terminal names
 REGISTRAR_DB = "/var/lib/eoshub/registrar.sqlite" # unused.
 TMP_DB = "/tmp/blob_tmp_db.sqlite"
+REG_DB_CREDENTIALS = "dbname=jeneric_reg user=jeneric_data"
 
 PFX = "" # auto-generated terminal ID prefix
 PFX_SIZE = 9 # size of terminal name generated in digit-chars excluding PFX
@@ -105,7 +106,7 @@ terminals = {}
 
 
 #dbconn = sqlite3.connect(REGISTRAR_DB);
-dbconn = psycopg2.connect("dbname=jeneric_reg user=jeneric_data")
+dbconn = psycopg2.connect(REG_DB_CREDENTIALS)
 
 c = dbconn.cursor()
 #c.execute('''create table if not exists reg (name text UNIQUE, key text, identity text, created int, accessed int)''')

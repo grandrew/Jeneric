@@ -62,6 +62,21 @@
 #   + search for parent and set parent oid(?)?
 #   + append ourself to childList of a found parent (if any - in the case of absense we are on top)
 
+
+"""
+
+BARE DB INIT PROCEDURE:
+python -i storage.py
+>>> init_db()
+>>> init_objects()
+>>> terminal_register("admin", "password_for_admin", "e@mail")
+>>> terminal_register("grandrew", "password_for_grandrew", "realgrandrew@gmail.com")
+
+"""
+
+
+########################################################
+
 #from hub import DEBUG
 
 """
@@ -108,17 +123,34 @@ SyntaxError: invalid syntax
 import psycopg2, httplib, time, string,simplejson
 from random import choice # for genhash
 
-pgconn = psycopg2.connect("dbname=jeneric_data user=jeneric_data")
 
+DATA_DB_CREDENTIALS = "dbname=jeneric_data user=jeneric_data"
+REG_DB_CREDENTIALS = "dbname=svoyaset_reg user=jeneric_data"
 MAX_READ_SIZE = 400000 # max read slice size in bytes!
 # JENERIC_TMP = "/tmp/jeneric/"
 
-METHODS_FULL_ACCESS = ["securitySet", "securityGet", "read", "write", "describe", "listChildren", "createChild", "deleteChild"] # everything
 
 MAXLIST = 100 # maximum file listing length
 
 RTIME = 1268347288 # reference time
 RBITS = 1024*1024*2*8 # reference bits amount
+
+INIT_OBJECTLIST = ["bin", "lib", "home"]
+ADMIN_TERMINALS = ["test", "grandrew", "admin"] # hard-coded admin terminals
+
+
+METHODS_FULL_ACCESS = ["securitySet", "securityGet", "read", "write", "describe", "listChildren", "createChild", "deleteChild"] # everything
+
+################################################################################
+try:
+  from hub_config import *
+except:
+  print "\n\n\n-------------------------\nimport hub_config FAILED.\nTry doing it manually.\n-------------------------\\n\n\n"
+  pass
+
+
+
+pgconn = psycopg2.connect(DATA_DB_CREDENTIALS)
 
 def cur_maxbytes():
     return (RBITS + int(time.time()-RTIME))/8
@@ -152,10 +184,11 @@ def init_db():
     pgconn.commit()
     cur.close()
 def init_objects():
-    ownerTerminalList = ["test", "grandrew", "admin"] # hard-coded admin terminals
+    ownerTerminalList = ADMIN_TERMINALS
     methodList = METHODS_FULL_ACCESS
-    objectlist = ["bin", "test", "lib", "home", "types"]
-    for ob in objectlist:
+    #objectlist = ["bin", "test", "lib", "home", "types"]
+    
+    for ob in INIT_OBJECTLIST:
         createObject("/"+ob, ownerTerminalList, methodList)
     pgconn.commit()
 def secg(uri):
@@ -760,7 +793,7 @@ def createObject(fullURI, ownerTerminalList, methodList):
 
 
 def terminal_register(name, key, info):
-    conn = psycopg2.connect("dbname=jeneric_reg user=jeneric_data")
+    conn = psycopg2.connect(REG_DB_CREDENTIALS)
     c = conn.cursor()
     c.execute("insert into reg (name, key, identity, created, accessed) values (%s,%s,%s,%s,%s)", (name,key,info, int(time.time()),int(time.time())))
     conn.commit()

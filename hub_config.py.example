@@ -1,6 +1,13 @@
-import psycopg2
 
 TMP_DB = "/tmp/blob_tmp_db_svoyaset.sqlite"
+REG_DB_CREDENTIALS = "dbname=svoyaset_reg user=jeneric_data"
+
+# don't forget to init the database! see storage.py
+DATA_DB_CREDENTIALS = "dbname=svoyaset_data user=jeneric_data"
+
+# don't forget to register these - see storage.py
+ADMIN_TERMINALS = ["test", "grandrew", "admin"] # hard-coded admin terminals
+
 
 STOMP_PORT = 61614
 HUB_PRIVATE_KEY = "mypassowrd" # CHANGE IT!! <-> STOMP -->> orbited
@@ -13,7 +20,5 @@ REMOTE = {
   "host":"go.jeneric.net",
   "port": 61613
 }
-
-pgconn = psycopg2.connect("dbname=svoyaset_data user=jeneric_data")
 
 
