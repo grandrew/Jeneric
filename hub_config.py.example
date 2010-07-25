@@ -22,7 +22,8 @@ LOCAL = {
   "terminal_id": "jeneric.net", 
   "terminal_key": LOCAL_HC_KEY, 
   "host":"localhost", # change this if differs. Note that haproxy uses address to determine destination blob port
-  "port": 61614 # as STOMP_PORT!
+  "port": 61614, # as STOMP_PORT!
+  "blob_port": BLOB_PORT
 }
 
 REMOTE = {
@@ -30,6 +31,7 @@ REMOTE = {
   "terminal_key": "mypassword", # CHANGE this to YOUR key
   "host":"go.jeneric.net",
   "port": 61613
+  # default blob port - not set
 }
 
 

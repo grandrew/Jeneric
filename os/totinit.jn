@@ -47,16 +47,17 @@ function s_agent() {
 
 // now run init tasks from ~/conf/init ramdir
 // DOC this
+initdir = object.kconfig("initdir") ? object.kconfig("initdir") : "~/conf/init";
 objs = [];
 try {
-    objs = execURI("~/conf/init", "listChildren", []);
+    objs = execURI(initdir, "listChildren", []);
 } catch (e) {
-    ErrorConsole.log("totinit: running ~/conf/init/* "+e);
+    ErrorConsole.log("totinit: running "+initdir+" : "+e);
 }
 
 var i=0;
 for(i=0; i<objs.length; i++) {
-    object.createChild(objs[i], "~/conf/init/"+objs[i], "~/sys/anarchic", document.body); // TODO: localSecurity instead of anarchic
+    object.createChild(objs[i], initdir+"/"+objs[i], "~/sys/anarchic", document.body); 
 }
 
 // the workaround for working init + ic as default init

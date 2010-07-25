@@ -525,7 +525,7 @@ if(navigator.userAgent && navigator.userAgent.indexOf("MSIE") > -1) {
     var head= document.getElementsByTagName('head')[0];
     var script= document.createElement('script');
     script.type= 'text/javascript';
-    script.src= 'os/csshover3.js';
+    script.src= '/os/csshover3.js';
     head.appendChild(script);
 
 }
