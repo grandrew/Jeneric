@@ -21,6 +21,7 @@
  *	------------------------------------------------------------
  */
 
+if(navigator.userAgent.indexOf("MSIE") != -1) {
 window.CSSHover = (function(){
 
 	// regular expressions, used and explained later on.
@@ -278,4 +279,4 @@ window.CSSHover = (function(){
 		}
 	};
 
-})();
+})();}

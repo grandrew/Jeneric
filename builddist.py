@@ -15,6 +15,7 @@ COMPILE_FILES = [
     "ratbird/DataRequestor.js",
     "ratbird/json2.js",
     "os/ierange-m2.js",
+    "os/csshover3.js", # TODO: make it not load by default - IE sucks
     "os/md5.js",
     "ratbird/jsdefs.js",
     "ratbird/jsparse.js",
