@@ -1,3 +1,5 @@
+# note that this is the example of hub on a different port set than the original
+# consider ports 61613 for STOMP and 8100 for BLOB - these are the parameters set in orbited and morbid configs
 
 TMP_DB = "/tmp/blob_tmp_db_svoyaset.sqlite"
 REG_DB_CREDENTIALS = "dbname=svoyaset_reg user=jeneric_data"
@@ -19,7 +21,7 @@ LOCAL_HC_KEY = "fkgjnrfkgekgvekvwe" # place something random here
 LOCAL = {
   "terminal_id": "jeneric.net", 
   "terminal_key": LOCAL_HC_KEY, 
-  "host":"localhost", # change this if differs
+  "host":"localhost", # change this if differs. Note that haproxy uses address to determine destination blob port
   "port": 61614 # as STOMP_PORT!
 }
 

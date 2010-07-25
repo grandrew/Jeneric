@@ -23,8 +23,6 @@ ANNOUNCE_PATH = "/announce"
 #######################################
 # THESE ARE FROM eosinit.js->hubConnection
 
-E_SERVER = "localhost";
-E_PORT = 61613;
 HUB_PATH = "/hub";
 ANNOUNCE_PATH = "/announce";
 KEY_LENGTH = 80; # bytes stringkey length
@@ -84,6 +82,7 @@ class HubConnection(StompClientFactory):
     password = "eos"
     host=""
     port=""
+    blob_port = 80
     
     ___SESSIONKEY = genhash(KEY_LENGTH)
 
@@ -269,7 +268,7 @@ class HubConnection(StompClientFactory):
 
     def get_blob_only(self, blobid):
         if DEBUG>3: print "get_blob_only: requesting blobid ", blobid, "from", self.host
-        hconn = httplib.HTTPConnection(self.host)
+        hconn = httplib.HTTPConnection(self.host, self.blob_port)
         hconn.request("GET", "/blobget?blobid="+blobid+"&blob_session="+self.___SESSIONKEY)
         r1 = hconn.getresponse()
         b = BlobObject()
@@ -280,7 +279,7 @@ class HubConnection(StompClientFactory):
 
     def send_blob(self, blobid, data):
         # I hope it will retry...
-        h = httplib.HTTP(self.host)
+        h = httplib.HTTP(self.host, self.blob_port)
         h.putrequest('POST', "/blobsend?blobid="+blobid+"&blob_session="+self.___SESSIONKEY)
         h.putheader('content-type', 'application/octet-stream')
         h.putheader('content-length', str(len(data)))
@@ -411,12 +410,14 @@ class HubRelay:
         self.conn1.terminal_key = conn1["terminal_key"]
         self.conn1.host = conn1["host"]
         self.conn1.port = conn1["port"]
+        if "blob_port" in conn1: self.conn1.blob_port = conn1["blob_port"]
         
         self.conn2 = HubConnection()
         self.conn2.terminal_id = conn2["terminal_id"]
         self.conn2.terminal_key = conn2["terminal_key"]
         self.conn2.host = conn2["host"]
         self.conn2.port = conn2["port"]
+        if "blob_port" in conn2: self.conn2.blob_port = conn2["blob_port"]
         
         # now set receivers
         self.conn1.receive = self.receive1
