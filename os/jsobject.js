@@ -2170,7 +2170,7 @@ Jnaric.prototype.bind_om = function () {
     //delete this.global.load;
  
  
-    this.kconfig_r = ['init', 'terminal_id', 'host', 'run']; // access nothing DOC this! <- the only method to get terminal_id
+    this.kconfig_r = ['init', 'terminal_id', 'host', 'run', 'initdir']; // access nothing DOC this! <- the only method to get terminal_id
     this.kconfig_w = [];
     
     this.security = {ipc:{}}; // empty security
