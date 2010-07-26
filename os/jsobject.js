@@ -1835,7 +1835,9 @@ eos_om = {
             ch[bindList[i]](); // DOC this is dangerous kernel method!!
         }
         // now SET the kconfig access strings
-        ch.kconfig_r = kconfig_r; // TODO error checking here (if kconfig_ list is incorrect
+        for (var o in kconfig_r) { // why SET? doing EXTEND for at least readable
+           ch.kconfig_r[o] = kconfig_r[o]; // TODO error checking here (if kconfig_ list is incorrect
+        }
         ch.kconfig_w = kconfig_w;
     },
     
