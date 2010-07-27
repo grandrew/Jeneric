@@ -330,7 +330,14 @@ var fixed_SCANDELAY= 1000;
 
 function fixed_scan() {
   if (!document.body) return;
-  if (!fixed_viewport) fixed_init();
+  if (!fixed_viewport) {
+    try {
+      fixed_init();
+    } catch (e) {
+      // warning! an ugly way to detect IE8 in standards mode!
+      return false;
+    }
+  }
   var el;
   for (var i= 0; i<document.all.length; i++) {
     el= document.all[i];
@@ -338,6 +345,7 @@ function fixed_scan() {
       el.fixed_bound= true;
       fixed_bind(el);
   } }
+  return true;
 }
 
 var fixed_scanner;
@@ -346,10 +354,11 @@ function fixed_stop() {
   fixed_scan();
 }
 
-fixed_scan();
-fixed_scanner= window.setInterval(fixed_scan, fixed_SCANDELAY);
-//window.attachEvent('onload', fixed_stop);
-window.attachEvent('onresize', fixed_delayout);
-window.attachEvent('onscroll', fixed_scroll);
+if(fixed_scan()) {
+  fixed_scanner= window.setInterval(fixed_scan, fixed_SCANDELAY);
+  //window.attachEvent('onload', fixed_stop);
+  window.attachEvent('onresize', fixed_delayout);
+  window.attachEvent('onscroll', fixed_scroll);
+}
 
 @end @*/
