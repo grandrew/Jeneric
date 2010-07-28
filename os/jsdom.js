@@ -797,7 +797,13 @@ DOMElement.prototype.reset = function ( ) {
 };
 
 DOMElement.prototype.focus = function ( ) {
-    if(this.___link && this.___link.focus) this.___link.focus();
+    if(this.___link && this.___link.focus) {
+    	try {
+    		this.___link.focus();
+	} catch (e) {
+		// pass. IE bug. throws exception
+	}
+    }
 };
 
 DOMElement.prototype.blur = function ( ) {
