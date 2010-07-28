@@ -2,8 +2,8 @@
 if(!window.console && '\v' == 'v'){
 var console={
     DEPTH: 70,
+    d: document.createElement('div'),
     init:function(){
-        console.d=document.createElement('div');
         document.body.appendChild(console.d);
         console.d.style.display="none";
         var a=document.createElement('a');
