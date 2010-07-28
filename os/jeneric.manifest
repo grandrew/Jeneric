@@ -1,5 +1,5 @@
 CACHE MANIFEST
-# BUILD 17
+# BUILD 37
 os/fauxconsole.css
 os/jnext/jnext.js
 os/jnext/sockets.js
@@ -10,4 +10,3 @@ FALLBACK:
 / eos.html
 /index.php eos.html
 /index.html eos.html
-

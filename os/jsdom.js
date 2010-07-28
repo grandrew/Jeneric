@@ -174,6 +174,11 @@ Jnaric.prototype.bind_dom = function (wrapped_domElement) {
     this.cssRules = []; // should be a list of rules for this particular VM (TODO: to be cleaned by some mechanism)
 };
 
+
+// init the CSS thing
+document.getElementsByTagName("HEAD")[0].insertBefore(document.createElement("STYLE"), document.getElementsByTagName("HEAD")[0].firstChild);
+
+
 Jnaric.prototype._importCSS = function (__tihs, src_uri, stop) {
     // stop indicates whether to stop the stack
     if(stop) {
@@ -2481,15 +2486,17 @@ __CSSStyleSheet.prototype.insertRule = function (ruleStr, indx) {
         var real_idx = document.styleSheets[0].rules.length;
         //var sel = ruleStr.split("{")[0];
         //var rul = "{"+ruleStr.split("{")[1];
-        //console.log("Inserting sel: "+sel+" rul: "+rul);
         //document.styleSheets[0].addRule(sel, rul, real_idx);   
+	r = r.replace("{", "").replace("}", "");
         if(p.indexOf(",") > -1) { // IE supports only 'Single contextual selector' here
             lp = p.split(",");
             for(var l=0; l<lp.length;l++) {
+	    //console.log("inserting: "+ lp[l] +" to "+r);
                 document.styleSheets[0].addRule(lp[l], r, real_idx+l);
             }
         } else {
             document.styleSheets[0].addRule(p, r, real_idx);        
+	    //console.log("inserting2: "+ p +" to "+r);
         }
         var styleObj = document.styleSheets[0].rules[real_idx];
     }

@@ -367,7 +367,7 @@ delete Function.prototype.test1;
 delete Array.prototype.test2;
     if (   (typeof JSON.stringify !== 'function') 
         || (navigator.product == "Gecko") // do defeat FF3.5.6 bug 509184
-        || IEBUG ) { 
+        ) { 
     
         JSON.stringify = function (value, replacer, space) {
 
@@ -415,7 +415,7 @@ delete Array.prototype.test2;
 
 // If the JSON object does not yet have a parse method, give it one.
 
-    if (typeof JSON.parse !== 'function') {
+    if (typeof JSON.parse !== 'function' || IEBUG) {
         JSON.parse = function (text, reviver) {
 
 // The parse method takes a text and an optional reviver function, and returns
