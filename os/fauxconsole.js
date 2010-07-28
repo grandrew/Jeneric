@@ -43,6 +43,7 @@ var console={
     
     clear:function(){
         console.d.parentNode.removeChild(console.d);
+        console.d = document.createElement('div');
         console.init();
         console.show();
     },
