@@ -19,21 +19,21 @@ var console={
             console.d.id=id;
         }
         //console.show();
-        console.hidden = false;
+        //console.hidden = false;
     },
     
     hide:function(){
         console.d.style.display='none';
-        console.hidden = true;
+        //console.hidden = true;
     },
     
     show:function(){
         console.d.style.display='block';
-        console.hidden = false;
+        //console.hidden = false;
     },
     
     log:function(o){
-        if(console.hidden) return;
+        //if(console.hidden) return;
         var t = document.createTextNode(o);
         var div = document.createElement("DIV");
         div.appendChild(t);

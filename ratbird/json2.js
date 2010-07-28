@@ -353,7 +353,17 @@ if (!this.JSON) {
 // If the JSON object does not yet have a stringify method, give it one.
 if ( typeof JSON.stringify === 'function') JSON.native_stringify = JSON.stringify;
 
-    if ( (typeof JSON.stringify !== 'function') || (navigator.product == "Gecko")) { // do defeat FF3.5.6 bug
+// defeat IE8 'standards mode' JSON parser bug 
+// http://support.microsoft.com/kb/976662http://support.microsoft.com/kb/976662
+try {
+  JSON.parse('{ "foo": [1,2,3] }', function(k,v) { return v; });
+  var IEBUG = false;
+} catch (e) {
+  var IEBUG = true;
+}
+    if (   (typeof JSON.stringify !== 'function') 
+        || (navigator.product == "Gecko") // do defeat FF3.5.6 bug 509184
+        || IEBUG ) { 
     
         JSON.stringify = function (value, replacer, space) {
 
