@@ -18,7 +18,8 @@ var console={
         if(!document.getElementById(id)){
             console.d.id=id;
         }
-        console.show();
+        //console.show();
+        console.hidden = false;
     },
     
     hide:function(){
