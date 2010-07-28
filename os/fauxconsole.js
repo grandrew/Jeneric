@@ -1,9 +1,11 @@
 ﻿/* Faux Console by Chris Heilmann & others http://wait-till-i.com */ 
 if(!window.console && '\v' == 'v'){
 var console={
+    DEPTH: 70,
     init:function(){
         console.d=document.createElement('div');
         document.body.appendChild(console.d);
+        console.d.style.display="none";
         var a=document.createElement('a');
         a.href='javascript:console.hide()';
         a.innerHTML='close';
@@ -32,8 +34,10 @@ var console={
     log:function(o){
         if(console.hidden) return;
         var t = document.createTextNode(o);
-        console.d.innerHTML+='<br/>';
-        console.d.appendChild(t);
+        var div = document.createElement("DIV");
+        div.appendChild(t);
+        console.d.appendChild(div);
+        if(console.d.childNodes.length > console.DEPTH) console.d.removeChild(console.d.firstChild);
     },
     
     clear:function(){
@@ -41,21 +45,11 @@ var console={
         console.init();
         console.show();
     },
-    /*Simon Willison rules*/
+
     addLoadEvent:function(func){
-        var oldonload=window.onload;
-        if(typeof window.onload!='function'){
-            window.onload=func;
-        }else{
-            window.onload=function(){
-                if(oldonload){
-                    oldonload();
-                }
-                func();
-            }
-        };
+        window.attachEvent("onload", func);
     }
 };
-//console.addLoadEvent(console.init);
-console.init();
+console.addLoadEvent(console.init);
+//console.init();
 }

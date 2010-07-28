@@ -14,8 +14,9 @@ import sys, urllib2, urllib, time, os.path, string, os, commands
 COMPILE_FILES = [
     "ratbird/DataRequestor.js",
     "ratbird/json2.js",
-    "os/ierange-m2.js",
+    "os/ierange-m2.js", #                     and this
     "os/csshover3.js", # TODO: make it not load by default - IE sucks
+    "os/fauxconsole.js", # this too
     "os/md5.js",
     "ratbird/jsdefs.js",
     "ratbird/jsparse.js",
