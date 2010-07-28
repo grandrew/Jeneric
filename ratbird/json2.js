@@ -355,12 +355,16 @@ if ( typeof JSON.stringify === 'function') JSON.native_stringify = JSON.stringif
 
 // defeat IE8 'standards mode' JSON parser bug 
 // http://support.microsoft.com/kb/976662http://support.microsoft.com/kb/976662
+Function.prototype.test1 = function() { };
+Array.prototype.test2 = function() { };
 try {
   JSON.parse('{ "foo": [1,2,3] }', function(k,v) { return v; });
   var IEBUG = false;
 } catch (e) {
   var IEBUG = true;
 }
+delete Function.prototype.test1;
+delete Array.prototype.test2;
     if (   (typeof JSON.stringify !== 'function') 
         || (navigator.product == "Gecko") // do defeat FF3.5.6 bug 509184
         || IEBUG ) { 
