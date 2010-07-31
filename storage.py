@@ -125,7 +125,7 @@ from random import choice # for genhash
 
 
 DATA_DB_CREDENTIALS = "dbname=jeneric_data user=jeneric_data"
-REG_DB_CREDENTIALS = "dbname=svoyaset_reg user=jeneric_data"
+REG_DB_CREDENTIALS = "dbname=jeneric_reg user=jeneric_data"
 MAX_READ_SIZE = 400000 # max read slice size in bytes!
 # JENERIC_TMP = "/tmp/jeneric/"
 
