@@ -144,8 +144,8 @@ objj = function _objj(parsed, onfinish) {
   PROC.SCANNED = 0;
 
   PROC._TS = (new Date()).getTime();
-  (function travel_timer() {
-      var TIMESLICE = 45;
+  var tt = (function travel_timer() {
+      var TIMESLICE = 100;
       var ts0 = (new Date).getTime();
       while((PROC.path_desc.length) && ((new Date).getTime()) - ts0 < TIMESLICE) {
         find_step(PROC);
@@ -161,7 +161,8 @@ objj = function _objj(parsed, onfinish) {
         // finished. run onfinish
         onfinish(PROC.targ, PROC);
       }
-  })();
+  });
+  setTimeout(tt, 50);
 }
 
 /*
