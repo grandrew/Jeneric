@@ -2320,14 +2320,16 @@ Jnaric.prototype.step_execute = function (n, x, stack) {
       case SCRIPT:
         if(!("t" in stack.my)) {
             stack.my.t = x.scope.object;
-            a = n.funDecls;
+            //a = n.funDecls;
+            a = n.fD;
             for (i = 0, j = a.length; i < j; i++) {
                 s = a[i].name;
                 f = new this.FunctionObject(a[i], x.scope);
                 //stack.my.t.__defineProperty__(s, f, x.type != EVAL_CODE);
                 stack.my.t[s] = f;
             }
-            a = n.varDecls;
+            //a = n.varDecls;
+            a = n.vD;
             for (i = 0, j = a.length; i < j; i++) {
                 u = a[i];
                 s = u.name;
@@ -2363,14 +2365,16 @@ Jnaric.prototype.step_execute = function (n, x, stack) {
 
         // we need the stepper to get us v1 first, by executing the condition
         if (!("v1" in stack.my)) {
-          stack.push(S_EXEC, {v: "v1", n: n.condition, x: x, Nodes: n, Context: x, NodeNum: 0, pmy: stack.my.myObj});
+          //stack.push(S_EXEC, {v: "v1", n: n.condition, x: x, Nodes: n, Context: x, NodeNum: 0, pmy: stack.my.myObj});
+          stack.push(S_EXEC, {v: "v1", n: n.c, x: x, Nodes: n, Context: x, NodeNum: 0, pmy: stack.my.myObj});
           break;
         } else {
           
           if (stack.my.v1) {
               //execute(n.thenPart, x);
          
-              stack.push(S_EXEC, {n: n.thenPart, x: x, Nodes: n, Context: x, NodeNum: 0, pmy: stack.my.myObj}); 
+              //stack.push(S_EXEC, {n: n.thenPart, x: x, Nodes: n, Context: x, NodeNum: 0, pmy: stack.my.myObj});
+              stack.push(S_EXEC, {n: n.tP, x: x, Nodes: n, Context: x, NodeNum: 0, pmy: stack.my.myObj});  
               stack.my.done = true;
          
           } else if (n.elsePart) {
@@ -2514,8 +2518,10 @@ Jnaric.prototype.step_execute = function (n, x, stack) {
         
     
         if(stack.my.get0_step) {
-          if(n.condition) {
-              stack.push(S_EXEC, {v: "wv", n: n.condition, x: x, Nodes: n, Context: x, NodeNum: 0, pmy: stack.my.myObj});
+          //if(n.condition) {
+          if(n.c) {
+              //stack.push(S_EXEC, {v: "wv", n: n.condition, x: x, Nodes: n, Context: x, NodeNum: 0, pmy: stack.my.myObj});
+              stack.push(S_EXEC, {v: "wv", n: n.c, x: x, Nodes: n, Context: x, NodeNum: 0, pmy: stack.my.myObj});
               stack.my.get0_step = false;
               break;
           } else {
@@ -2528,7 +2534,8 @@ Jnaric.prototype.step_execute = function (n, x, stack) {
         
         
         // WHILE REPLACE BY THIS
-        if (n.condition && !stack.my.wv) {
+        //if (n.condition && !stack.my.wv) {
+        if (n.c && !stack.my.wv) {
             stack.my.done = true;
             break;
         }
@@ -2703,7 +2710,8 @@ Jnaric.prototype.step_execute = function (n, x, stack) {
 
         
         if(!("condx" in stack.my)) {
-            stack.push(S_EXEC, {v:"condx", n: n.condition, x: x, Nodes: n, Context: x, NodeNum: 0, pmy: stack.my.myObj});
+            //stack.push(S_EXEC, {v:"condx", n: n.condition, x: x, Nodes: n, Context: x, NodeNum: 0, pmy: stack.my.myObj});
+            stack.push(S_EXEC, {v:"condx", n: n.c, x: x, Nodes: n, Context: x, NodeNum: 0, pmy: stack.my.myObj});
             break;
         }
         if(! stack.my.condx) {
@@ -3081,7 +3089,8 @@ Jnaric.prototype.step_execute = function (n, x, stack) {
 
         
         if(!("u" in stack.my)) {
-            stack.my.u = n[stack.my.i].initializer;
+            //stack.my.u = n[stack.my.i].initializer;
+            stack.my.u = n[stack.my.i].iz;
             if(!stack.my.u) {
               delete stack.my.u;
               stack.my.i++; // means continue
@@ -3116,14 +3125,16 @@ Jnaric.prototype.step_execute = function (n, x, stack) {
         break;
 
       case SEMICOLON:
-        if (n.expression) {
+        //if (n.expression) {
+        if (n.e) {
           
 
           
           
             if(!("v2" in stack.my)) {
                 
-                stack.push(S_EXEC, {v:"v2", n: n.expression, x: x, Nodes: n, Context: x, NodeNum: 0, pmy: stack.my.myObj});
+                //stack.push(S_EXEC, {v:"v2", n: n.expression, x: x, Nodes: n, Context: x, NodeNum: 0, pmy: stack.my.myObj});
+                stack.push(S_EXEC, {v:"v2", n: n.e, x: x, Nodes: n, Context: x, NodeNum: 0, pmy: stack.my.myObj});
                 break;
             } else {
 

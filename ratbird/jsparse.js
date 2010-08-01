@@ -354,8 +354,10 @@ Tokenizer.prototype = {
 function CompilerContext(inFunction) {
     this.inFunction = inFunction;
     this.stmtStack = [];
-    this.funDecls = [];
-    this.varDecls = [];
+    //this.funDecls = [];
+    this.fD = [];
+    //this.varDecls = [];
+    this.vD = [];
 }
 
 var CCp = CompilerContext.prototype;
@@ -365,8 +367,10 @@ CCp.ecmaStrictMode = CCp.inForLoopInit = false;
 function Script(t, x) {
     var n = Statements(t, x);
     n.type = SCRIPT;
-    n.funDecls = x.funDecls;
-    n.varDecls = x.varDecls;
+    //n.funDecls = x.funDecls;
+    n.fD = x.fD;
+    //n.varDecls = x.varDecls;
+    n.vD = x.vD;
     return n;
 }
 
@@ -591,9 +595,11 @@ function Statement(t, x) {
       case IF:
         //n = new Node(t);
         n = Node(t);
-        n.condition = ParenExpression(t, x);
+        //n.condition = ParenExpression(t, x);
+        n.c = ParenExpression(t, x);
         x.stmtStack.push(n);
-        n.thenPart = Statement(t, x);
+        //n.thenPart = Statement(t, x);
+        n.tP = Statement(t, x);
         n.elsePart = t.match(ELSE) ? Statement(t, x) : null;
         x.stmtStack.pop();
         return n;
@@ -676,7 +682,8 @@ function Statement(t, x) {
         } else {
             n.setup = n2 || null;
             t.mustMatch(SEMICOLON);
-            n.condition = (t.peek() == SEMICOLON) ? null : Expression(t, x);
+            //n.condition = (t.peek() == SEMICOLON) ? null : Expression(t, x);
+            n.c = (t.peek() == SEMICOLON) ? null : Expression(t, x);
             t.mustMatch(SEMICOLON);
             n.update = (t.peek() == RIGHT_PAREN) ? null : Expression(t, x);
         }
@@ -688,7 +695,8 @@ function Statement(t, x) {
         //n = new Node(t);
         n = Node(t);
         n.isLoop = true;
-        n.condition = ParenExpression(t, x);
+        //n.condition = ParenExpression(t, x);
+        n.c = ParenExpression(t, x);
         n.body = nest(t, x, n, Statement);
         return n;
 
@@ -697,7 +705,8 @@ function Statement(t, x) {
         n = Node(t);
         n.isLoop = true;
         n.body = nest(t, x, n, Statement, WHILE);
-        n.condition = ParenExpression(t, x);
+        //n.condition = ParenExpression(t, x);
+        n.c = ParenExpression(t, x);
         if (!x.ecmaStrictMode) {
             // <script language="JavaScript"> (without version hints) may need
             // automatic semicolon insertion without a newline after do-while.
@@ -824,7 +833,8 @@ function Statement(t, x) {
       case SEMICOLON:
         //n = new Node(t, SEMICOLON);
         n = Node(t, SEMICOLON);
-        n.expression = null;
+        //n.expression = null;
+        n.e = null;
         return n;
 
       default:
@@ -854,8 +864,10 @@ function Statement(t, x) {
         //n = new Node(t, SEMICOLON);
         n = Node(t, SEMICOLON);
         t.unget();
-        n.expression = Expression(t, x);
-        n.end = n.expression.end;
+        //n.expression = Expression(t, x);
+        //n.end = n.expression.end;
+        n.e = Expression(t, x);
+        n.end = n.e.end;
         break;
     }
 
@@ -906,7 +918,8 @@ function FunctionDefinition(t, x, requireName, functionForm) {
 
     f.functionForm = functionForm;
     if (functionForm == DECLARED_FORM)
-        x.funDecls.push(f);
+        //x.funDecls.push(f);
+        x.fD.push(f);
     return f;
 }
 
@@ -924,11 +937,13 @@ function Variables(t, x) {
                 _err.___jeneric_err = true;
                 throw _err;
             }
-            n2.initializer = Expression(t, x, COMMA);
+            //n2.initializer = Expression(t, x, COMMA);
+            n2.iz = Expression(t, x, COMMA);
         }
         n2.readOnly = (n.type == CONST);
         n.push(n2);
-        x.varDecls.push(n2);
+        //x.varDecls.push(n2);
+        x.vD.push(n2);
     } while (t.match(COMMA));
     return n;
 }

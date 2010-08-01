@@ -99,7 +99,7 @@ function find_step(PROC) {
     // now add the value to current obj
     // ... here
     //console.log("doing for "+cur_obj.name);
-    
+    if(cur_obj.name === "tokenizer" || cur_obj.name === "lineno" || cur_obj.name === "filename" || cur_obj.name === "start" || cur_obj.name === "end") return;    
     if(typeof(cur_obj.value) !== "object") {
       if(typeof(cur_obj.value) !== "function")
           PROC.targ_current.value[cur_obj.name] = cur_obj.value;
@@ -109,7 +109,11 @@ function find_step(PROC) {
         PROC.targ_current.value[cur_obj.name] = null;
         return;
     }
-    if(cur_obj.name === "tokenizer") return; 
+ 
+    ///////
+    if(cur_obj.name in NAME_DB) NAME_DB[cur_obj.name]++;
+    else NAME_DB[cur_obj.name] = 1;
+    
 
     if(path_desc.length > _P_COMPILER.DEEP) {
       PROC.STOP = true;
@@ -133,6 +137,7 @@ function find_step(PROC) {
     }  
 }
 
+NAME_DB = {};
 
 objj = function _objj(parsed, onfinish) {
   var PROC = {};
