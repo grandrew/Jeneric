@@ -742,7 +742,55 @@ GLOBAL_METHODS = {
         };
         dr.getURL( url );
     },
-    
+
+    compile: function (txt, filename) {
+        // remove RETURN exception from stack; set v0 as the 'result' to the stack
+        this.cur_stack.my.v0 = undefined;
+        
+        // set up a stop execution flag
+        var __cs = this.cur_stack;
+        var x2 = __cs.my.x2;
+        var self=this;
+         
+        this.cur_stack.EXCEPTION = false;
+        var _mystop = __jn_stacks.newId();
+        this.cur_stack.STOP = _mystop;
+
+
+        var exec_f = function (data) {
+            if( __cs.STOP != _mystop )
+                    return;
+            
+            x2.result = data; 
+            __cs.EXCEPTION = RETURN;
+            __cs.STOP = false;
+            __jn_stacks.start(__cs.pid);
+        };
+
+        
+        
+        var fail_f = function (e) {
+            if( __cs.STOP != _mystop ) // means TIMEOUT already fired
+                    return;
+            
+            __cs.EXCEPTION = THROW;
+            var ex = e;
+            __cs.EXCEPTION_OBJ = e; // seems to be still required...
+            __cs.exc.result = ex;
+            __cs.STOP = false;
+            __jn_stacks.start(__cs.pid);
+        };
+
+        try {
+            var pp = parse(txt, filename, 0);
+        } catch (e) {
+            fail_f(e);
+        }
+
+        objj(pp, exec_f);
+        
+    },
+
         
     fetchUrl: function (url, args, callback, mode) {
         // remove RETURN exception from stack; set v0 as the 'result' to the stack
@@ -1139,7 +1187,9 @@ function Jnaric() {
 
         // Standard methods.
         toString: function () {
-            return this.node.getSource();
+            if (this.node.getSource)
+                return this.node.getSource();
+            else return "[jeneric compiled FunctionObject]";
         },
 
         apply: function (t, a) {
@@ -1394,6 +1444,10 @@ Jnaric.prototype.createGlobal = function () {
 
         fetchUrl: function fetchUrl(url, args, callback, mode) {
             return GLOBAL_METHODS.fetchUrl.call(__tihs, url, args, callback, mode);
+        },
+        
+        compile: function compile(txt) {
+            return GLOBAL_METHODS.compile.call(__tihs, txt);
         },
         
         nice: function nice(val) {

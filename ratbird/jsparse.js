@@ -1374,6 +1374,9 @@ loop:
 }
 
 function parse(s, f, l) {
+    if(s.charAt(0) === "{" && s.charAt(s.length-1) === "}") { // WARNING! TODO XXX DOC! ASSUME JSON!!
+        return JSON.parse(s);
+    }
     var t = new Tokenizer(s, f, l);
     var x = new CompilerContext(false);
     var n = Script(t, x);

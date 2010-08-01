@@ -1139,7 +1139,9 @@ function Jnaric() {
 
         // Standard methods.
         toString: function () {
-            return this.node.getSource();
+            if (this.node.getSource)
+                return this.node.getSource();
+            else return "[jeneric compiled FunctionObject]";
         },
 
         apply: function (t, a) {
@@ -1185,7 +1187,7 @@ function Jnaric() {
     
     this.ExecutionContext = function(type) {
         this.type = type;
-        this.MARK = 1353; // MARK for heapcrawler TODO DELETE
+        this.MARK = 43431353; // MARK for heapcrawler TODO DELETE
     }
     this.XCp = this.ExecutionContext.prototype;
     

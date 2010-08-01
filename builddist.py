@@ -20,6 +20,7 @@ COMPILE_FILES = [
     "os/md5.js",
     "ratbird/jsdefs.js",
     "ratbird/jsparse.js",
+    "ratbird/objj.js",
     "ratbird/jsexec.js",
     "os/gears_init.js",
     "os/jsobject.js",
