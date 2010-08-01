@@ -111,8 +111,8 @@ function find_step(PROC) {
     }
  
     ///////
-    if(cur_obj.name in NAME_DB) NAME_DB[cur_obj.name]++;
-    else NAME_DB[cur_obj.name] = 1;
+    //if(cur_obj.name in NAME_DB) NAME_DB[cur_obj.name]++;
+    //else NAME_DB[cur_obj.name] = 1;
     
 
     if(path_desc.length > _P_COMPILER.DEEP) {
@@ -137,7 +137,7 @@ function find_step(PROC) {
     }  
 }
 
-NAME_DB = {};
+//NAME_DB = {};
 
 objj = function _objj(parsed, onfinish) {
   var PROC = {};
