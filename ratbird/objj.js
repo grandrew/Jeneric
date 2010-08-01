@@ -161,7 +161,7 @@ objj = function _objj(parsed, onfinish) {
         return;
       }
 
-      if(PROC.path_desc.length) XXXX = setTimeout(arguments.callee, 50);
+      if(PROC.path_desc.length) setTimeout(arguments.callee, 50);
       else {
         // finished. run onfinish
         onfinish(PROC.targ, PROC);

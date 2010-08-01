@@ -1,0 +1,152 @@
+// Terminal-Based security module
+// LICENSE: GPL v.3 or later (C) 2010 Andrew Gryaznov realgrandrew@gmail.com, a.gryaznov@svoyaset.ru
+if(!security.state || !security.state.ipcIn) security.state = {  ipcIn: "inherit" };
+
+_include = include;
+PATH = {"~/lib":1, "/lib":1, "/jeneric.net/lib":1};
+include = function (SCRIPT_PATH) {
+    if(SCRIPT_PATH.match(/^\/|^\.|^~/) != null) {
+      _include(SCRIPT_PATH);
+    } else {
+      for(var o in PATH) {
+        try {
+          _include(o+"/"+SCRIPT_PATH);
+          return;
+        } catch (e) {}
+      }
+      throw "Could not find/include script: "+SCRIPT_PATH;
+    }
+};
+
+// first, reattach fetchUrl & load to security
+security.fetchUrl = fetchUrl;
+security.load = load;
+delete fetchUrl;
+delete load;
+
+// cloak createChild -> fixed securityURI
+(function () {
+var cchild = object.createChild;
+var csec = security;
+createChild = object.createChild = function (name, typeURI, secURI, DOMElement) {
+    return cchild(name, typeURI, csec.object.getMySecurityURI(), DOMElement);
+}
+})();
+
+// define security object methods
+security.setSecurityState = function (state) {
+    delete state.inheritParent;
+    this.state = state; // no checks
+    if(wakeupIPCLock.check()) wakeupIPCLock.release(); // IPC may be unlocked already...
+    else { if(this.object.isSerialized()) this.object.serialize(); }
+};
+
+security.getSecurityState = function() {
+    return {ipcIn: this.state.ipcIn};
+};
+
+security.checkInherit = function (rq) {
+//console.log("in checkinherit!"+JSON.stringify(rq));
+    if(this.state.inheritParent) {
+        try {
+            return this.object.execIPC(this.state.inheritParent, "validateRequest", [rq]).result;
+        } catch (e) {
+            return false;
+        }
+    }
+    var lp = this.object.getMyURI().split("/")
+    lp.pop();
+    if(!lp.length) { console.log("returning false!"); return this.state.inheritParent=false; }
+    var d = this.object.execURI(lp.join("/"), "validateRequest", [rq]);
+    this.state.inheritParent = d.inheritParent;
+    return d.result;
+}
+
+// only deny if wrong paramed
+security.signRequest = function (rq) {
+    var type = this.object.getMyTypeURI();
+    if(type.charAt(0) == "/" || type.indexOf("~/insecure") != -1) {
+        if(this.hasOwnProperty("path_allowed")) return this.path_allowed;
+        if(type.match(/^\/bin|^\/test|^\/jeneric.net\/bin/)) return true;
+        var ohash = this.object.uri2id(type);
+	if(rq.uri == "/bin/checked/"+ohash) return true;
+        try {
+            if(this.object.execURI("/bin/checked/"+ohash, "read", [])) {
+                this.path_allowed = true;
+                return true;
+            }
+        } catch (e) {
+        
+        }
+        var stype = type.replace(/\//g, "_");
+        if( (rq.uri.toString().charAt(0) == "~" && rq.uri.toString().indexOf("~/insecure/"+stype) == -1) || rq.uri.toString().indexOf("/home/"+this.object.kconfig("terminal_id")) != -1) {
+            return "signRenuest: only access to ~/insecure/* (local) and not /home/<terminal_id> (global) is allowed by this security policy";
+        }
+        if(rq.uri.toString().charAt(0) == "~" && (rq.method !== "read" && rq.method !== "write")) {
+            return "signRequest: only 'read' and 'write' requests are allowed locally";
+        }
+         
+    }
+    if(rq.method === "acl_validate") return false;
+    return true;
+}
+
+security.validateRequest = function (rq) {
+    //if(rq.method === "validateRequest" && rq.caller_uri.indexOf(this.object.getMyURI()) != -1) return true;
+    // allow all local requests, making the above unnesessary
+    if(rq.caller_uri == this.object.getMyURI() && rq.method == "securitySet") return false; // deny IPC requests from myself (the code cannot control or interact with the security in any way)
+    if(rq.terminal_id == "~" || rq.terminal_id == object.kconfig("terminal_id")) return true; // allow requests from our terminal!
+    return this.ipc.validateRequest.call(this, null, rq).result;
+};
+
+security.ipc.validateRequest = function(obj, rq) {
+    if(!this.state || !this.state.ipcIn) this.state = {  ipcIn: "inherit" }; // patch for broken state?
+    if(this.state.ipcIn === "inherit") return {result: this.checkInherit.call(this, rq), inheritParent: this.state.inheritParent};
+    // if(this.state.ipcIn.charAt && (this.state.ipcIn.charAt(0) == "/" || this.state.ipcIn.charAt(0) == "~"))
+    if(this.state.ipcIn == "*") return {result: true, inheritParent: this.object.getMyURI()};
+    if(!this.state.ipcIn.hasOwnProperty(rq.method) && this.state.ipcIn.hasOwnProperty("*")) var md = "*";
+    else md = rq.method;
+    if(this.state.ipcIn.hasOwnProperty(md)) { 
+// DOC: removed        if(this.state.ipcIn[md] === "inherit") return {result: this.checkInherit.call(this, rq), inheritParent: this.state.inheritParent};
+        // now check if terminal_id given is in either our list or ACL
+// DOC: removed       if(this.state.ipcIn[md] === "*") return {result: true, inheritParent: this.object.getMyURI()};
+        var t, acls = [], neg_acls = [];
+        for(var i=0;i<this.state.ipcIn[md].length; i++) {
+            t = this.state.ipcIn[md][i];
+            if(t.charAt(0) == "!") {
+                t = t.slice(1);
+                if(t == rq.terminal_id) return {result: false, inheritParent: this.object.getMyURI()};
+                if(t.charAt(0) == "#") neg_acls.push(t);
+            } else {
+                if(t == rq.terminal_id) return {result: true, inheritParent: this.object.getMyURI()};
+                if(t.charAt(0) == "#") acls.push(t);
+            }
+            if(t=="inherit") return {result: this.checkInherit.call(this, rq), inheritParent: this.state.inheritParent};
+            if(t == "*") return {result: true, inheritParent: this.object.getMyURI()};
+        }
+        // if we reached here, send validation request to ACL object
+        if(acls.length) return {result: this.object.execIPC("~/security/ACL", "acl_validate", [rq.terminal_id, acls]), inheritParent: this.object.getMyURI()};
+        else if(neg_acls.length) return {result: !this.object.execIPC("~/security/ACL", "acl_validate", [rq.terminal_id, acls]), inheritParent: this.object.getMyURI()};
+    } 
+    return {result: false, inheritParent: this.object.getMyURI()};
+};
+
+security.ipc.securityGet = security.getSecurityState;
+security.ipc.securitySet = function(rq, newState) {
+    this.setSecurityState(newState);
+};
+
+security.ipc.securityFlushCache = function () {
+    delete this.state.inheritParent;
+    delete this.path_allowed;
+    if(this.object.isSerialized()) this.object.serialize();
+};
+
+security.ipc.changeSecurityURI = function(rq, newURI) {
+    this.changeSecurityURI(newURI);
+    if(this.object.isSerialized()) this.object.serialize();
+    // TODO: flush cache for all children!!
+};
+
+
+delete security; // detach from global...

@@ -46,7 +46,7 @@ BASE_SOURCES = [
     "os/tmpstore.jn",
     "os/ic.jn",
     "os/totinit.jn",
-    "os/st.jn",
+#    "os/st.jn",
     "os/terminal.jn"
 ]
 
