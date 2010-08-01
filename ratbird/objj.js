@@ -124,7 +124,7 @@ function find_step(PROC) {
     //if(!scanned_add(cur_obj)) return;
     
     if ((cur_obj.value instanceof Array)) {
-      if(!PROC.targ_current.value.hasOwnProperty("length")) PROC.targ_current.value.length = 0;
+      //if(!PROC.targ_current.value.hasOwnProperty("length")) PROC.targ_current.value.length = 0;
       path_desc.push({name: 0, idx: 0, value: cur_obj.value, accessCount: 0});
 //      PROC.targ_current.value[0] = {};
       return

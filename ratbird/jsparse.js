@@ -241,14 +241,16 @@ Tokenizer.prototype = {
                 //console.log("FirstChar:" + firstChar);
                 //console.log("FirstChar2:" + input.charCodeAt(0));
                 token.type = NUMBER;
-                token.value = parseFloat(match[0]);
+                //token.value = parseFloat(match[0]);
+                token.v = parseFloat(match[0]);
            // } else if ((match = input.match(/^0[xX][\da-fA-F]+|^0[0-7]*|^\d+/))) {
             
             } else if ((firstChar > 47 && firstChar < 58) && 
 						(match = input.match(/^(?:0[xX][\da-fA-F]+|0[0-7]*|\d+)/))) { // EDIT: change regex structure for OOM perf improvement,
 																					  //       use x-browser regex syntax
                 token.type = NUMBER;
-                token.value = parseInt(match[0]);
+                //token.value = parseInt(match[0]);
+                token.v = parseInt(match[0]);
             //} else if ((match = input.match(/^[$_\w]+/))) {       // FIXME no ES3 unicode
             ////} else if ((match = input.match(/^((\$\w*)|(\w+))/))) { 
             // causes 'missing operand'
@@ -265,7 +267,8 @@ Tokenizer.prototype = {
                 } else {
                     token.type =  IDENTIFIER;
                 }
-                token.value = id;
+                //token.value = id;
+                token.v = id;
             //} else if ((match = input.match(/^"(?:\\.|[^"])*"|^'(?:\\.|[^'])*'/))) { //"){
             // does not pass: causes 'illegal token'
             } else if ((firstChar == 34 || firstChar == 39) && 
@@ -274,7 +277,8 @@ Tokenizer.prototype = {
 // ("""(?:.|\n)*?""")
                 token.type = STRING;
                 if(match) { 
-                    token.value = eval(match[0]);
+                    //token.value = eval(match[0]);
+                    token.v = eval(match[0]);
                 } else {
                     // multiline string...
                     //token.value = match2[0].slice(3, -3);
@@ -285,7 +289,8 @@ Tokenizer.prototype = {
                         (match = input.match(reRegExp))) { // EDIT: use x-browser regex syntax
 
                 token.type = REGEXP;
-                token.value = new RegExp(match[1], match[2]);
+                //token.value = new RegExp(match[1], match[2]);
+                token.v = new RegExp(match[1], match[2]);
             } else if ((match = input.match(opRegExp))) {
                 var op = match[0];
                 if (assignOps[op] && (input.charAt(op.length) == '=')) {
@@ -300,7 +305,8 @@ Tokenizer.prototype = {
                     }
                     token.assignOp = null;
                 }
-                token.value = op;
+                //token.value = op;
+                token.v = op;
             } else if (this.scanNewlines && (match = input.match(/^\n/))) {
                 token.type = NEWLINE;
             } else {
@@ -439,7 +445,8 @@ Np.push = function (kid) {
      var token = t.token();
      if (token) {
          _this.type = type || token.type;
-         _this.value = token.value;
+         //_this.value = token.value;
+         _this.v = token.v;
          _this.lineno = token.lineno;
          _this.start = token.start;
          _this.end = token.end;
@@ -498,9 +505,11 @@ Np.toString = function () {
      if (this.hasOwnProperty(i) && i != 'type' && i != 'parent' && typeof(this[i]) != 'function') {
          // EDIT,BUG: add check for 'target' to prevent infinite recursion
          if(i != 'target')
-             a.push({id: i, value: this[i]});
+             //a.push({id: i, value: this[i]});
+             a.push({id: i, v: this[i]});
          else
-             a.push({id: i, value: "[token: " + this[i].value + "]"});
+             //a.push({id: i, value: "[token: " + this[i].value + "]"});
+             a.push({id: i, v: "[token: " + this[i].v + "]"});
      }            
     }
   
@@ -510,7 +519,8 @@ Np.toString = function () {
     var n = ++Node.indentLevel;
     var s = "{\n" + INDENTATION.repeat(n) + "type: " + tokenstr(this.type);
     for (i = 0; i < a.length; i++)
-        s += ",\n" + INDENTATION.repeat(n) + a[i].id + ": " + a[i].value;
+        //s += ",\n" + INDENTATION.repeat(n) + a[i].id + ": " + a[i].value;
+        s += ",\n" + INDENTATION.repeat(n) + a[i].id + ": " + a[i].v;
     //Node.indentLevel--;
     n = --Node.indentLevel;
     s += "\n" + INDENTATION.repeat(n) + "}";
@@ -722,7 +732,8 @@ function Statement(t, x) {
         n = Node(t);
         if (t.peekOnSameLine() == IDENTIFIER) {
             t.get();
-            n.label = t.token().value;
+            //n.label = t.token().value;
+            n.label = t.token().v;
         }
         ss = x.stmtStack;
         i = ss.length;
@@ -758,7 +769,8 @@ function Statement(t, x) {
             //n2 = new Node(t);
             n2 = Node(t);
             t.mustMatch(LEFT_PAREN);
-            n2.varName = t.mustMatch(IDENTIFIER).value;
+            //n2.varName = t.mustMatch(IDENTIFIER).value;
+            n2.varName = t.mustMatch(IDENTIFIER).v;
             if (t.match(IF)) {
                 if (x.ecmaStrictMode) {
                     var _err= t.newSyntaxError("Illegal catch guard");
@@ -809,7 +821,8 @@ function Statement(t, x) {
         n = Node(t);
         tt = t.peekOnSameLine();
         if (tt != END && tt != NEWLINE && tt != SEMICOLON && tt != RIGHT_CURLY)
-            n.value = Expression(t, x);
+            //n.value = Expression(t, x);
+            n.v = Expression(t, x);
         break;
 
       case WITH:
@@ -843,7 +856,8 @@ function Statement(t, x) {
             tt = t.peek();
             t.scanOperand = true;
             if (tt == COLON) {
-                label = t.token().value;
+                //label = t.token().value;
+                label = t.token().v;
                 ss = x.stmtStack;
                 for (i = ss.length-1; i >= 0; --i) {
                     if (ss[i].label == label) {
@@ -887,9 +901,11 @@ function FunctionDefinition(t, x, requireName, functionForm) {
     //var f = new Node(t);
     var f = Node(t);
     if (f.type != FUNCTION)
-        f.type = (f.value == "get") ? GETTER : SETTER;
+        //f.type = (f.value == "get") ? GETTER : SETTER;
+        f.type = (f.v == "get") ? GETTER : SETTER;
     if (t.match(IDENTIFIER))
-        f.name = t.token().value;
+        //f.name = t.token().value;
+        f.name = t.token().v;
     else if (requireName) {
         var _err = t.newSyntaxError("Missing function identifier");
         _err.___jeneric_err = true;
@@ -905,7 +921,8 @@ function FunctionDefinition(t, x, requireName, functionForm) {
             _err.___jeneric_err = true;
             throw _err;
         }
-        f.params.push(t.token().value);
+        //f.params.push(t.token().value);
+        f.params.push(t.token().v);
         if (t.peek() != RIGHT_PAREN)
             t.mustMatch(COMMA);
     }
@@ -930,7 +947,8 @@ function Variables(t, x) {
         t.mustMatch(IDENTIFIER);
         //var n2 = new Node(t);
         var n2 = Node(t);
-        n2.name = n2.value;
+        //n2.name = n2.value;
+        n2.name = n2.v;
         if (t.match(ASSIGN)) {
             if (t.token().assignOp) {
                 var _err= t.newSyntaxError("Invalid variable initialization");
@@ -1246,7 +1264,8 @@ loop:
             if (!t.match(RIGHT_CURLY)) {
                 do {
                     tt = t.get();
-                    if ((t.token().value == "get" || t.token().value == "set") &&
+                    //if ((t.token().value == "get" || t.token().value == "set") &&
+                    if ((t.token().v == "get" || t.token().v == "set") &&
                         t.peek() == IDENTIFIER) {
                         if (x.ecmaStrictMode) {
                             var _err = t.newSyntaxError("Illegal property accessor");

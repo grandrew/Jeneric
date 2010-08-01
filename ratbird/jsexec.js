@@ -2274,7 +2274,8 @@ function __print_strace(s_stack) {
             __src = "";
             __ex = s_stack.stack[i];
             //__ex.n.tokenizer && (__src = String.prototype.slice.call(__ex.n.tokenizer.source, 0, 40));
-            if(__ex.n) __out = __out + " >"+say_type(__ex.n.type) + "(" + (__ex.n.type != RETURN ? __ex.n.value : "?") + ")" + " File: " + __ex.n.filename + " Line: " + __ex.n.lineno + ";";
+            //if(__ex.n) __out = __out + " >"+say_type(__ex.n.type) + "(" + (__ex.n.type != RETURN ? __ex.n.value : "?") + ")" + " File: " + __ex.n.filename + " Line: " + __ex.n.lineno + ";";
+            if(__ex.n) __out = __out + " >"+say_type(__ex.n.type) + "(" + (__ex.n.type != RETURN ? __ex.n.v : "?") + ")" + " File: " + __ex.n.filename + " Line: " + __ex.n.lineno + ";";
             else __out = __out + " INTERNAL ERROR: node not defined at "+i+";";
         }
     } else {
@@ -2282,7 +2283,8 @@ function __print_strace(s_stack) {
             __src = "";
             __ex = s_stack[i];
             //__ex.n.tokenizer && (__src = String.prototype.slice.call(__ex.n.tokenizer.source, 0, 40));
-            if(__ex.n) __out = __out + " >"+say_type(__ex.n.type) + "(" + (__ex.n.type != RETURN ? __ex.n.value : "?") + ")" + " File: " + __ex.n.filename + " Line: " + __ex.n.lineno + ";";
+            //if(__ex.n) __out = __out + " >"+say_type(__ex.n.type) + "(" + (__ex.n.type != RETURN ? __ex.n.value : "?") + ")" + " File: " + __ex.n.filename + " Line: " + __ex.n.lineno + ";";
+            if(__ex.n) __out = __out + " >"+say_type(__ex.n.type) + "(" + (__ex.n.type != RETURN ? __ex.n.v : "?") + ")" + " File: " + __ex.n.filename + " Line: " + __ex.n.lineno + ";";
             else __out = __out + " INTERNAL ERROR: node not defined at "+i+";";
         }
     }
@@ -2993,13 +2995,15 @@ Jnaric.prototype.step_execute = function (n, x, stack) {
         break;
 
       case RETURN:
-        if(typeof n.value == "string" ) {
+        //if(typeof n.value == "string" ) {
+        if(typeof n.v == "string" ) {
                 x.result = undefined;
                 stack.EXCEPTION = RETURN;
                 stack.my.done = true;        
         } else {
             if(!("v2" in stack.my)) {
-                stack.push(S_EXEC, {v:"v2", n: n.value, x: x, Nodes: n, Context: x, NodeNum: 0, pmy: stack.my.myObj});
+                //stack.push(S_EXEC, {v:"v2", n: n.value, x: x, Nodes: n, Context: x, NodeNum: 0, pmy: stack.my.myObj});
+                stack.push(S_EXEC, {v:"v2", n: n.v, x: x, Nodes: n, Context: x, NodeNum: 0, pmy: stack.my.myObj});
                 break;
             } else {
                 x.result = stack.my.v2;
@@ -3717,7 +3721,8 @@ Jnaric.prototype.step_execute = function (n, x, stack) {
         } else {
             t = this.getValue(stack.my.r);
             if(stack.EXCEPTION && (x.result instanceof ReferenceError)) return; // check for exception after getValue
-            u = n[1].value;
+            //u = n[1].value;
+            u = n[1].v;
             v = new Reference(this.toObject(t, stack.my.r, n[0]), u, n);
         }
         stack.my.done = true;
@@ -3986,7 +3991,8 @@ Jnaric.prototype.step_execute = function (n, x, stack) {
                 stack.push(S_EXEC, {v:"v2", n: stack.my.t[1], x: x, Nodes: n, Context: x, NodeNum: 0, pmy: stack.my.myObj});
                 break;
             } else {
-                stack.my.vcc[stack.my.t[0].value] = stack.my.v2;
+                //stack.my.vcc[stack.my.t[0].value] = stack.my.v2;
+                stack.my.vcc[stack.my.t[0].v] = stack.my.v2;
                 delete stack.my.v2; // finally, delete the tmp variable
             }
         
@@ -4026,17 +4032,20 @@ Jnaric.prototype.step_execute = function (n, x, stack) {
 
       case IDENTIFIER:
         for (s = x.scope; s; s = s.parent) {
-            if (n.value in s.object)
+            //if (n.value in s.object)
+            if (n.v in s.object)
                 break;
         }
-        v = new Reference(s && s.object, n.value, n);
+        //v = new Reference(s && s.object, n.value, n);
+        v = new Reference(s && s.object, n.v, n);
         stack.my.done = true;
         break;
 
       case NUMBER:
       case STRING:
       case REGEXP:
-        v = n.value;
+        //v = n.value;
+        v = n.v;
         stack.my.done = true;
         break;
 

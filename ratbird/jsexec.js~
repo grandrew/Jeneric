@@ -2328,7 +2328,8 @@ Jnaric.prototype.step_execute = function (n, x, stack) {
                 //stack.my.t.__defineProperty__(s, f, x.type != EVAL_CODE);
                 stack.my.t[s] = f;
             }
-            a = n.varDecls;
+            //a = n.varDecls;
+            a = n.vD;
             for (i = 0, j = a.length; i < j; i++) {
                 u = a[i];
                 s = u.name;
