@@ -1446,8 +1446,8 @@ Jnaric.prototype.createGlobal = function () {
             return GLOBAL_METHODS.fetchUrl.call(__tihs, url, args, callback, mode);
         },
         
-        compile: function compile(txt) {
-            return GLOBAL_METHODS.compile.call(__tihs, txt);
+        compile: function compile(txt, filename) {
+            return GLOBAL_METHODS.compile.call(__tihs, txt, filename);
         },
         
         nice: function nice(val) {
@@ -1715,7 +1715,10 @@ function Reference(base, propertyName, node) {
     this.node = node;
 }
 
-Reference.prototype.toString = function () { return this.node.getSource(); }
+Reference.prototype.toString = function () { 
+	if(this.node.getSource) return this.node.getSource();
+	else return "[ jeneric compiled Reference ]";
+}
 
 
 function isPrimitive(v) {
