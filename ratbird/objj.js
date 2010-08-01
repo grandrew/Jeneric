@@ -66,6 +66,7 @@ function traverse_path_targ(where, path, last) {
   */
   if(typeof(last.name) === "number") cur_obj.length = last.name+1;
   if(!cur_obj[last.name]) return {value: cur_obj, name: last.name, idx: 0, accessCount: 0};
+  
   return {value: cur_obj[last.name], name: last.name, idx: 0, accessCount: 0};
 }
 
@@ -104,6 +105,10 @@ function find_step(PROC) {
           PROC.targ_current.value[cur_obj.name] = cur_obj.value;
       return;
     }
+    if(cur_obj.value === null) { // curse ECMA!!
+        PROC.targ_current.value[cur_obj.name] = null;
+        return;
+    }
     if(cur_obj.name === "tokenizer") return; 
 
     if(path_desc.length > _P_COMPILER.DEEP) {
@@ -111,9 +116,11 @@ function find_step(PROC) {
       return;
     }
     PROC.targ_current.value[cur_obj.name] = {}
+    //if(typeof(cur_obj.name) === "number") PROC.targ_current.value["length"] = cur_obj.name+1;
     //if(!scanned_add(cur_obj)) return;
     
     if ((cur_obj.value instanceof Array)) {
+      if(!PROC.targ_current.value.hasOwnProperty("length")) PROC.targ_current.value.length = 0;
       path_desc.push({name: 0, idx: 0, value: cur_obj.value, accessCount: 0});
 //      PROC.targ_current.value[0] = {};
       return
@@ -152,7 +159,7 @@ objj = function _objj(parsed, onfinish) {
       if(PROC.path_desc.length) XXXX = setTimeout(arguments.callee, 50);
       else {
         // finished. run onfinish
-        onfinish(PROC.targ);
+        onfinish(PROC.targ, PROC);
       }
   })();
 }
@@ -166,8 +173,9 @@ function sinfo() {
 })();
 
 function test_objj() {
-    var onf = function (res) {
+    var onf = function (res, proc) {
       OUT = res;
+      PROC = proc;
       /*
         TODO: try to: 
           1. JSON.stringify
@@ -177,10 +185,12 @@ function test_objj() {
       console.log("Finished processing");
       var jj = JSON.parse(JSON.stringify(res));
       var vmss = new Jnaric();
-      vmss.global.sdata = "";
-      vmss.global.object = {};
+      //vmss.global.sdata = "";
+      vmss.global.object = {ipc:{}};
+      vmss.global.security = {};
       vmss.g_stack.stack.unshift({n: jj, x: vmss.g_stack.exc, pmy: {}})
       __jn_stacks.add_task(vmss, vmss.g_stack, vmss.nice, vmss.throttle);
+      PROC.vm = vmss;
     };
     objj(parse(BUNDLED_FILES["os/tmpstore.jn"], "tmpstore.jn", 0), onf);
 }

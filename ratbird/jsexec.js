@@ -761,7 +761,7 @@ GLOBAL_METHODS = {
             if( __cs.STOP != _mystop )
                     return;
             
-            x2.result = data; 
+            x2.result = JSON.stringify(data); 
             __cs.EXCEPTION = RETURN;
             __cs.STOP = false;
             __jn_stacks.start(__cs.pid);
