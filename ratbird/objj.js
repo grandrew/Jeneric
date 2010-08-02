@@ -9,7 +9,7 @@
 */
 (function () {
 
-_P_COMPILER = {DEEP: 500};
+_P_COMPILER = {DEEP: 5000};
 
 function traverse_path(where, path, last) {
   var cur_obj = where;

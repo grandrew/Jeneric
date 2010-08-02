@@ -5,7 +5,7 @@ if(!security.state || !security.state.ipcIn) security.state = {  ipcIn: "inherit
 _include = include;
 PATH = {"~/lib":1, "/lib":1, "/jeneric.net/lib":1};
 include = function (SCRIPT_PATH) {
-    if(SCRIPT_PATH.match(/^\/|^\.|^~/) != null) {
+    if(SCRIPT_PATH.match("^\\/|^\\.|^~") != null) {
       _include(SCRIPT_PATH);
     } else {
       for(var o in PATH) {
@@ -61,13 +61,14 @@ security.checkInherit = function (rq) {
     this.state.inheritParent = d.inheritParent;
     return d.result;
 }
-
+security.rpath = new RegExp("^\\/bin|^\\/test|^\\/jeneric.net\\/bin");
+security.rslash = new RegExp("\\/", "g");
 // only deny if wrong paramed
 security.signRequest = function (rq) {
     var type = this.object.getMyTypeURI();
     if(type.charAt(0) == "/" || type.indexOf("~/insecure") != -1) {
         if(this.hasOwnProperty("path_allowed")) return this.path_allowed;
-        if(type.match(/^\/bin|^\/test|^\/jeneric.net\/bin/)) return true;
+        if(type.match(this.rpath)) return true;
         var ohash = this.object.uri2id(type);
 	if(rq.uri == "/bin/checked/"+ohash) return true;
         try {
@@ -78,7 +79,7 @@ security.signRequest = function (rq) {
         } catch (e) {
         
         }
-        var stype = type.replace(/\//g, "_");
+        var stype = type.replace(this.rslash, "_");
         if( (rq.uri.toString().charAt(0) == "~" && rq.uri.toString().indexOf("~/insecure/"+stype) == -1) || rq.uri.toString().indexOf("/home/"+this.object.kconfig("terminal_id")) != -1) {
             return "signRenuest: only access to ~/insecure/* (local) and not /home/<terminal_id> (global) is allowed by this security policy";
         }
@@ -150,3 +151,4 @@ security.ipc.changeSecurityURI = function(rq, newURI) {
 
 
 delete security; // detach from global...
+
