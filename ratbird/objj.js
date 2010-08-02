@@ -98,13 +98,20 @@ function find_step(PROC) {
 
     // now add the value to current obj
     // ... here
-    //console.log("doing for "+cur_obj.name);
+    if(cur_obj.value && cur_obj.value.exec && cur_obj.value.test && cur_obj.value.source) {
+	PROC.STOP = "Cannot compile inline regex's; consider using RegExp() prototype";
+	return;
+    }
+
+
     if(cur_obj.name === "tokenizer" || cur_obj.name === "lineno" || cur_obj.name === "filename" || cur_obj.name === "start" || cur_obj.name === "end") return;    
+    
     if(typeof(cur_obj.value) !== "object") {
       if(typeof(cur_obj.value) !== "function")
           PROC.targ_current.value[cur_obj.name] = cur_obj.value;
       return;
     }
+
     if(cur_obj.value === null) { // curse ECMA!!
         PROC.targ_current.value[cur_obj.name] = null;
         return;
@@ -116,7 +123,7 @@ function find_step(PROC) {
     
 
     if(path_desc.length > _P_COMPILER.DEEP) {
-      PROC.STOP = true;
+      PROC.STOP = "Max stack DEEPness reached";
       return;
     }
     PROC.targ_current.value[cur_obj.name] = {}
@@ -139,7 +146,7 @@ function find_step(PROC) {
 
 //NAME_DB = {};
 
-objj = function _objj(parsed, onfinish) {
+objj = function _objj(parsed, onfinish, onerror) {
   var PROC = {};
   PROC.parsed = parsed;
   PROC.targ = {};
@@ -157,7 +164,8 @@ objj = function _objj(parsed, onfinish) {
       }
       //SCANNED += i;
       if(PROC.STOP) {
-        console.log("STOP due to STOP=true");
+        //console.log("STOP due to STOP=true");
+	onerror(PROC.STOP);
         return;
       }
 
@@ -198,6 +206,9 @@ function test_objj() {
       __jn_stacks.add_task(vmss, vmss.g_stack, vmss.nice, vmss.throttle);
       PROC.vm = vmss;
     };
-    objj(parse(BUNDLED_FILES["os/tmpstore.jn"], "tmpstore.jn", 0), onf);
+    var one = function (e) {
+      console.log("Compile failed: "+e);
+    };
+    objj(parse(BUNDLED_FILES["os/st.jn"], "st.jn", 0), onf, one);
 }
 

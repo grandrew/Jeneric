@@ -1,0 +1,8 @@
+// readonly.jn - not to be used in real-world applications
+security.setSecurityState = function (state) {};
+security.getSecurityState = function() {return { };};
+security.validateRequest = function (rq) {
+    if(rq.method == "write") return false;
+    return true;
+};
+delete security; // detach from global...

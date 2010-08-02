@@ -787,7 +787,7 @@ GLOBAL_METHODS = {
             fail_f(e);
         }
 
-        objj(pp, exec_f);
+        objj(pp, exec_f, fail_f);
         
     },
 
@@ -2353,7 +2353,7 @@ Jnaric.prototype.step_execute = function (n, x, stack) {
         //for (i = 0, j = n.length; i < j; i++)
             //execute(n[i], x);
           if(!("i" in stack.my)) stack.my.i = 0
-          stack.my.j = n.length;
+          stack.my.j = n.length || 0;
           if(stack.my.i < stack.my.j) {
             
             stack.push(S_EXEC, {n: n[stack.my.i], x: x, Nodes: n, Context: x, NodeNum: 0, pmy: stack.my.myObj}); // why the hell we need all those values?
@@ -3082,7 +3082,7 @@ Jnaric.prototype.step_execute = function (n, x, stack) {
       case CONST:
         if(!("i" in stack.my)) {
             stack.my.i=0;
-            stack.my.j = n.length;
+            stack.my.j = n.length || 0;
         }
         
         if( stack.my.i >= stack.my.j ) {
@@ -3194,7 +3194,7 @@ Jnaric.prototype.step_execute = function (n, x, stack) {
         
         if(!("i" in stack.my)) {
             stack.my.i = 0;
-            stack.my.j = n.length;
+            stack.my.j = n.length || 0;
         }
         
         if(stack.my.i >= stack.my.j) {
@@ -3746,7 +3746,7 @@ Jnaric.prototype.step_execute = function (n, x, stack) {
 
         if(!("i" in stack.my)) {
             stack.my.i = 0;
-            stack.my.j = n.length;
+            stack.my.j = n.length || 0;
             stack.my.vcc = {};
         }
         
@@ -3945,7 +3945,7 @@ Jnaric.prototype.step_execute = function (n, x, stack) {
       case ARRAY_INIT:
         if(!("i" in stack.my)) {
             stack.my.i = 0;
-            stack.my.j = n.length;
+            stack.my.j = n.length || 0;
             stack.my.vcc = [];
         }
         
@@ -3972,7 +3972,7 @@ Jnaric.prototype.step_execute = function (n, x, stack) {
 
         if(!("i" in stack.my)) {
             stack.my.i = 0;
-            stack.my.j = n.length;
+            stack.my.j = n.length || 0;
             stack.my.vcc = {};
         }
         
