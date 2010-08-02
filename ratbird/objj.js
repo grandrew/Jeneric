@@ -147,7 +147,7 @@ objj = function _objj(parsed, onfinish) {
 
   PROC.STOP = false;
   PROC.SCANNED = 0;
-
+//
   PROC._TS = (new Date()).getTime();
   var tt = (function travel_timer() {
       var TIMESLICE = 100;
