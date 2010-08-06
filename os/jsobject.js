@@ -2119,13 +2119,18 @@ function eos_deleteChild(vm, name) {
     
     // clean CSS stylesheets
     if(vm.childList[name].cssRules) {
+        var rules = document.styleSheets[0].cssRules || document.styleSheets[0].rules;
+        var j;
+                
         for(var i=0; i<vm.childList[name].cssRules.length; i++) {
+            for(j=0; j<rules.length; j++) 
+                    if(rules[j] === vm.childList[name].cssRules[i].style) break;
             
             try { // XXX TODO: BAD, this may fail to accomplish
                 if (document.styleSheets[0].cssRules) {
-                    document.styleSheets[0].deleteRule(vm.childList[name].cssRules[i]);
+                    document.styleSheets[0].deleteRule(j);
                 } else {
-                    document.styleSheets[0].removeRule(vm.childList[name].cssRules[i]); // IE
+                    document.styleSheets[0].removeRule(j); // IE
                 }
             } catch (e) {
                 vm.ErrorConsole.log("deleteChild: failed to remove stylesheet entry due to error: " +e);

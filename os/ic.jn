@@ -1,5 +1,6 @@
 // LICENSE: GPL v.3 or later (C) 2010 Andrew Gryaznov realgrandrew@gmail.com, a.gryaznov@svoyaset.ru
 // ic.jn
+// TODO: auto-hide closebox
 WRITE_ON = true;
 OutTo = document.body;
 object.ipc["write"] = function(rq, data) {

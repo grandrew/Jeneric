@@ -2488,6 +2488,7 @@ __CSSStyleSheet.prototype.insertRule = function (ruleStr, indx) {
         //console.log("Inserting rule: "+ruleStr);
         document.styleSheets[0].insertRule(ruleStr, real_idx);
         var styleObj = document.styleSheets[0].cssRules[real_idx];
+        this.___vm.cssRules.push(styleObj);
     } else {
         var real_idx = document.styleSheets[0].rules.length;
         //var sel = ruleStr.split("{")[0];
@@ -2499,6 +2500,7 @@ __CSSStyleSheet.prototype.insertRule = function (ruleStr, indx) {
             for(var l=0; l<lp.length;l++) {
 	    //console.log("inserting: "+ lp[l] +" to "+r);
                 document.styleSheets[0].addRule(lp[l], r, real_idx+l);
+                this.___vm.cssRules.push(document.styleSheets[0].rules[real_idx+l])
             }
         } else {
             document.styleSheets[0].addRule(p, r, real_idx);        
@@ -2508,14 +2510,20 @@ __CSSStyleSheet.prototype.insertRule = function (ruleStr, indx) {
     }
     this.cssRules[indx].___idx = real_idx;
     this.cssRules[indx].style = styleObj;
-    this.___vm.cssRules.push(real_idx);
+    
 };
 
 __CSSStyleSheet.prototype.deleteRule = function (indx) {
+    // find the right index, delete
+    var rules = document.styleSheets[0].cssRules || document.styleSheets[0].rules;
+    var i;
+    for(i=0; i<rules.length; i++) 
+            if(rules[i] === this.cssRules[indx].style) break;
+    
     if (document.styleSheets[0].cssRules) {
-        document.styleSheets[0].deleteRule(this.cssRules[indx].___idx);
+        document.styleSheets[0].deleteRule(i);
     } else {
-        document.styleSheets[0].removeRule(this.cssRules[indx].___idx); // IE
+        document.styleSheets[0].removeRule(i); // IE
     }
     delete this.cssRules[indx];
 };
