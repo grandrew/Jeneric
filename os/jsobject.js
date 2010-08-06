@@ -2124,7 +2124,7 @@ function eos_deleteChild(vm, name) {
                 
         for(var i=0; i<vm.childList[name].cssRules.length; i++) {
             for(j=0; j<rules.length; j++) 
-                    if(rules[j] === vm.childList[name].cssRules[i].style) break;
+                    if(rules[j] === vm.childList[name].cssRules[i]) break;
             
             try { // XXX TODO: BAD, this may fail to accomplish
                 if (document.styleSheets[0].cssRules) {
