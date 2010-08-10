@@ -279,12 +279,13 @@ class HubConnection(StompClientFactory):
 
     def send_blob(self, blobid, data):
         # I hope it will retry...
-        h = httplib.HTTP(self.host, self.blob_port)
+        h = httplib.HTTPConnection(self.host, self.blob_port)
         h.putrequest('POST', "/blobsend?blobid="+blobid+"&blob_session="+self.___SESSIONKEY)
         h.putheader('content-type', 'application/octet-stream')
         h.putheader('content-length', str(len(data)))
         h.endheaders()
         h.send(data)
+        if DEBUG>3: print "BLOB POST server returned:", h.getresponse().read();
 
     # def send(self, dest(???), rq):    
     def deliver(self, rq): # will become self.send after init, and send->dummy_send!!! XXX ABI glitch
