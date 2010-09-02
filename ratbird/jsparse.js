@@ -272,16 +272,18 @@ Tokenizer.prototype = {
             //} else if ((match = input.match(/^"(?:\\.|[^"])*"|^'(?:\\.|[^'])*'/))) { //"){
             // does not pass: causes 'illegal token'
             } else if ((firstChar == 34 || firstChar == 39) && 
-						((match = input.match(/^(?:"(?:\\.|[^"])*"|'(?:[^']|\\.)*')/)) /* || match2=input.match(/"""(?:.|\n)*?"""/) */ )) { //"){  // EDIT: change regex structure for OOM perf improvement,
+						( (match2=input.match(/"""(?:.|\n)*?"""/)) || (match = input.match(/^(?:"(?:\\.|[^"])*"|'(?:[^']|\\.)*')/))  )  ) { //"){  // EDIT: change regex structure for OOM perf improvement,
 																								//       use x-browser regex syntax
 // ("""(?:.|\n)*?""")
+  //console.log("match1 is "+match+" match2 is "+match2);
                 token.type = STRING;
-                if(match) { 
-                    //token.value = eval(match[0]);
-                    token.v = eval(match[0]);
+                if(match2) { 
+                     // multiline string...
+//console.log("update@!!!!!!!!!!!");
+                    token.v = match2[0].slice(3, -3);
+		    match = match2;
                 } else {
-                    // multiline string...
-                    //token.value = match2[0].slice(3, -3);
+                    token.v = eval(match[0]);
                 }
             //} else if (this.scanOperand && (match = input.match(reRegExp))) {
             } else if (this.scanOperand && firstChar == 47 && // EDIT: improve perf by guarding with first char check
