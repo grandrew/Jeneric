@@ -567,12 +567,21 @@ def data_createChild(oid, uri, name, c):
     
 def data_deleteObject(oid, uri, c):
     c.execute("DELETE FROM files WHERE uri=%s", (uri,))
+    
+    c.execute("SELECT child_uri from childlist where uri=%s", (uri,))
+    #childlist = []
+    # TODO warning! recursion!!
+    while (d=c.fetchone()): 
+        data_deleteObject(0, d[0], c);
+        #childlist.append(d[0].split("/")[-1])
+    
     c.execute("DELETE FROM childlist WHERE child_uri=%s", (uri,))
     c.execute("DELETE FROM allow WHERE uri=%s", (uri,))
     c.execute("DELETE FROM deny WHERE uri=%s", (uri,))
     c.execute("DELETE FROM inherit WHERE uri=%s", (uri,))
     c.execute("DELETE FROM acl_deny WHERE uri=%s", (uri,))
     c.execute("DELETE FROM acl_allow WHERE uri=%s", (uri,))
+        
     
 def data_describe(oid, arg):
     return "" #TODO
