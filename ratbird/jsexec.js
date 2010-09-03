@@ -3791,6 +3791,7 @@ Jnaric.prototype.step_execute = function (n, x, stack) {
             if (isPrimitive(f) || typeof f.___call___ != "function") {
                 stack.EXCEPTION_OBJ = new TypeError(stack.my.r + " is not callable",
                                     n[0].filename, n[0].lineno);
+		x.result = stack.EXCEPTION_OBJ;
                 stack.EXCEPTION = THROW;
                 break;
 
@@ -3899,6 +3900,7 @@ Jnaric.prototype.step_execute = function (n, x, stack) {
             if (isPrimitive(stack.my.f) || typeof stack.my.f.___construct___ != "function") {
                 stack.EXCEPTION_OBJ = new TypeError(r + " is not a constructor",
                                     n[0].filename, n[0].lineno);
+		x.result = stack.EXCEPTION_OBJ;
                 stack.EXCEPTION = THROW;
                 break;
             }
