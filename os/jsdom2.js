@@ -1890,7 +1890,7 @@ DOMNode.prototype.insertBefore = function DOMNode_insertBefore(newChild, refChil
   if (refChild) {                                // if refChild is specified, insert before it
     // find index of refChild
     var itemIndex = this.childNodes._findItemIndex(refChild._id);
-
+console.log(" ______:::::: "+itemIndex);
     // throw Exception if there is no child node with this id
     if (this.ownerDocument.implementation.errorChecking && (itemIndex < 0)) {
       throw(new DOMException(DOMException.NOT_FOUND_ERR));
@@ -2248,6 +2248,7 @@ DOMNode.prototype.cloneNode = function DOMNode_cloneNode(deep) {
   }
   catch (e) {
      //there shouldn't be any exceptions, but if there are, return null
+     if(window.console) console.log("cloneNode: Exception in importing node: "+e);
      return null;
   }
 };
@@ -2536,7 +2537,7 @@ DOMNode.prototype.importNode = function DOMNode_importNode(importedNode, deep) {
         // set the value of the local Attribute to match that of the importedAttribute
         importNode.setValue(importedNode.value);
     }
-    else if (importedNode.nodeType == DOMNode.DOCUMENT_FRAGMENT) {
+    else if (importedNode.nodeType == DOMNode.DOCUMENT_FRAGMENT_NODE) {
         // create a local DocumentFragment
         importNode = this.ownerDocument.createDocumentFragment();
     }
@@ -2562,6 +2563,7 @@ DOMNode.prototype.importNode = function DOMNode_importNode(importedNode, deep) {
         importNode = this.ownerDocument.createComment(importedNode.data);
     }
     else {  // throw Exception if nodeType is not supported
+        if(window.console) console.log("NOT_SUPPORTED_ERR: nodeType not supported: " + importedNode.nodeType);
         throw(new DOMException(DOMException.NOT_SUPPORTED_ERR));
     }
 

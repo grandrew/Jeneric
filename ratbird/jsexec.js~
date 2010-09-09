@@ -244,8 +244,14 @@ __jn_stacks = {
 
                 // TODO: switch context for BURST group only
             st.vm.ExecutionContext.current = st.stack.exc;
-            ObjectProto = Object.prototype;
-            Object.prototype = st.stack.object_prototype;
+            //ObjectProto = Object.prototype;
+            //Object.prototype = st.vm.object_prototype;
+            
+            if(st.vm.object_prototype_dirty) {
+              for(var o in st.vm.object_prototype) {
+                Object.prototype[o] = st.vm.object_prototype[o];
+              }
+            }
             
             // NO!!! only switch context when accessing Array metthods
             // (use the proto from global Array)
@@ -314,8 +320,26 @@ __jn_stacks = {
             
             // switch context back...
             st.stack.exc = st.vm.ExecutionContext.current; 
-            st.stack.object_prototype = Object.prototype;
-            Object.prototype = ObjectProto;
+            //st.vm.object_prototype = Object.prototype;
+            //Object.prototype = ObjectProto;
+            
+            // check object prototype dirtyness
+            
+            for(var o in Object.prototype) { 
+              st.vm.object_prototype_dirty = true;
+              // for normal properties
+              st.vm.object_prototype[o] = Object.prototype[o];
+            }
+            // for system props
+            for(var o in OBJECT_PROTOTYPE) {
+              if(OBJECT_PROTOTYPE[o] !== Object.prototype[o]) {
+                st.vm.object_prototype[o] = Object.prototype[o];
+                Object.prototype[o] = OBJECT_PROTOTYPE[o];
+              }
+            }
+            
+
+            
             if(st.stack.global_scope) {
                 st.vm.global = st.vm.global_bak;
             }
@@ -460,8 +484,21 @@ __ErrorConsole.prototype.read = function () {
 GLOBAL_CODE = 0, EVAL_CODE = 1, FUNCTION_CODE = 2, S_EXEC = 3;
 
 __MAXARLEN = Math.pow(2,16)+1;
-
 GLOBAL_METHODS = {
+
+    toString: function (self) { // to support jQuery odd method of detecting function
+        
+	if(this.FunctionObject && ((self && (self.___construct___ == this.FunctionObject.prototype.___construct___ ) 
+	      || this.___construct___ == this.FunctionObject.prototype.___construct___))) return "[object Function]";
+	else if ((self && self.___construct___ == Function.prototype.___construct___) 
+	    || this.___construct___ == Function.prototype.___construct___ 
+	    || this.___construct___ == FUNCTIONOBJECT_PROTOTYPE.construct ) {
+          return "[object Function]";
+	} else if (self && (self === this.global)) {
+	  return "[object DOMWindow]";
+	} else return _toString.call((self || this));
+    },
+
     eval: function (s) {
         //console.log("data passed to eval: "+s);
         if (typeof s != "string") {
@@ -787,7 +824,7 @@ GLOBAL_METHODS = {
             fail_f(e);
         }
 
-        objj(pp, exec_f);
+        objj(pp, exec_f, fail_f);
         
     },
 
@@ -934,6 +971,10 @@ GLOBAL_METHODS = {
         __jn_stacks.__throttle(this.cur_stack.pid, val);
     }
 };
+
+/* These are required for jQuery to detect functions correctly */
+_toString = Object.prototype.toString;
+Object.prototype.toString = GLOBAL_METHODS.toString;
 
 LOCK_PROTOTYPE = {
     acquire : function (vm, blocking) {
@@ -1157,6 +1198,9 @@ function Jnaric() {
     
     this.idsource = 0;
     this.timeouts = {length: 0};
+
+    this.object_prototype = {};
+    this.object_prototype_dirty = false;
     
     var __tihs = this; // closure
     
@@ -1405,6 +1449,10 @@ Jnaric.prototype.createGlobal = function () {
         // Closured methods:
         // TODO: move to object/prototype concept!
         //      (may require some interpreter tweaking but not nessessarily)
+
+	toString: function toString_ () {
+	    return GLOBAL_METHODS.toString.call(__tihs, this);
+	},
 
         eval: function eval(s) {
             return GLOBAL_METHODS.eval.call(__tihs, s);
@@ -2274,7 +2322,8 @@ function __print_strace(s_stack) {
             __src = "";
             __ex = s_stack.stack[i];
             //__ex.n.tokenizer && (__src = String.prototype.slice.call(__ex.n.tokenizer.source, 0, 40));
-            if(__ex.n) __out = __out + " >"+say_type(__ex.n.type) + "(" + (__ex.n.type != RETURN ? __ex.n.value : "?") + ")" + " File: " + __ex.n.filename + " Line: " + __ex.n.lineno + ";";
+            //if(__ex.n) __out = __out + " >"+say_type(__ex.n.type) + "(" + (__ex.n.type != RETURN ? __ex.n.value : "?") + ")" + " File: " + __ex.n.filename + " Line: " + __ex.n.lineno + ";";
+            if(__ex.n) __out = __out + " >"+say_type(__ex.n.type) + "(" + (__ex.n.type != RETURN ? __ex.n.v : "?") + ")" + " File: " + __ex.n.filename + " Line: " + __ex.n.lineno + ";";
             else __out = __out + " INTERNAL ERROR: node not defined at "+i+";";
         }
     } else {
@@ -2282,7 +2331,8 @@ function __print_strace(s_stack) {
             __src = "";
             __ex = s_stack[i];
             //__ex.n.tokenizer && (__src = String.prototype.slice.call(__ex.n.tokenizer.source, 0, 40));
-            if(__ex.n) __out = __out + " >"+say_type(__ex.n.type) + "(" + (__ex.n.type != RETURN ? __ex.n.value : "?") + ")" + " File: " + __ex.n.filename + " Line: " + __ex.n.lineno + ";";
+            //if(__ex.n) __out = __out + " >"+say_type(__ex.n.type) + "(" + (__ex.n.type != RETURN ? __ex.n.value : "?") + ")" + " File: " + __ex.n.filename + " Line: " + __ex.n.lineno + ";";
+            if(__ex.n) __out = __out + " >"+say_type(__ex.n.type) + "(" + (__ex.n.type != RETURN ? __ex.n.v : "?") + ")" + " File: " + __ex.n.filename + " Line: " + __ex.n.lineno + ";";
             else __out = __out + " INTERNAL ERROR: node not defined at "+i+";";
         }
     }
@@ -2351,7 +2401,7 @@ Jnaric.prototype.step_execute = function (n, x, stack) {
         //for (i = 0, j = n.length; i < j; i++)
             //execute(n[i], x);
           if(!("i" in stack.my)) stack.my.i = 0
-          stack.my.j = n.length;
+          stack.my.j = n.length || 0;
           if(stack.my.i < stack.my.j) {
             
             stack.push(S_EXEC, {n: n[stack.my.i], x: x, Nodes: n, Context: x, NodeNum: 0, pmy: stack.my.myObj}); // why the hell we need all those values?
@@ -2993,13 +3043,15 @@ Jnaric.prototype.step_execute = function (n, x, stack) {
         break;
 
       case RETURN:
-        if(typeof n.value == "string" ) {
+        //if(typeof n.value == "string" ) {
+        if(typeof n.v == "string" ) {
                 x.result = undefined;
                 stack.EXCEPTION = RETURN;
                 stack.my.done = true;        
         } else {
             if(!("v2" in stack.my)) {
-                stack.push(S_EXEC, {v:"v2", n: n.value, x: x, Nodes: n, Context: x, NodeNum: 0, pmy: stack.my.myObj});
+                //stack.push(S_EXEC, {v:"v2", n: n.value, x: x, Nodes: n, Context: x, NodeNum: 0, pmy: stack.my.myObj});
+                stack.push(S_EXEC, {v:"v2", n: n.v, x: x, Nodes: n, Context: x, NodeNum: 0, pmy: stack.my.myObj});
                 break;
             } else {
                 x.result = stack.my.v2;
@@ -3078,7 +3130,7 @@ Jnaric.prototype.step_execute = function (n, x, stack) {
       case CONST:
         if(!("i" in stack.my)) {
             stack.my.i=0;
-            stack.my.j = n.length;
+            stack.my.j = n.length || 0;
         }
         
         if( stack.my.i >= stack.my.j ) {
@@ -3190,8 +3242,10 @@ Jnaric.prototype.step_execute = function (n, x, stack) {
         
         if(!("i" in stack.my)) {
             stack.my.i = 0;
-            stack.my.j = n.length;
-        }
+            stack.my.j = n.length || 0;
+        } else {
+	    v = this.getValue(stack.my.v2);
+	}
         
         if(stack.my.i >= stack.my.j) {
             stack.my.done = true;
@@ -3717,7 +3771,8 @@ Jnaric.prototype.step_execute = function (n, x, stack) {
         } else {
             t = this.getValue(stack.my.r);
             if(stack.EXCEPTION && (x.result instanceof ReferenceError)) return; // check for exception after getValue
-            u = n[1].value;
+            //u = n[1].value;
+            u = n[1].v;
             v = new Reference(this.toObject(t, stack.my.r, n[0]), u, n);
         }
         stack.my.done = true;
@@ -3741,7 +3796,7 @@ Jnaric.prototype.step_execute = function (n, x, stack) {
 
         if(!("i" in stack.my)) {
             stack.my.i = 0;
-            stack.my.j = n.length;
+            stack.my.j = n.length || 0;
             stack.my.vcc = {};
         }
         
@@ -3786,6 +3841,7 @@ Jnaric.prototype.step_execute = function (n, x, stack) {
             if (isPrimitive(f) || typeof f.___call___ != "function") {
                 stack.EXCEPTION_OBJ = new TypeError(stack.my.r + " is not callable",
                                     n[0].filename, n[0].lineno);
+		x.result = stack.EXCEPTION_OBJ;
                 stack.EXCEPTION = THROW;
                 break;
 
@@ -3894,6 +3950,7 @@ Jnaric.prototype.step_execute = function (n, x, stack) {
             if (isPrimitive(stack.my.f) || typeof stack.my.f.___construct___ != "function") {
                 stack.EXCEPTION_OBJ = new TypeError(r + " is not a constructor",
                                     n[0].filename, n[0].lineno);
+		x.result = stack.EXCEPTION_OBJ;
                 stack.EXCEPTION = THROW;
                 break;
             }
@@ -3940,7 +3997,7 @@ Jnaric.prototype.step_execute = function (n, x, stack) {
       case ARRAY_INIT:
         if(!("i" in stack.my)) {
             stack.my.i = 0;
-            stack.my.j = n.length;
+            stack.my.j = n.length || 0;
             stack.my.vcc = [];
         }
         
@@ -3967,7 +4024,7 @@ Jnaric.prototype.step_execute = function (n, x, stack) {
 
         if(!("i" in stack.my)) {
             stack.my.i = 0;
-            stack.my.j = n.length;
+            stack.my.j = n.length || 0;
             stack.my.vcc = {};
         }
         
@@ -3986,7 +4043,8 @@ Jnaric.prototype.step_execute = function (n, x, stack) {
                 stack.push(S_EXEC, {v:"v2", n: stack.my.t[1], x: x, Nodes: n, Context: x, NodeNum: 0, pmy: stack.my.myObj});
                 break;
             } else {
-                stack.my.vcc[stack.my.t[0].value] = stack.my.v2;
+                //stack.my.vcc[stack.my.t[0].value] = stack.my.v2;
+                stack.my.vcc[stack.my.t[0].v] = stack.my.v2;
                 delete stack.my.v2; // finally, delete the tmp variable
             }
         
@@ -4026,17 +4084,20 @@ Jnaric.prototype.step_execute = function (n, x, stack) {
 
       case IDENTIFIER:
         for (s = x.scope; s; s = s.parent) {
-            if (n.value in s.object)
+            //if (n.value in s.object)
+            if (n.v in s.object)
                 break;
         }
-        v = new Reference(s && s.object, n.value, n);
+        //v = new Reference(s && s.object, n.value, n);
+        v = new Reference(s && s.object, n.v, n);
         stack.my.done = true;
         break;
 
       case NUMBER:
       case STRING:
       case REGEXP:
-        v = n.value;
+        //v = n.value;
+        v = n.v;
         stack.my.done = true;
         break;
 
@@ -4388,4 +4449,16 @@ function thunk(f, x, stack) {
     return function () { return f.___call___(this, arguments, x, stack); };
 }
 
+OBJECT_PROTOTYPE = { __defineGetter__ : Object.prototype.__defineGetter__, 
+__defineSetter__: Object.prototype.__defineSetter__,
+__lookupGetter__: Object.prototype.__lookupGetter__,
+__lookupSetter__: Object.prototype.__lookupSetter__,
+constructor: Object.prototype.constructor,
+hasOwnProperty: Object.prototype.hasOwnProperty,
+isPrototypeOf: Object.prototype.isPrototypeOf,
+propertyIsEnumerable: Object.prototype.propertyIsEnumerable,
+toLocaleString: Object.prototype.toLocaleString,
+toString: Object.prototype.toString,
+valueOf: Object.prototype.valueOf
+};
 

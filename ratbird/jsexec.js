@@ -244,8 +244,14 @@ __jn_stacks = {
 
                 // TODO: switch context for BURST group only
             st.vm.ExecutionContext.current = st.stack.exc;
-            ObjectProto = Object.prototype;
-            Object.prototype = st.stack.object_prototype;
+            //ObjectProto = Object.prototype;
+            //Object.prototype = st.vm.object_prototype;
+            
+            if(st.vm.object_prototype_dirty) {
+              for(var o in st.vm.object_prototype) {
+                Object.prototype[o] = st.vm.object_prototype[o];
+              }
+            }
             
             // NO!!! only switch context when accessing Array metthods
             // (use the proto from global Array)
@@ -314,8 +320,27 @@ __jn_stacks = {
             
             // switch context back...
             st.stack.exc = st.vm.ExecutionContext.current; 
-            st.stack.object_prototype = Object.prototype;
-            Object.prototype = ObjectProto;
+            //st.vm.object_prototype = Object.prototype;
+            //Object.prototype = ObjectProto;
+            
+            // check object prototype dirtyness
+            
+            for(var o in Object.prototype) { 
+              st.vm.object_prototype_dirty = true;
+              // for normal properties
+              st.vm.object_prototype[o] = Object.prototype[o];
+              delete Object.prototype[o];
+            }
+            // for system props
+            for(var o in OBJECT_PROTOTYPE) {
+              if(OBJECT_PROTOTYPE[o] !== Object.prototype[o]) {
+                st.vm.object_prototype[o] = Object.prototype[o];
+                Object.prototype[o] = OBJECT_PROTOTYPE[o];
+              }
+            }
+            
+
+            
             if(st.stack.global_scope) {
                 st.vm.global = st.vm.global_bak;
             }
@@ -460,8 +485,21 @@ __ErrorConsole.prototype.read = function () {
 GLOBAL_CODE = 0, EVAL_CODE = 1, FUNCTION_CODE = 2, S_EXEC = 3;
 
 __MAXARLEN = Math.pow(2,16)+1;
-
 GLOBAL_METHODS = {
+
+    toString: function (self) { // to support jQuery odd method of detecting function
+        
+	if(this.FunctionObject && ((self && (self.___construct___ == this.FunctionObject.prototype.___construct___ ) 
+	      || this.___construct___ == this.FunctionObject.prototype.___construct___))) return "[object Function]";
+	else if ((self && self.___construct___ == Function.prototype.___construct___) 
+	    || this.___construct___ == Function.prototype.___construct___ 
+	    || this.___construct___ == FUNCTIONOBJECT_PROTOTYPE.construct ) {
+          return "[object Function]";
+	} else if (self && (self === this.global)) {
+	  return "[object DOMWindow]";
+	} else return _toString.call((self || this));
+    },
+
     eval: function (s) {
         //console.log("data passed to eval: "+s);
         if (typeof s != "string") {
@@ -935,6 +973,10 @@ GLOBAL_METHODS = {
     }
 };
 
+/* These are required for jQuery to detect functions correctly */
+_toString = Object.prototype.toString;
+Object.prototype.toString = GLOBAL_METHODS.toString;
+
 LOCK_PROTOTYPE = {
     acquire : function (vm, blocking) {
         blocking = blocking || true;
@@ -1157,6 +1199,9 @@ function Jnaric() {
     
     this.idsource = 0;
     this.timeouts = {length: 0};
+
+    this.object_prototype = {};
+    this.object_prototype_dirty = false;
     
     var __tihs = this; // closure
     
@@ -1405,6 +1450,10 @@ Jnaric.prototype.createGlobal = function () {
         // Closured methods:
         // TODO: move to object/prototype concept!
         //      (may require some interpreter tweaking but not nessessarily)
+
+	toString: function toString_ () {
+	    return GLOBAL_METHODS.toString.call(__tihs, this);
+	},
 
         eval: function eval(s) {
             return GLOBAL_METHODS.eval.call(__tihs, s);
@@ -3195,7 +3244,9 @@ Jnaric.prototype.step_execute = function (n, x, stack) {
         if(!("i" in stack.my)) {
             stack.my.i = 0;
             stack.my.j = n.length || 0;
-        }
+        } else {
+	    v = this.getValue(stack.my.v2);
+	}
         
         if(stack.my.i >= stack.my.j) {
             stack.my.done = true;
@@ -4399,4 +4450,16 @@ function thunk(f, x, stack) {
     return function () { return f.___call___(this, arguments, x, stack); };
 }
 
+OBJECT_PROTOTYPE = { __defineGetter__ : Object.prototype.__defineGetter__, 
+__defineSetter__: Object.prototype.__defineSetter__,
+__lookupGetter__: Object.prototype.__lookupGetter__,
+__lookupSetter__: Object.prototype.__lookupSetter__,
+constructor: Object.prototype.constructor,
+hasOwnProperty: Object.prototype.hasOwnProperty,
+isPrototypeOf: Object.prototype.isPrototypeOf,
+propertyIsEnumerable: Object.prototype.propertyIsEnumerable,
+toLocaleString: Object.prototype.toLocaleString,
+toString: Object.prototype.toString,
+valueOf: Object.prototype.valueOf
+};
 

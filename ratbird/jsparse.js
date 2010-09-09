@@ -187,7 +187,7 @@ Tokenizer.prototype = {
     },
 
     get: function () {
-        var token, match2;
+        var token, match2=false;
         while (this.lookahead) {
             --this.lookahead;
             this.tokenIndex = (this.tokenIndex + 1) & 3;
@@ -202,7 +202,7 @@ Tokenizer.prototype = {
             var firstChar = input.charCodeAt(0);
             // EDIT: check first char, then use regex
             // valid regex whitespace includes char codes: 9 10 11 12 13 32
-            if(firstChar == 32 || (firstChar >= 9 && firstChar <= 13)) {
+            if(firstChar == 32 || (firstChar >= 9 && firstChar <= 13) || firstChar == 160) {
                 var match = input.match(this.scanNewlines ? /^[ \t]+/ : /^\s+/);
                 if (match) {
                     var spaces = match[0];
@@ -272,16 +272,17 @@ Tokenizer.prototype = {
             //} else if ((match = input.match(/^"(?:\\.|[^"])*"|^'(?:\\.|[^'])*'/))) { //"){
             // does not pass: causes 'illegal token'
             } else if ((firstChar == 34 || firstChar == 39) && 
-						( (match2=input.match(/"""(?:.|\n)*?"""/)) || (match = input.match(/^(?:"(?:\\.|[^"])*"|'(?:[^']|\\.)*')/))  )  ) { //"){  // EDIT: change regex structure for OOM perf improvement,
+						( (match2=input.match(/^"""(?:.|\n)*?"""/) ) || (match = input.match(/^(?:"(?:\\.|[^"])*"|'(?:[^']|\\.)*')/))  )  ) { //"){  // EDIT: change regex structure for OOM perf improvement,
 																								//       use x-browser regex syntax
 // ("""(?:.|\n)*?""")
-  //console.log("match1 is "+match+" match2 is "+match2);
+// console.log("match1 is "+match+" match2 is "+match2);
                 token.type = STRING;
                 if(match2) { 
                      // multiline string...
 //console.log("update@!!!!!!!!!!!");
                     token.v = match2[0].slice(3, -3);
 		    match = match2;
+		    match2 = null;
                 } else {
                     token.v = eval(match[0]);
                 }

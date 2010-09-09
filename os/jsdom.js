@@ -414,8 +414,8 @@ ___DOMHTMLGetters = {
         return this.___link.innerText;
     },
     id: function (name) {
-        if(this.___link) return this.getAttribute(name);
-        else return this.id;
+        if(this.___link) return this.getAttribute(name)+""; // ECMA! always convert to string - jquery uses this!
+        else return this.id+"";
     },
 
     offsetParent: function (name) {

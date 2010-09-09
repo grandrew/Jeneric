@@ -2163,6 +2163,12 @@ function eos_deleteChild(vm, name) {
         var ls = google.gears.factory.create("beta.localserver");
         ls.removeStore(ch.uri.split("/").join("."));
     }
+
+    if(ch.global) {
+      // attempt to fix memory leaks
+      for(var o in ch.global) delete ch.global[o];
+      for(var o in ch) delete ch[o];
+    }
     
 
     return 0;
