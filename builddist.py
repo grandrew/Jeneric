@@ -16,6 +16,7 @@ COMPILE_FILES = [
     "ratbird/json2.js",
     "os/ierange-m2.js", #                     and this
     "os/csshover3.js", # TODO: make it not load by default - IE sucks
+    "os/excanvas.js",
     "os/fauxconsole.js", # this too
     "os/md5.js",
     "ratbird/jsdefs.js",
@@ -28,6 +29,7 @@ COMPILE_FILES = [
     "os/xmlsax.js",
     "os/jsdom2.js",
     "os/jsdom.js",
+    "os/canvaswrapper.js",
     "os/orbited_init.js",
     "os/stomp.js",
     "os/eosinit.js"

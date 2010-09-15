@@ -3214,6 +3214,8 @@ DOMElement.prototype.bind_real_dom = function DOMElement_bind_real_dom() {
     this.___isLink = true;
   } 
   
+  if(ttn === "canvas") jsdom_applyCanvas(this); // bind canvas interface
+  
   if(_isIE) {
       if(ttn=="tr") {
         if(window.console) console.log("Warning! patching IE table render TR!");
