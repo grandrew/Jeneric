@@ -319,7 +319,8 @@ __jn_stacks = {
             }
             
             // switch context back...
-            st.stack.exc = st.vm.ExecutionContext.current; 
+            if(st.vm.ExecutionContext) { // might have been deleted
+	    st.stack.exc = st.vm.ExecutionContext.current; 
             //st.vm.object_prototype = Object.prototype;
             //Object.prototype = ObjectProto;
             
@@ -344,7 +345,7 @@ __jn_stacks = {
             if(st.stack.global_scope) {
                 st.vm.global = st.vm.global_bak;
             }
-            
+            }
             // in fact, the 'time diff' would have been not required since we're using BURST_CURRENT burst chunks
             // but because of the possibility of huge loads in parser and native methods
             // we need the ability to 'punish' failed task

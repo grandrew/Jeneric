@@ -3214,7 +3214,6 @@ DOMElement.prototype.bind_real_dom = function DOMElement_bind_real_dom() {
     this.___isLink = true;
   } 
   
-  if(ttn === "canvas") jsdom_applyCanvas(this); // bind canvas interface
   
   if(_isIE) {
       if(ttn=="tr") {
@@ -3242,6 +3241,7 @@ DOMElement.prototype.bind_real_dom = function DOMElement_bind_real_dom() {
   if(this.___isIframe) this.contentDocument.___bodyLink = this.___link;
   //if(this.___isBody && this.ownerDocument.___bodyLink) this.ownerDocument.___bodyLink.appendChild(this.___link);
   
+  if(ttn === "canvas") jsdom_applyCanvas(this); // bind canvas interface
   
 };
 

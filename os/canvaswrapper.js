@@ -4,7 +4,7 @@
 
 function __CanvasRenderingContext2D(surfaceElement) {
     this.canvas = surfaceElement; // SPEC violation: should be readonly
-    this.___link = surfaceElement.___link;
+    this.___link = surfaceElement.___link.getContext("2d");
 }
 
 __CanvasRenderingContext2D.prototype.___setters = {
@@ -130,7 +130,7 @@ __CanvasRenderingContext2D.prototype.setTransform = function __ctx_setTransform(
   };
   
 function __getContext() {
-    return new __CanvasRenderingContext(this);
+    return new __CanvasRenderingContext2D(this);
 }
 
 jsdom_applyCanvas = function (obj) {
