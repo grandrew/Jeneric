@@ -1,4 +1,4 @@
-﻿#fauxconsole{
+#fauxconsole{
 	position:absolute;
 	top:0;
 	right:0;
@@ -20,4 +20,8 @@ html>body #fauxconsole{
 	padding-left:1em;
 	padding-bottom:.5em;
 	text-align:right;
+}
+
+g_vml_\:shape { 
+  behavior:url(#default#VML); display:inline-block
 }

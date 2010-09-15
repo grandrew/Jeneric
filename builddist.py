@@ -16,6 +16,7 @@ COMPILE_FILES = [
     "ratbird/json2.js",
     "os/ierange-m2.js", #                     and this
     "os/csshover3.js", # TODO: make it not load by default - IE sucks
+    "os/excanvas.js", # fuck IE
     "os/fauxconsole.js", # this too
     "os/md5.js",
     "ratbird/jsdefs.js",
@@ -35,8 +36,7 @@ COMPILE_FILES = [
 ]
 
 DONTCOMPILE_FILES = [
-    "os/fixed.js",
-    "os/excanvas.js" # already compiled version distro (some compile probs w/gclosure??)
+    "os/fixed.js"
 ]
 
 BASE_SOURCES = [
