@@ -493,6 +493,7 @@ ___DOMHTMLGetters = {
     onresize : __get_onevent_listener,
     onscroll : __get_onevent_listener,
     onsubmit : __get_onevent_listener,
+    onload : __get_onevent_listener,
     
     // HTML element interface
     
@@ -692,7 +693,8 @@ ___DOMHTMLSetters = {
     onresize : __set_onevent_listener,
     onscroll : __set_onevent_listener,
     onsubmit : __set_onevent_listener,
-
+    onload : __set_onevent_listener,
+    
     // HTML element interface
     
     // link properties
