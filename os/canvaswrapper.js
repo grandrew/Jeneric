@@ -107,7 +107,7 @@ __CanvasRenderingContext2D.prototype.setTransform = function __ctx_setTransform(
   __CanvasRenderingContext2D.prototype. measureText= function __ctx_measureText(/*in DOMString*/ text) { return this.___link.measureText(text); };
 
   // drawing images, void
-  __CanvasRenderingContext2D.prototype. drawImage= function __ctx_drawImage(/*in HTMLImageElement,HTMLCanvasElement,HTMLVideoElement*/ image, /*in double*/ dx, /*in double*/ dy, /*in optional double*/ dw, /*in ?optional? double*/ dh,a,b,c,d) { 
+  __CanvasRenderingContext2D.prototype. drawImage= function __ctx_drawImage(/*in HTMLImageElement,HTMLCanvasElement,HTMLVideoElement*/ image, /*in double*/ dx, /*in double*/ dy, /*in optional double*/ dw, /*in ?optional? double*/ dh,a,b,c,d) {
      if(arguments.length == 3) this.___link.drawImage(image.___link, dx, dy); 
      if(arguments.length == 5) this.___link.drawImage(image.___link, dx, dy, dw, dh); 
      if(arguments.length == 6) this.___link.drawImage(image.___link, dx, dy, dw, dh,a); 
