@@ -39,7 +39,7 @@ KEY_LENGTH = 80; // bytes stringkey length
 PING_INTERVAL = 90000;
 MAXFAIL_TO_RESET = 1; // failed transmits to reset STOMP connection
 MAXRESEND_TO_RESET = 5; // resends to reset STOMP connection
-STOMP_ERRORS_TO_RESET = 3;
+STOMP_ERRORS_TO_RESET = 100;
 STOMP_RESET_LOCK_INTERVAL = 4000; // milliseconds to lock sending till a reset
 MAX_RQ_TIME = 600000; // 10 minutes maximum request time
 
