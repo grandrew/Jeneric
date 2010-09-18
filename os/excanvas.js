@@ -151,9 +151,8 @@ if (!document.createElement('canvas').getContext) {
         if (attrs.width && attrs.width.specified) {
           // TODO: use runtimeStyle and coordsize
           // el.getContext().setWidth_(attrs.width.nodeValue);
-	  el.style.width = attrs.width.nodeValue + 'px';
+          el.style.width = attrs.width.nodeValue + 'px';
         } else {
-
           el.width = el.clientWidth;
         }
         if (attrs.height && attrs.height.specified) {
@@ -187,7 +186,6 @@ if (!document.createElement('canvas').getContext) {
   function onResize(e) {
     var el = e.srcElement;
     if (el.firstChild) {
-
       el.firstChild.style.width =  el.clientWidth + 'px';
       el.firstChild.style.height = el.clientHeight + 'px';
     }
@@ -306,7 +304,6 @@ if (!document.createElement('canvas').getContext) {
     this.canvas = surfaceElement;
 
     var el = surfaceElement.ownerDocument.createElement('div');
-    
     el.style.width =  surfaceElement.clientWidth + 'px';
     el.style.height = surfaceElement.clientHeight + 'px';
     el.style.overflow = 'hidden';
@@ -530,6 +527,8 @@ if (!document.createElement('canvas').getContext) {
 
     var W = 10;
     var H = 10;
+	
+	var fltstr = "";
 
     // For some reason that I've now forgotten, using divs didn't work
     vmlStr.push(' <g_vml_:group',
@@ -562,16 +561,30 @@ if (!document.createElement('canvas').getContext) {
 
       max.x = m.max(max.x, c2.x, c3.x, c4.x);
       max.y = m.max(max.y, c2.y, c3.y, c4.y);
-
+/*
       vmlStr.push('padding:0 ', mr(max.x / Z), 'px ', mr(max.y / Z),
-                  'px 0;filter:progid:DXImageTransform.Microsoft.Matrix(',
-                  filter.join(''), ", sizingmethod='clip');")
+                  'px 0;-ms-filter:progid:DXImageTransform.Microsoft.Matrix(',
+                  filter.join(''), ", sizingmethod='clip');filter:progid:DXImageTransform.Microsoft.Matrix(",
+				  filter.join(''), ", sizingmethod='clip');");
+*/
+      vmlStr.push('padding:0 ', mr(max.x / Z), 'px ', mr(max.y / Z),
+                  'px 0;');
+	  fltstr = 'filter:progid:DXImageTransform.Microsoft.Matrix(' +
+                  filter.join('') + ", sizingmethod='clip');";
+
     } else {
       vmlStr.push('top:', mr(d.y / Z), 'px;left:', mr(d.x / Z), 'px;');
     }
+
+	/*
+	 vmlStr.push('padding:0 ', mr(max.x / Z), 'px ', mr(max.y / Z),
+                  'px 0;filter:progid:DXImageTransform.Microsoft.Matrix(',
+                  filter.join(''), ", sizingmethod='clip');")
+	*/
+	
     vmlStr.push(' ">' ,
                 '<g_vml_:image src="', image.src, '"',
-                ' style="width:', Z * dw, 'px;',
+                ' style="width:', Z * dw, 'px; ', fltstr,
                 ' height:', Z * dh, 'px;"',
                 ' cropleft="', sx / w, '"',
                 ' croptop="', sy / h, '"',
@@ -579,6 +592,7 @@ if (!document.createElement('canvas').getContext) {
                 ' cropbottom="', (h - sy - sh) / h, '"',
                 ' />',
                 '</g_vml_:group>');
+
     this.element_.insertAdjacentHTML('BeforeEnd',
                                     vmlStr.join(''));
   };
