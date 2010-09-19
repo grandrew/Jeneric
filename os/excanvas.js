@@ -561,15 +561,11 @@ if (!document.createElement('canvas').getContext) {
 
       max.x = m.max(max.x, c2.x, c3.x, c4.x);
       max.y = m.max(max.y, c2.y, c3.y, c4.y);
-/*
-      vmlStr.push('padding:0 ', mr(max.x / Z), 'px ', mr(max.y / Z),
-                  'px 0;-ms-filter:progid:DXImageTransform.Microsoft.Matrix(',
-                  filter.join(''), ", sizingmethod='clip');filter:progid:DXImageTransform.Microsoft.Matrix(",
-				  filter.join(''), ", sizingmethod='clip');");
-*/
-      vmlStr.push('padding:0 ', mr(max.x / Z), 'px ', mr(max.y / Z),
-                  'px 0;');
-	  fltstr = 'filter:progid:DXImageTransform.Microsoft.Matrix(' +
+      //vmlStr.push('padding:0 ', mr(max.x / Z), 'px ', mr(max.y / Z),
+       //           'px 0;');
+	   var padStr = ['padding:0 ', mr(max.x / Z), 'px ', mr(max.y / Z),
+                  'px 0;'].join("");
+	  fltstr = padStr+'filter:progid:DXImageTransform.Microsoft.Matrix(' +
                   filter.join('') + ", sizingmethod='clip');";
 
     } else {
@@ -581,18 +577,19 @@ if (!document.createElement('canvas').getContext) {
                   'px 0;filter:progid:DXImageTransform.Microsoft.Matrix(',
                   filter.join(''), ", sizingmethod='clip');")
 	*/
-	
+
     vmlStr.push(' ">' ,
                 '<g_vml_:image src="', image.src, '"',
-                ' style="width:', Z * dw, 'px; ', fltstr,
-                ' height:', Z * dh, 'px;"',
+                ' style="width:', Z * dw, 'px; ', 
+                ' height:', Z * dh, 'px;', 
+				fltstr, '"',
                 ' cropleft="', sx / w, '"',
                 ' croptop="', sy / h, '"',
-                ' cropright="', (w - sx - sw) / w, '"',
-                ' cropbottom="', (h - sy - sh) / h, '"',
+                ' cropright="', (w - sx - sw) / w , '"',
+                ' cropbottom="', (h - sy - sh) / h , '"',
                 ' />',
                 '</g_vml_:group>');
-
+//CL = vmlStr.join('');
     this.element_.insertAdjacentHTML('BeforeEnd',
                                     vmlStr.join(''));
   };
