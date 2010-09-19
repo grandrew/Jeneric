@@ -213,25 +213,28 @@ __jn_stacks = {
     
     tick: function () {
         // TODO: average performance mark (steps/run_time)
+        /*
+        
+        // do we need this? -- please check if in any bropwser setInterval will queue and hang??
         if((new Date()).getTime() - this.last_tick < this.SET_TIMEOUT / 4) {
             console.log("fast ticking!");
             return; // miss if the interval is less than third of SET_TIMEOUT
         }
-            
+        */   
+        
         // burst the leftmost task, then nex leftmost task, etc.
         // by BURST_MIN minimal; BURST_TOTAL maximum; with BURST_CURRENT time slot
         var BURST_CURRENT = this.BURST_TOTAL / this.stacks_running.length;
         BURST_CURRENT = (BURST_CURRENT < this.BURST_MIN) ? this.BURST_MIN : BURST_CURRENT;
         
         // okay now burst the stack!
-        var ot = (new Date()).getTime(), i = 0, curtm = (new Date()).getTime();
-        var rt, st, steps,bc,j,ex_status;
+        var ot = (new Date()).getTime(), i = 0, rt = ot, st, steps,bc,j,ex_status, curtm = ot;
 
         // create a copy of currently bursting stack
         var stacks_running_copy = [].concat(this.stacks_running);
-        while ( (((new Date()).getTime() - ot) <= this.BURST_TOTAL) && stacks_running_copy[i] ) {
+        while ( ((rt - ot) <= this.BURST_TOTAL) && stacks_running_copy[i] ) {
             st = stacks_running_copy[i];
-            rt = (new Date()).getTime();
+            
             //steps = 0; // count steps for each bursting stack
             bc = BURST_CURRENT * st.throttle;
             
@@ -264,87 +267,93 @@ __jn_stacks = {
                 st.vm.global = st.stack.global_scope;
             }
             
-            
-            while ( (curtm - rt) <= bc ) {
-                // check for stop here and break then;
+            try {
+                while ( (curtm - rt) <= bc ) {
+                    // check for stop here and break then;
 
-                if(st.stack.STOP) {             // if st.stop -> move to sleeping
+                    if(st.stack.STOP) {             // if st.stop -> move to sleeping
 
-//                    console.log(this.stacks_running);
-//                    console.log(this.stacks_sleeping);
+    //                    console.log(this.stacks_running);
+    //                    console.log(this.stacks_sleeping);
 
-                    this.stacks_sleeping.push(st);
-                    //stacks_running_copy.splice(i,1);
-                    for(j=0; j<this.stacks_running.length;j++) {
-                        if(this.stacks_running[j] == st) {
-//                            console.log("sleeping (re)moving: "+st.pid + " r/s: "+this.stacks_running.length + "/" + this.stacks_sleeping.length);
-                            this.stacks_running.splice(j,1);
-                            break;
+                        this.stacks_sleeping.push(st);
+                        //stacks_running_copy.splice(i,1);
+                        for(j=0; j<this.stacks_running.length;j++) {
+                            if(this.stacks_running[j] == st) {
+    //                            console.log("sleeping (re)moving: "+st.pid + " r/s: "+this.stacks_running.length + "/" + this.stacks_sleeping.length);
+                                this.stacks_running.splice(j,1);
+                                break;
+                            }
                         }
+                        break;
                     }
-                    break;
-                }
-                // now step teh task
-                // WARNING! stepping could push another task into stacks_running
-                //          so the 'i' will not correspond to the right value anymore
-                //          so do the splices over there VERY carefully...
+                    // now step teh task
+                    // WARNING! stepping could push another task into stacks_running
+                    //          so the 'i' will not correspond to the right value anymore
+                    //          so do the splices over there VERY carefully...
+                    
+                    // ITHROW
+                    //ex_status = st.vm.step_next(st.stack);
+                    
                 
-                // ITHROW
-                //ex_status = st.vm.step_next(st.stack);
-                
-                try {
                     ////ex_status = false;
                     ex_status = st.vm.step_next(st.stack);
-                } catch (exc) { // will not stop scheduler!
+                    
+                    if(!ex_status) { // means the stack finished
+                        //stacks_running_copy.splice(i,1);
+                        for(j=0; j<this.stacks_running.length;j++) {
+                            if(this.stacks_running[j] == st) {
+                                this.stacks_running.splice(j,1);
+                                break;
+                            }
+                        }
+                        break;
+                    }
+                    
+                    curtm = (new Date()).getTime();
+                }
+            } catch (exc) { // will not stop scheduler!
                     if(window.console) {
 						console.log("TICK: Error exeuting next step:");
 						console.log(exc+" "+exc.stack+" f:"+exc.fileName+" l:"+exc.lineNumber);
                         EXCEPTION = exc;
 					}
-                    ex_status = false;
-                }
-                
-                if(!ex_status) { // means the stack finished
-                    //stacks_running_copy.splice(i,1);
                     for(j=0; j<this.stacks_running.length;j++) {
                         if(this.stacks_running[j] == st) {
                             this.stacks_running.splice(j,1);
                             break;
                         }
                     }
-                    break;
-                }
-                
-                curtm = (new Date()).getTime();
-            }
+             }
+            
             
             // switch context back...
             if(st.vm.ExecutionContext) { // might have been deleted
-	    st.stack.exc = st.vm.ExecutionContext.current; 
-            //st.vm.object_prototype = Object.prototype;
-            //Object.prototype = ObjectProto;
-            
-            // check object prototype dirtyness
-            
-            for(var o in Object.prototype) { 
-              st.vm.object_prototype_dirty = true;
-              // for normal properties
-              st.vm.object_prototype[o] = Object.prototype[o];
-              delete Object.prototype[o];
-            }
-            // for system props
-            for(var o in OBJECT_PROTOTYPE) {
-              if(OBJECT_PROTOTYPE[o] !== Object.prototype[o]) {
-                st.vm.object_prototype[o] = Object.prototype[o];
-                Object.prototype[o] = OBJECT_PROTOTYPE[o];
-              }
-            }
-            
+                st.stack.exc = st.vm.ExecutionContext.current; 
+                //st.vm.object_prototype = Object.prototype;
+                //Object.prototype = ObjectProto;
+                
+                // check object prototype dirtyness
+                
+                for(var o in Object.prototype) { 
+                  st.vm.object_prototype_dirty = true;
+                  // for normal properties
+                  st.vm.object_prototype[o] = Object.prototype[o];
+                  delete Object.prototype[o];
+                }
+                // for system props
+                for(var o in OBJECT_PROTOTYPE) {
+                  if(OBJECT_PROTOTYPE[o] !== Object.prototype[o]) {
+                    st.vm.object_prototype[o] = Object.prototype[o];
+                    Object.prototype[o] = OBJECT_PROTOTYPE[o];
+                  }
+                }
+                
 
-            
-            if(st.stack.global_scope) {
-                st.vm.global = st.vm.global_bak;
-            }
+                
+                if(st.stack.global_scope) {
+                    st.vm.global = st.vm.global_bak;
+                }
             }
             // in fact, the 'time diff' would have been not required since we're using BURST_CURRENT burst chunks
             // but because of the possibility of huge loads in parser and native methods
@@ -360,6 +369,7 @@ __jn_stacks = {
                 
             }
             i++;
+            rt = (new Date()).getTime();
         }
         
         // inline fast key sort
