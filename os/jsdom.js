@@ -268,8 +268,8 @@ Jnaric.prototype._importCSS = function (__tihs, src_uri, stop) {
             vm.ErrorConsole.log("importCSS('"+src_uri+"') failed with exception: "+rs.result);
         }
     };
-    
-    kIPC(__tihs, src_uri, "read", [], exec_f, onfail);
+    if(src_uri.indexOf("\n") != -1) exec_f({result: src_uri});
+    else kIPC(__tihs, src_uri, "read", [], exec_f, onfail);
     
 };
 
