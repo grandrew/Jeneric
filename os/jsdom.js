@@ -2468,7 +2468,8 @@ __CSSStyleSheet.prototype.insertRule = function (ruleStr, indx) {
     // now parse the rule
     // strip comments
     ruleStr = ruleStr.toString();
-    ruleStr.replace(/\/\*.+\*\//g, "");
+    // ruleStr = ruleStr.replace(/\/\*.+\*\//g, ""); // removing comments seems to be not required
+    ruleStr = ruleStr.replace("body", "div"); // TODO DOC: replacing 'body' with 'div' here
     if(ruleStr.match(/(})/g).length != 1) {
         throw "wrong rule!";
     }

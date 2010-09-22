@@ -2355,7 +2355,7 @@ DOMNode.prototype._getElementsByTagNameRecursive = function DOMNode__getElements
     }
 
     // recurse childNodes
-    for(var i = 0; i < this.childNodes.length; i++) {
+    for(var i = 0; i < this.childNodes._nodes.length; i++) {
     // TODO HERE: IE8: may have errors on the next line!
         //try {
             nodeList = this.childNodes.item(i)._getElementsByTagNameRecursive(tagname, nodeList);
