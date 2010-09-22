@@ -2353,12 +2353,13 @@ DOMNode.prototype._getElementsByTagNameRecursive = function DOMNode__getElements
     if((this.nodeName == tagname) || (tagname == "*")) {
       nodeList._appendChild(this);               // add matching node to nodeList
     }
-
+    var zz;
     // recurse childNodes
     for(var i = 0; i < this.childNodes._nodes.length; i++) {
     // TODO HERE: IE8: may have errors on the next line!
         //try {
-            nodeList = this.childNodes.item(i)._getElementsByTagNameRecursive(tagname, nodeList);
+            zz = this.childNodes.item(i);
+            if(zz) nodeList = zz._getElementsByTagNameRecursive(tagname, nodeList);
         //} catch (e) {
         //    if(window.console) console.log("Cannot handle null!!! in jsdom2/_getElementsByTagNameRecursive, removing");
         //    this.childNodes._nodes
