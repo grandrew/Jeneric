@@ -1890,7 +1890,7 @@ DOMNode.prototype.insertBefore = function DOMNode_insertBefore(newChild, refChil
   if (refChild) {                                // if refChild is specified, insert before it
     // find index of refChild
     var itemIndex = this.childNodes._findItemIndex(refChild._id);
-console.log(" ______:::::: "+itemIndex);
+
     // throw Exception if there is no child node with this id
     if (this.ownerDocument.implementation.errorChecking && (itemIndex < 0)) {
       throw(new DOMException(DOMException.NOT_FOUND_ERR));

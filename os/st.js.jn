@@ -1,6 +1,6 @@
 // Terminal-Based security module
 // LICENSE: GPL v.3 or later (C) 2010 Andrew Gryaznov realgrandrew@gmail.com, a.gryaznov@svoyaset.ru
-if(!security.state || !security.state.ipcIn) security.state = {  ipcIn: "inherit" };
+if(!security.state || !security.state.ipcIn) security.state = {  ipcIn: "inherit", ipcOut: {} };
 
 _include = include;
 PATH = {"~/lib":1, "/lib":1, "/jeneric.net/lib":1};
@@ -42,7 +42,7 @@ security.setSecurityState = function (state) {
 };
 
 security.getSecurityState = function() {
-    return {ipcIn: this.state.ipcIn};
+    return {ipcIn: this.state.ipcIn, ipcOut: this.state.ipcOut};
 };
 
 security.checkInherit = function (rq) {
@@ -56,11 +56,12 @@ security.checkInherit = function (rq) {
     }
     var lp = this.object.getMyURI().split("/")
     lp.pop();
-    if(!lp.length) { console.log("returning false!"); return this.state.inheritParent=false; }
+    if(!lp.length) { return this.state.inheritParent=false; }
     var d = this.object.execURI(lp.join("/"), "validateRequest", [rq]);
     this.state.inheritParent = d.inheritParent;
     return d.result;
 }
+
 security.rpath = new RegExp("^\\/bin|^\\/test|^\\/jeneric.net\\/bin");
 security.rslash = new RegExp("\\/", "g");
 // only deny if wrong paramed
@@ -70,22 +71,25 @@ security.signRequest = function (rq) {
         if(this.hasOwnProperty("path_allowed")) return this.path_allowed;
         if(type.match(this.rpath)) return true;
         var ohash = this.object.uri2id(type);
-	if(rq.uri == "/bin/checked/"+ohash) return true;
+        if(rq.uri == "/bin/checked/"+ohash) return true;
         try {
-            if(this.object.execURI("/bin/checked/"+ohash, "read", [])) {
-                this.path_allowed = true;
-                return true;
-            }
-        } catch (e) {
-        
-        }
+            this.object.execURI("/bin/checked/"+ohash, "read", [1]);
+            return (this.path_allowed = true);
+        } catch (e) { }
+        // TODO here: a more robust support for ipcOut, like wildcards
+        if(!this.state.ipcOut) this.state.ipcOut = {};
+        if(this.state.ipcOut[rq.uri]) 
+                for(var i=0; i<this.state.ipcOut[rq.uri].length; i++) 
+                        if(this.state.ipcOut[rq.uri][i] === rq.method) return true;
+        if(this.state.ipcOut["*"] == []) return false;
+        rq.uri=rq.uri+"";
         var stype = type.replace(this.rslash, "_");
-        if( (rq.uri.toString().charAt(0) == "~" && rq.uri.toString().indexOf("~/insecure/"+stype) == -1) || rq.uri.toString().indexOf("/home/"+this.object.kconfig("terminal_id")) != -1) {
-            return "signRenuest: only access to ~/insecure/* (local) and not /home/<terminal_id> (global) is allowed by this security policy";
-        }
-        if(rq.uri.toString().charAt(0) == "~" && (rq.method !== "read" && rq.method !== "write" && rq.method !== "listChildren" && rq.method !== "createChild")) {
-            return "signRequest: only 'read' and 'write' requests are allowed locally";
-        }
+        if( (rq.uri.charAt(0) == "~" && rq.uri.indexOf("~/insecure/"+stype) == -1) || rq.uri.indexOf("/home/"+this.object.kconfig("terminal_id")) != -1)
+                return "signRenuest: only access to ~/insecure/* (local) and not /home/<terminal_id> (global) is allowed by this security policy";
+        
+        if(rq.uri.charAt(0) == "~" && (rq.method !== "read" && rq.method !== "write" && rq.method !== "listChildren" && rq.method !== "createChild")) 
+                return "signRequest: only 'read' and 'write' requests are allowed locally";
+        
          
     }
     if(rq.method === "acl_validate") return false;
@@ -101,7 +105,7 @@ security.validateRequest = function (rq) {
 };
 
 security.ipc.validateRequest = function(obj, rq) {
-    if(!this.state || !this.state.ipcIn) this.state = {  ipcIn: "inherit" }; // patch for broken state?
+    if(!this.state || !this.state.ipcIn) this.state = {  ipcIn: "inherit", ipcOut:{} }; // patch for broken state?
     if(this.state.ipcIn === "inherit") return {result: this.checkInherit.call(this, rq), inheritParent: this.state.inheritParent};
     // if(this.state.ipcIn.charAt && (this.state.ipcIn.charAt(0) == "/" || this.state.ipcIn.charAt(0) == "~"))
     if(this.state.ipcIn == "*") return {result: true, inheritParent: this.object.getMyURI()};
