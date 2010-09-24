@@ -677,7 +677,7 @@ GLOBAL_METHODS = {
         
         var f = fun.node;
         var self = this;
-        
+        var lock = {run:false}; // to lock new threads of this timer until previous tick stack is finished
         //console.log("Normal call working...");
         
         
@@ -686,6 +686,8 @@ GLOBAL_METHODS = {
         var run_code = function () {
             // create a new execution context
             //this.step_next(g_stack);
+            if(lock.run) return; // skip if not finished
+            lock.run = true;
 
             if(typeof(args) != "undefined" ) {
                 var a = Array.prototype.splice.call(args, 0, args.length);
@@ -700,6 +702,10 @@ GLOBAL_METHODS = {
         
             var g_stack = new __Stack(x2);
             g_stack.push(S_EXEC, { n: f.body, x: x2, pmy: {} });
+            
+            g_stack.onfinish = g_stack.onerror = function () {
+                lock.run = false;
+            };
 
             __jn_stacks.add_task(self, g_stack, my_nice, self.throttle);
 
