@@ -677,17 +677,18 @@ GLOBAL_METHODS = {
         
         var f = fun.node;
         var self = this;
-        var lock = {run:false}; // to lock new threads of this timer until previous tick stack is finished
+        //var lock = {run:false}; // to lock new threads of this timer until previous tick stack is finished
         //console.log("Normal call working...");
-        
+        var tick = { last: null };
         
         var my_nice = __jn_stacks.__nice(this.cur_stack.pid);
         
         var run_code = function () {
             // create a new execution context
             //this.step_next(g_stack);
-            if(lock.run) return; // skip if not finished
-            lock.run = true;
+            //if(lock.run) return; // skip if not finished
+            //lock.run = true;
+            tick.last = (new Date()).getTime();
 
             if(typeof(args) != "undefined" ) {
                 var a = Array.prototype.splice.call(args, 0, args.length);
@@ -702,16 +703,20 @@ GLOBAL_METHODS = {
         
             var g_stack = new __Stack(x2);
             g_stack.push(S_EXEC, { n: f.body, x: x2, pmy: {} });
+            var callee = arguments.callee;
             
             g_stack.onfinish = g_stack.onerror = function () {
-                lock.run = false;
+                var ts = (new Date()).getTime();
+                var delay = millisec - (ts - tick.last);
+                setTimeout(callee, (delay > 0 ? delay : 1) );
+                //lock.run = false;
             };
 
             __jn_stacks.add_task(self, g_stack, my_nice, self.throttle);
 
             
         };
-        var t_id = setInterval(run_code, millisec);
+        var t_id = setTimeout(run_code, millisec);
         this.timeouts[t_id]=null; // TODO: clean out timeouts! (somehow??)
         this.timeouts.length++;
         if(this.timeouts.length > 5000) {
