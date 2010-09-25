@@ -85,15 +85,11 @@ __jn_stacks = {
         // XXX this becomes a very expensive function
         // first, count threads for that particular VM
         var i, counter = 0;
-        for(i=0;i<this.stacks_sleeping.length;i++) {
-            if(this.stacks_sleeping[i].vm == vm) counter++;
-            //if(this.stacks_sleeping[i].stack == stack) return this.stacks_sleeping[i].pid;
-        }
-        for(i=0;i<this.stacks_running.length;i++) {
-            if(this.stacks_running[i].vm == vm) counter++;
-            //if(this.stacks_running[i].stack == stack) return this.stacks_running[i].pid;
-        } 
-        
+        for(i=0;i<this.stacks_sleeping.length;i++) 
+                if(this.stacks_sleeping[i].vm == vm) counter++;
+        for(i=0;i<this.stacks_running.length;i++) 
+                if(this.stacks_running[i].vm == vm) counter++;
+
         if(counter > vm.MAX_THREADS) {
             vm.ErrorConsole.log("KERNEL Error: maximum amount of threads per this ("+vm.uri+") VM exceeded ("+counter+"); dropping thread creation"); // XXX jsobject mix here (vm.uri)
             var _err = new vm.global.InternalError("maximum amount of threads per this VM exceeded; dropping thread creation");
@@ -103,13 +99,12 @@ __jn_stacks = {
         }
         
         // TODO: security here??? / another exception thrown for security: SecurityError
-
+        nice = nice || 0;
+        throttle = throttle || 1;
         
         stack.pid = this.pid_counter++;
         stack.nice = nice;
-        if(typeof(nice) == "undefined") var nice = 0;
-        if(typeof(throttle) == "undefined") var throttle = 1;
-
+        
         // inline convert min_runtime to string
         var rts = this.min_runtime+"";
         
@@ -117,6 +112,7 @@ __jn_stacks = {
         
         // start the timer
         if(this.stacks_running.length == 1) {
+            /*
             var __tihs = this;
             var _clf = function () {
                 __tihs.tick();
@@ -124,8 +120,11 @@ __jn_stacks = {
             clearInterval(this.timer_id);
             //setTimeout(_clf, 0);
             this.timer_id = setInterval(_clf, this.SET_TIMEOUT);
+            */
+            this.timer_id = setTimeout(stacks_tick, 5);
         } else {
             // start a watchdog timeout ??
+            /*
             var _lmin = this.min_runtime;
             var __tihs = this;
             var _wf = function () {
@@ -139,6 +138,7 @@ __jn_stacks = {
                 }
             };
             setTimeout(_wf, this.SET_TIMEOUT * 3);
+            */
         }
         // else assume it is running ???
         
@@ -179,17 +179,11 @@ __jn_stacks = {
         // run the timer; if not already run
 //        console.log("i:"+i+"this.stacks_sleeping.length:"+this.stacks_sleeping.length+"this.stacks_running.length:"+this.stacks_running.length+"this.timer_id:"+this.timer_id);
         if( (i < l) && (this.stacks_running.length == 1) && (this.timer_id == null)) {
-            var __tihs = this;
-            var _clf = function () {
-                __tihs.tick();
-            };
-            //clearInterval(this.timer_id); // timer_id is null here
-            //setTimeout(_clf, 0);
-            //console.log("rst SI");
-            this.timer_id = setInterval(_clf, this.SET_TIMEOUT);
+            this.timer_id = setTimeout(stacks_tick, 5);
         } else {
             // start a watchdog timeout ??
             //console.log("rst WD");
+            /*
             var _lmin = this.min_runtime;
             var __tihs = this;
             var _wf = function () {
@@ -204,6 +198,8 @@ __jn_stacks = {
                 }
             };
             setTimeout(_wf, this.SET_TIMEOUT * 3);
+            
+            */
         }
         
         if(i == this.stacks_sleeping.length) return -1; // means not found or already running
@@ -270,46 +266,48 @@ __jn_stacks = {
             try {
                 while ( (curtm - rt) <= bc ) {
                     // check for stop here and break then;
+                    for(var i=0; i<100; i++) { // FOR loop is far faster than WHILE
 
-                    if(st.stack.STOP) {             // if st.stop -> move to sleeping
+                        if(st.stack.STOP) {             // if st.stop -> move to sleeping
 
-    //                    console.log(this.stacks_running);
-    //                    console.log(this.stacks_sleeping);
+        //                    console.log(this.stacks_running);
+        //                    console.log(this.stacks_sleeping);
 
-                        this.stacks_sleeping.push(st);
-                        //stacks_running_copy.splice(i,1);
-                        for(j=0; j<this.stacks_running.length;j++) {
-                            if(this.stacks_running[j] == st) {
-    //                            console.log("sleeping (re)moving: "+st.pid + " r/s: "+this.stacks_running.length + "/" + this.stacks_sleeping.length);
-                                this.stacks_running.splice(j,1);
-                                break;
+                            this.stacks_sleeping.push(st);
+                            //stacks_running_copy.splice(i,1);
+                            for(j=0; j<this.stacks_running.length;j++) {
+                                if(this.stacks_running[j] == st) {
+        //                            console.log("sleeping (re)moving: "+st.pid + " r/s: "+this.stacks_running.length + "/" + this.stacks_sleeping.length);
+                                    this.stacks_running.splice(j,1);
+                                    break;
+                                }
                             }
+                            break;
                         }
-                        break;
-                    }
-                    // now step teh task
-                    // WARNING! stepping could push another task into stacks_running
-                    //          so the 'i' will not correspond to the right value anymore
-                    //          so do the splices over there VERY carefully...
+                        // now step teh task
+                        // WARNING! stepping could push another task into stacks_running
+                        //          so the 'i' will not correspond to the right value anymore
+                        //          so do the splices over there VERY carefully...
+                        
+                        // ITHROW
+                        //ex_status = st.vm.step_next(st.stack);
+                        
                     
-                    // ITHROW
-                    //ex_status = st.vm.step_next(st.stack);
-                    
-                
-                    ////ex_status = false;
-                    ex_status = st.vm.step_next(st.stack);
-                    
-                    if(!ex_status) { // means the stack finished
-                        //stacks_running_copy.splice(i,1);
-                        for(j=0; j<this.stacks_running.length;j++) {
-                            if(this.stacks_running[j] == st) {
-                                this.stacks_running.splice(j,1);
-                                break;
+                        ////ex_status = false;
+                        ex_status = st.vm.step_next(st.stack);
+                        
+                        if(!ex_status) { // means the stack finished
+                            //stacks_running_copy.splice(i,1);
+                            for(j=0; j<this.stacks_running.length;j++) {
+                                if(this.stacks_running[j] == st) {
+                                    this.stacks_running.splice(j,1);
+                                    break;
+                                }
                             }
+                            break;
                         }
-                        break;
                     }
-                    
+                    if(st.stack.STOP || !ex_status) break; // double-check required..
                     curtm = (new Date()).getTime();
                 }
             } catch (exc) { // will not stop scheduler!
@@ -376,7 +374,7 @@ __jn_stacks = {
         //  perform sorting only if there is > 2 elements; otherwise do nothing or switch if there are two...
         if(this.stacks_running.length == 0) {
             // stop the timer; exit scheduler.
-            clearInterval(this.timer_id);
+            //clearInterval(this.timer_id);
             this.timer_id = null;
             return;
         }
@@ -392,6 +390,7 @@ __jn_stacks = {
         
         // set the min_runtime
         this.min_runtime = this.stacks_running[0].rt;
+        this.timer_id = setTimeout(stacks_tick, 5);
     },
     
     fast_sort_ret: function () {
@@ -445,8 +444,11 @@ __jn_stacks = {
         }
     }
 };
-
+function stacks_tick () {
+    __jn_stacks.tick();
+}
 var __jn_old_min_rt = __jn_stacks.min_runtime;
+/*
 function __jn_wd () {
     // check if the main timer is running
     if( (__jn_stacks.stacks_running.length > 0) && (__jn_old_min_rt == __jn_stacks.min_runtime)) {
@@ -459,7 +461,7 @@ function __jn_wd () {
     }
     __jn_old_min_rt = __jn_stacks.min_runtime;
 }
-
+*/
 // XXX DISABLED FOR DEBUGGING PURPOSES...
 // setInterval(__jn_wd, __jn_stacks.SET_TIMEOUT * 10); // 10 timeouts for check
 
@@ -705,18 +707,21 @@ GLOBAL_METHODS = {
             g_stack.push(S_EXEC, { n: f.body, x: x2, pmy: {} });
             var callee = arguments.callee;
             
+            /*
             g_stack.onfinish = g_stack.onerror = function () {
                 var ts = (new Date()).getTime();
                 var delay = millisec - (ts - tick.last);
                 setTimeout(callee, (delay > 0 ? delay : 1) );
                 //lock.run = false;
             };
+            */
 
             __jn_stacks.add_task(self, g_stack, my_nice, self.throttle);
 
             
         };
-        var t_id = setTimeout(run_code, millisec);
+        //var t_id = setTimeout(run_code, millisec);
+        var t_id = setInterval(run_code, millisec);
         this.timeouts[t_id]=null; // TODO: clean out timeouts! (somehow??)
         this.timeouts.length++;
         if(this.timeouts.length > 5000) {
