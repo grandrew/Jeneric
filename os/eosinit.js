@@ -652,9 +652,15 @@ hubConnection = {
                     
                     //if(window.console) console.log("Sending "+jsn);
                 } catch (e) {
-                    this.rqe[i]["r"]["status"] = "EEXCP"; // DOC document this too
-                    this.rqe[i]["r"]["result"] = "Could not parse JSON to send: "+e; // DOC document this too
-                    this.receive(this.rqe[i]["r"]);
+                    var rq_err = { id: this.rqe[i]["r"]["id"], 
+                                   status: "EEXCP", 
+                                   result: "Could not parse JSON to send: "+e,
+                                   session: this.rqe[i]["r"].session,
+                                   terminal_id: this.rqe[i]["r"].terminal_id
+                                 };
+                    //this.rqe[i]["r"]["status"] = "EEXCP"; // DOC document this too
+                    //this.rqe[i]["r"]["result"] = "Could not parse JSON to send: "+e; // DOC document this too
+                    this.receive(rq_err);
                     if(window.console) {
                         console.log("Error! Could not parse JSON to send: "+e);
                         __CPJS = this.rqe[i]["r"];
