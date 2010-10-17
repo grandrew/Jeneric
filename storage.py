@@ -571,8 +571,10 @@ def data_deleteObject(oid, uri, c):
     c.execute("SELECT child_uri from childlist where uri=%s", (uri,))
     #childlist = []
     # TODO warning! recursion!!
-    while (d=c.fetchone()): 
+    d=c.fetchone()
+    while d: 
         data_deleteObject(0, d[0], c);
+	d = c.fetchone()
         #childlist.append(d[0].split("/")[-1])
     
     c.execute("DELETE FROM childlist WHERE child_uri=%s", (uri,))
