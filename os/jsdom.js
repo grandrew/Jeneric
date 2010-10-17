@@ -1540,7 +1540,7 @@ function __Event(vm, event) { // ABI WARNING!! event objects are attached to a d
         if(event.button == 4) this.which = 2;
         if(event.button == 2) this.which = 3;
     }
-    if(this.which) this.button = this.which - 1;
+    if(this.which) this.button = this.which - 1; // WTF??
     
     // now get the wrapped target from our window document object
     

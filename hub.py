@@ -667,7 +667,12 @@ class Hub(StompClientFactory):
 
             #rq = json.decode(msg["body"]) # remove all these <<--
             if type(msg["body"]) == type(""): # for local static requests
-                rq = simplejson.loads(msg["body"])
+                try:
+                    rq = simplejson.loads(msg["body"])
+                except:
+                    # ignore it
+                    if DEBUG: print "Error! ibvalid JSON data:", msg["body"]
+                    return
             else:
                 rq = msg["body"] # for locally-bound ipc only
             
