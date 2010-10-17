@@ -655,12 +655,12 @@ hubConnection = {
                     this.rqe[i]["r"]["status"] = "EEXCP"; // DOC document this too
                     this.rqe[i]["r"]["result"] = "Could not parse JSON to send: "+e; // DOC document this too
                     this.receive(this.rqe[i]["r"]);
-                    delete this.rqe[i]; // XXX TODO how will it interact with property-iteration?
                     if(window.console) {
                         console.log("Error! Could not parse JSON to send: "+e);
                         __CPJS = this.rqe[i]["r"];
                         console.log("--- incident data saved to global variable __CPJS");
                     }
+                    delete this.rqe[i]; // XXX TODO how will it interact with property-iteration?
                 }
                 try {
                     this.stomp.send(jsn, HUB_PATH);
