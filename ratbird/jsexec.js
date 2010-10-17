@@ -108,7 +108,7 @@ __jn_stacks = {
         // inline convert min_runtime to string
         var rts = this.min_runtime+"";
         
-        this.stacks_running.unshift({pid: stack.pid, rt: this.min_runtime, rt_s: rts, vm: vm, stack: stack,  nice: nice, throttle: throttle});
+        this.stacks_running.unshift({pid: stack.pid, rt: this.min_runtime, rts: rts, vm: vm, stack: stack,  nice: nice, throttle: throttle});
         
         // start the timer
         if(this.stacks_running.length == 1) {
@@ -143,6 +143,8 @@ __jn_stacks = {
         // else assume it is running ???
         
         if(nice < -10) { // run immediately!
+/*
+	// we don't need so sort anything!
             if (this.stacks_running.length == 2) {
                 if(this.stacks_running[1].rt > this.stacks_running[0].rt) this.stacks_running.reverse();
             } else if (this.stacks_running.length > 2) { 
@@ -151,9 +153,10 @@ __jn_stacks = {
                 this.stacks_running.sort();
                 Object.prototype.toString = bak;
             }
-            
-            // set the min_runtime
-            this.min_runtime = this.stacks_running[0].rt;
+  */          
+            // set the min_runtime // why??
+            //this.min_runtime = this.stacks_running[0].rt;
+	    clearTimeout(this.timer_id);
             this.tick();
         }
         
@@ -162,23 +165,24 @@ __jn_stacks = {
     },
     
     start: function (pid) {
-        // move the process from sleeping to running state; set the time to (min_runtime-1)
+        // move the process from sleeping to running state; set the time to (min_runtime)
 
         var i, l=this.stacks_sleeping.length;
         for(i=0;i<l;i++)
             if(this.stacks_sleeping[i].pid == pid) break;
         //console.log("rst");
-        if(i < l) {
-            this.stacks_running.unshift(this.stacks_sleeping[i]);
-            this.stacks_running[0].rt = this.min_runtime;
-            this.stacks_running[0].rts = this.min_runtime + "";
-            this.stacks_sleeping.splice(i,1);
+        if(i == l) return -1; // means not found or already running
+        
+        this.stacks_running.unshift(this.stacks_sleeping[i]);
+        this.stacks_running[0].rt = this.min_runtime;
+        this.stacks_running[0].rts = this.min_runtime + "";
+        this.stacks_sleeping.splice(i,1);
             //console.log("rst found");
-        }
+        
         
         // run the timer; if not already run
 //        console.log("i:"+i+"this.stacks_sleeping.length:"+this.stacks_sleeping.length+"this.stacks_running.length:"+this.stacks_running.length+"this.timer_id:"+this.timer_id);
-        if( (i < l) && (this.stacks_running.length == 1) && (this.timer_id == null)) {
+        if( (this.stacks_running.length == 1) && (this.timer_id == null)) {
             this.timer_id = setTimeout(stacks_tick, 5);
         } else {
             // start a watchdog timeout ??
@@ -202,8 +206,7 @@ __jn_stacks = {
             */
         }
         
-        if(i == this.stacks_sleeping.length) return -1; // means not found or already running
-        else return pid;
+        return pid;
 
     },
     
@@ -266,7 +269,7 @@ __jn_stacks = {
             try {
                 while ( (curtm - rt) <= bc ) {
                     // check for stop here and break then;
-                    for(var i=0; i<100; i++) { // FOR loop is far faster than WHILE
+                    for(var i=0; i<50; i++) { // FOR loop is far faster than WHILE
 
                         if(st.stack.STOP) {             // if st.stop -> move to sleeping
 
@@ -379,7 +382,7 @@ __jn_stacks = {
             return;
         }
         else if (this.stacks_running.length == 2) {
-            if(this.stacks_running[1].rt > this.stacks_running[0].rt) this.stacks_running.reverse();
+            if(this.stacks_running[1].rt < this.stacks_running[0].rt) this.stacks_running.reverse();
         }
         else if (this.stacks_running.length > 2) { 
             var bak = Object.prototype.toString;
@@ -609,16 +612,18 @@ GLOBAL_METHODS = {
         g_stack.push(S_EXEC, { n: f.body, x: x2, pmy: {} });
         
         var my_nice = __jn_stacks.__nice(this.cur_stack.pid);
-        
+        var tick = {};
         var run_code = function () {
             // create a new execution context
             //this.step_next(g_stack);
             __jn_stacks.add_task(self, g_stack, my_nice, self.throttle);
+	    delete self.timeouts[tick.tid];
 
             
         };
         var t_id = setTimeout(run_code, millisec);
-        this.timeouts[t_id] = null; // TODO: clean out timeouts! (somehow??)
+        this.timeouts[t_id] = t_id; // TODO: clean out timeouts! (somehow??) // NO!! check if it works!! tick.tid!!
+	tick.tid = t_id;
         this.timeouts.length++;
         if(this.timeouts.length > 5000) {
             this.ErrorConsole.log("timeouts cache overflow; restart required!!");
@@ -663,7 +668,7 @@ GLOBAL_METHODS = {
 
         if(id in this.timeouts) {
 
-            clearTimeout(parseInt(id)); // ECMA... need to parse object to Int for setTimeout to work; this is changed behaviour
+            clearTimeout(this.timeouts[id]); 
         }
     },
     
@@ -707,22 +712,27 @@ GLOBAL_METHODS = {
             g_stack.push(S_EXEC, { n: f.body, x: x2, pmy: {} });
             var callee = arguments.callee;
             
-            /*
+            
             g_stack.onfinish = g_stack.onerror = function () {
                 var ts = (new Date()).getTime();
                 var delay = millisec - (ts - tick.last);
-                setTimeout(callee, (delay > 0 ? delay : 1) );
+		if (tick.tid in self.timeouts) {
+                  if(delay > 0) self.timeouts[tick.tid] = setTimeout(callee, delay);
+		  else callee(); // run just again
+		}
                 //lock.run = false;
             };
-            */
+            
 
             __jn_stacks.add_task(self, g_stack, my_nice, self.throttle);
 
             
         };
-        //var t_id = setTimeout(run_code, millisec);
-        var t_id = setInterval(run_code, millisec);
-        this.timeouts[t_id]=null; // TODO: clean out timeouts! (somehow??)
+        var t_id = setTimeout(run_code, millisec);
+        //var t_id = setInterval(run_code, millisec);
+	tick.tid = t_id; // XXX: here's how we can clean out timeouts!!
+
+        this.timeouts[t_id]=t_id; // TODO: clean out timeouts! (somehow??)
         this.timeouts.length++;
         if(this.timeouts.length > 5000) {
             this.ErrorConsole.log("timeouts cache overflow; restart required!!");
@@ -733,8 +743,10 @@ GLOBAL_METHODS = {
     
     clearInterval: function (id) {
         
-        if(id in this.timeouts)
-            clearInterval(id);
+        if(id in this.timeouts) {
+            clearInterval(this.timeouts[id]);
+	    delete this.timeouts[id];
+	}
     },
     
         
@@ -1734,8 +1746,8 @@ Jnaric.prototype.__abort = function () {
     this.onfinish = null; // TODO: should onfinish be fired on abort?? guess not.. but it must not be lost!
     for(var tm in this.timeouts) {
       //if(window.console) console.log("Removing tmid "+this.timeouts[tm]);
-      clearTimeout(parseInt(tm));
-      clearInterval(parseInt(tm));
+      clearTimeout(this.timeouts[tm]);
+      // clearInterval(this.timeouts[tm]); // not needed..??
     }
     //this.onerror = null;
 };
