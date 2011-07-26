@@ -1,6 +1,6 @@
 
 
-import psycopg2, httplib, time, string,simplejson, os.path, os
+import psycopg2, httplib, time, string,simplejson, os.path, os, sys
 from random import choice # for genhash
 
 
@@ -456,26 +456,50 @@ def data_deleteObject(oid, uri, c):
     
 def fetch_listing(base):
     c = pgconn.cursor()
-    c.execute("SELECT oid,size FROM files WHERE uri like %s", ("%s/%%" % base,))
+    print "Doing select ...", "SELECT oid,size FROM files WHERE uri like %s" % ("%s%%" % base,), 
+    #c.execute("SELECT oid,size FROM files WHERE uri like %s", ("%s/%%" % base,))
+    c.execute("SELECT uri, oid FROM files WHERE uri like '%s%%'" % base)
     d = c.fetchall();
     if d is None:
         rq["status"] = "EEXCP"
         rq["result"] = "object not found by URI" # TODO: normalize error messages!
         c.close()
+	print "failed."
         return -1
+    print "length", len(d)
     ret = []
     for entry in d:
-      ret.append(entry[0])
+      print "appending path", entry
+      ret.append(entry)
+    c.close()
     return ret
   
 def fetch_data(loids, base):
+    c = pgconn.cursor()
     for oid in loids:
-      rem = oid.split('base')[1]
-      os.makedirs(os.path.dirname(rem))
-      file(rem, 'wb').write(data_read(oid, []))
+        hasChild = len(data_listChildren(oid[1], c, None))
+        rem = oid[0].split(base)[1]
+        if hasChild:
+            print "Creating direcotry", rem
+            try:
+                os.makedirs(rem)
+            except OSError, e:
+                if e.errno != 17: print "Failed to create dir:", rem
+            data = data_read(oid[1], [])
+            if len(data) > 1:
+                dob = rem+".___"
+                print "Creating directory dataobject", dob
+                file(dob, 'wb').write(data_read(oid[1], []))
+        else:
+            print "Creating file", rem
+            try:
+                os.makedirs(os.path.dirname(rem))
+            except OSError, e:
+                if e.errno != 17 and len(os.path.dirname(rem)) > 0: print "Cannot create", rem, "(",os.path.dirname(rem)  , ")", "path"
+            file(rem, 'wb').write(data_read(oid[1], []))
 
 def main():
-    jn_path = sys.argv[0]
+    jn_path = sys.argv[1]
     if jn_path[-1] != "/":
       jn_path += "/"
     fs_path = os.getcwd() # unused
@@ -522,5 +546,6 @@ def createObject(fullURI, ownerTerminalList, methodList):
     pgconn.commit()
     c.close();
 
-
+if __name__ == '__main__':
+  main()
     
