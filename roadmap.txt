@@ -1,4 +1,13 @@
-﻿http://go.jeneric.net:9000/#terminal_id=home,terminal_key=qw34rt
+﻿FROM SCRATCH
+- make jeneric compatuble with LAMP/LAMPy server
+- make jeneric very portable
+- make jeneric very maintainable
+- create jeneric software package format
+- publicly publish
+
+---------------------------
+
+http://go.jeneric.net:9000/#terminal_id=home,terminal_key=qw34rt
 http://go.jeneric.net:9000/#terminal_id=grandtest,terminal_key=aaaaaa
 
 GLOBAL JEOS3 ROADMAP
