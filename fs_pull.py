@@ -498,6 +498,8 @@ def fetch_data(loids, base):
                 if e.errno != 17 and len(os.path.dirname(rem)) > 0: print "Cannot create", rem, "(",os.path.dirname(rem)  , ")", "path"
             file(rem, 'wb').write(data_read(oid[1], []))
 
+#def push_data()
+
 def main():
     jn_path = sys.argv[1]
     if jn_path[-1] != "/":
