@@ -460,7 +460,7 @@ def fetch_listing(base):
     #c.execute("SELECT oid,size FROM files WHERE uri like %s", ("%s/%%" % base,))
     c.execute("SELECT uri, oid FROM files WHERE uri like '%s%%'" % base)
     d = c.fetchall();
-    if d is None:
+    if len(d) == 0:
         rq["status"] = "EEXCP"
         rq["result"] = "object not found by URI" # TODO: normalize error messages!
         c.close()
@@ -498,14 +498,58 @@ def fetch_data(loids, base):
                 if e.errno != 17 and len(os.path.dirname(rem)) > 0: print "Cannot create", rem, "(",os.path.dirname(rem)  , ")", "path"
             file(rem, 'wb').write(data_read(oid[1], []))
 
-#def push_data()
+
+def isObjectExists(uri):
+    c = pgconn.cursor()
+    c.execute("SELECT * FROM files WHERE uri = %s", (uri,))
+    d = c.fetchone();
+    if d is None:
+        c.close()
+        return False
+    c.close()
+    return True
+
+
+def push_data(base):
+    c = pgconn.cursor()
+    for root, dirs, files in os.walk("."):
+        for oid in dirs:
+            uri =os.path.join(base, os.path.join(root, oid)).replace("./", "")
+            if ".git" in uri: continue
+            if not isObjectExists(uri):
+                print oid, ": Creating dir-like object", uri
+                createObject(uri, ADMIN_TERMINALS, METHODS_FULL_ACCESS)
+            else:
+                print oid, ": Skipping creation of existing dir-like object", uri
+        for oid in files:
+            oid = os.path.join(root, oid).replace("./", "")
+            if ".git" in oid: continue
+            print "oid:", oid
+            f = open(oid, "rb").read()
+            if os.path.split(oid)[-2] == os.path.split(oid)[-1] + ".___":
+                uri = os.path.join(base, os.path.split(oid)[:-1])
+            else:
+                uri = os.path.join(base, oid)
+            if not isObjectExists(uri):
+                print oid, ": Creating file-like object", uri
+                createObject(uri, ADMIN_TERMINALS, METHODS_FULL_ACCESS)
+            else:
+                print oid, ": Skipping creation of existing file-like object", uri
+            c.execute("SELECT oid,size FROM files WHERE uri=%s", (uri,));
+            data_write(c.fetchone()[0], c, len(f), [f])
+    c.close()
 
 def main():
-    jn_path = sys.argv[1]
-    if jn_path[-1] != "/":
-      jn_path += "/"
-    fs_path = os.getcwd() # unused
-    fetch_data(fetch_listing(jn_path), jn_path)
+    jn_path = sys.argv[2]
+    if sys.argv[1] == 'pull':
+        if jn_path[-1] != "/":
+          jn_path += "/"
+        fs_path = os.getcwd() # unused
+        fetch_data(fetch_listing(jn_path), jn_path)
+    elif sys.argv[1] == 'push':
+        push_data(jn_path)
+    else:
+        print "Usage: ", sys.argv[0], "<jn-base uri>"
 
 def createObject(fullURI, ownerTerminalList, methodList):
     # XXX will not fail when object already exists
