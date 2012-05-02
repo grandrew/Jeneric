@@ -1,4 +1,5 @@
-
+# usage: fs_pull <push/pull> jeneric uri base
+# (working with current directory) 
 
 import psycopg2, httplib, time, string,simplejson, os.path, os, sys
 from random import choice # for genhash
@@ -510,7 +511,7 @@ def isObjectExists(uri):
     return True
 
 
-def push_data(base):
+def push_data(base, ignore_ext =[]):
     c = pgconn.cursor()
     for root, dirs, files in os.walk("."):
         for oid in dirs:
@@ -522,12 +523,21 @@ def push_data(base):
             else:
                 print oid, ": Skipping creation of existing dir-like object", uri
         for oid in files:
-            oid = os.path.join(root, oid).replace("./", "")
+	    ign_flag = False
+            for ext in ignore_ext:
+	        if oid[-len(ext):] == ext:
+		    print "Ignoring OID", oid, "because ignore-ext supplied:", ext
+		    ign_flag = True
+		    break
+            if ign_flag: continue # do an ignore
+	    oid = os.path.join(root, oid).replace("./", "")
             if ".git" in oid: continue
             print "oid:", oid
             f = open(oid, "rb").read()
-            if os.path.split(oid)[-2] == os.path.split(oid)[-1] + ".___":
-                uri = os.path.join(base, os.path.split(oid)[:-1])
+            #if os.path.split(oid)[-2] == os.path.split(oid)[-1] + ".___":
+            #    uri = os.path.join(base, os.path.split(oid)[:-1])
+            if oid[-4:] == ".___":
+                uri = os.path.join(base, oid[:-4])
             else:
                 uri = os.path.join(base, oid)
             if not isObjectExists(uri):
@@ -537,17 +547,23 @@ def push_data(base):
                 print oid, ": Skipping creation of existing file-like object", uri
             c.execute("SELECT oid,size FROM files WHERE uri=%s", (uri,));
             data_write(c.fetchone()[0], c, len(f), [f])
+    pgconn.commit()
     c.close()
 
 def main():
     jn_path = sys.argv[2]
+    if len(sys.argv) == 4:
+        ignore_ext = sys.argv[3].split(",")
+	print "Ignoring list:", ignore_ext
+    else:
+        ignore_ext = []
     if sys.argv[1] == 'pull':
         if jn_path[-1] != "/":
           jn_path += "/"
         fs_path = os.getcwd() # unused
         fetch_data(fetch_listing(jn_path), jn_path)
     elif sys.argv[1] == 'push':
-        push_data(jn_path)
+        push_data(jn_path, ignore_ext)
     else:
         print "Usage: ", sys.argv[0], "<jn-base uri>"
 
@@ -594,4 +610,6 @@ def createObject(fullURI, ownerTerminalList, methodList):
 
 if __name__ == '__main__':
   main()
-    
+
+# test
+

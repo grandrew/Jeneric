@@ -5,6 +5,10 @@
 - create jeneric software package format
 - publicly publish
 
+BUGS:
+- storage.py cannot delete recursively
+- interhub does not throw correct errors when registering with duplicate name
+
 ---------------------------
 
 http://go.jeneric.net:9000/#terminal_id=home,terminal_key=qw34rt
